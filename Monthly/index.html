@@ -261,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.21</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.22</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1438,16 +1438,13 @@ async function downloadPDF(){
         field.acroField.dict.set(PDFName.of('DA'), PDFLib.PDFString.of('/IPAexGothic 10 Tf 0 g'));
 
         if(str !== '') {
-          // UTF-16BEで/Vに直接書き込み
-          const buf = new Uint8Array((str.length + 1) * 2);
-          buf[0] = 0xFE; buf[1] = 0xFF;
+          // UTF-16BE HexStringとして書き込む
+          // PDFHexStringはsave()時にWinAnsiチェックが走らない
+          let hex = 'FEFF';
           for(let i = 0; i < str.length; i++){
-            buf[(i+1)*2]   = (str.charCodeAt(i) >> 8) & 0xFF;
-            buf[(i+1)*2+1] = str.charCodeAt(i) & 0xFF;
+            hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
           }
-          let s = '';
-          for(let i = 0; i < buf.length; i++) s += String.fromCharCode(buf[i]);
-          const vStr = PDFLib.PDFString.of(s);
+          const vStr = PDFLib.PDFHexString.of(hex);
           field.acroField.dict.set(PDFName.of('V'), vStr);
           field.acroField.getWidgets().forEach(w => {
             w.dict.set(PDFName.of('V'), vStr);
