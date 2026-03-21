@@ -41,6 +41,8 @@ header h1{font-size:1.05rem;font-weight:700;letter-spacing:.05em;flex:1;}
 select{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:.92rem;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;}
 select:focus{border-color:var(--accent);}
 .month-info{margin-left:auto;font-size:.78rem;color:var(--text2);text-align:right;line-height:1.7;}
+.btn-month-nav{border:1.5px solid var(--border);border-radius:6px;padding:6px 12px;font-size:.9rem;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--accent);font-family:inherit;transition:all .15s;}
+.btn-month-nav:hover{background:var(--accent);color:#fff;}
 .month-info .main-month{font-size:.95rem;font-weight:700;color:var(--accent);}
 
 /* セクションカード共通 */
@@ -108,8 +110,8 @@ textarea.fi{resize:vertical;min-height:36px;}
 .meter-block{padding:6px 0 3px;border-bottom:1px solid #f0f2f5;}
 .meter-block:last-child{border-bottom:none;}
 .meter-row{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;align-items:center;}
-.meter-label{font-size:.8rem;font-weight:600;color:var(--text2);}
-.meter-input{border:1.5px solid var(--border);border-radius:6px;padding:8px 5px;font-size:.9rem;text-align:right;width:100%;background:var(--surface);color:var(--text);outline:none;transition:border-color .15s;-moz-appearance:textfield;}
+.meter-label{font-size:.88rem;font-weight:700;color:var(--text2);}
+.meter-input{border:1.5px solid var(--border);border-radius:6px;padding:8px 5px;font-size:1rem;text-align:right;width:100%;background:var(--surface);color:var(--text);outline:none;transition:border-color .15s;-moz-appearance:textfield;}
 .meter-input::-webkit-outer-spin-button,.meter-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 .meter-input:focus{border-color:var(--accent);background:#fafcff;}
 .meter-input.auto{background:var(--surface2);border-style:dashed;}
@@ -127,6 +129,10 @@ textarea.fi{resize:vertical;min-height:36px;}
 .fixed-item{display:flex;flex-direction:column;gap:3px;}
 .fixed-label{font-size:.72rem;font-weight:700;color:var(--text2);}
 .fixed-item.full{grid-column:1/-1;}
+.capacity-row{display:flex;align-items:center;gap:8px;}
+.capacity-now{flex:1;text-align:right;}
+.capacity-all{flex:1;text-align:left;}
+.capacity-sep{font-size:1.1rem;font-weight:700;color:var(--text2);flex-shrink:0;}
 
 /* アクションエリア */
 .action-area{background:var(--surface);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;margin-bottom:14px;}
@@ -267,7 +273,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.31</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.02</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -275,10 +281,14 @@ textarea.fi{resize:vertical;min-height:36px;}
 
 <!-- ① 月選択 -->
 <div class="month-card">
-  <label>対象年月</label>
-  <div class="month-selectors">
-    <div class="select-wrap"><select id="sel-year"></select><span>年</span></div>
-    <div class="select-wrap"><select id="sel-month"></select><span>月</span></div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;">
+    <label style="font-size:.9rem;font-weight:700;color:var(--text2);">対象年月</label>
+    <button class="btn-month-nav" onclick="changeMonthBy(-1)">◀</button>
+    <div class="month-selectors">
+      <div class="select-wrap"><select id="sel-year" style="font-size:1rem;font-weight:700;"></select><span style="font-size:1rem;font-weight:700;">年</span></div>
+      <div class="select-wrap"><select id="sel-month" style="font-size:1rem;font-weight:700;"></select><span style="font-size:1rem;font-weight:700;">月</span></div>
+    </div>
+    <button class="btn-month-nav" onclick="changeMonthBy(1)">▶</button>
   </div>
   <div class="month-info" id="month-info"></div>
 </div>
@@ -745,18 +755,21 @@ function buildTableRows(containerId, prefixes, count, labels, useDynamic=false){
     // 全項目を順番に出力
     // スマホのふわっとはCSSクラスで制御
     const dateIdx = prefixes.findIndex(p=>p.endsWith('_D'));
+    // 2番目の項目（部屋番号・業務内容など）のインデックス
+    const secondVisibleIdx = dateIdx >= 0 ? (dateIdx === 0 ? 1 : 0) : -1;
     prefixes.forEach((pf,pi)=>{
       const id=`${pf}${i}`;
-      // 日付以外はtd-sub-itemクラスを付ける（スマホでふわっと対象）
-      if(pi !== dateIdx && dateIdx >= 0){
-        html += makeTdHtml(pf, pi, id, labels, containerId, i, count, useDynamic, prefixes, true);
-      } else {
-        // 日付欄：onchangeにopenSubRowを追加
+      // 日付・2番目以外はtd-sub-itemクラスを付ける
+      const isHidden = dateIdx >= 0 && pi !== dateIdx && pi !== secondVisibleIdx;
+      if(pi === dateIdx){
+        // 日付欄：onfocusにopenSubRowを追加
         const pf2=prefixes[dateIdx], id2=`${pf2}${i}`;
         const dynAttr = useDynamic
           ? `onfocus="onDateFocus(this,'${containerId}',${i},${count})" onchange="onDatePickDay(this,'${containerId}',${i},${count})"`
           : `onfocus="onDateFocus(this,'${containerId}',${i},0)" onchange="onDatePickDay(this,null,0,0)"`;
         html += `<td class="td-date" data-label="${labels[dateIdx]||''}"><input class="fi date-input" type="date" id="${id2}" ${dynAttr}></td>`;
+      } else {
+        html += makeTdHtml(pf, pi, id, labels, containerId, i, count, useDynamic, prefixes, isHidden);
       }
     });
 
@@ -777,7 +790,7 @@ function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynami
   const lbl = labels[pi]||'';
 
   if(isDatePicker){
-    return `<td class="${isSub?'td-sub-item ':''}">` + `<input class="fi date-input" type="date" id="${id}" placeholder="${lbl}"></td>`;
+    return `<td class="${isSub?'td-sub-item ':''}date-input-td" data-label="${lbl}"><input class="fi date-input" type="date" id="${id}" placeholder="${lbl}"></td>`;
   }
   if(isVisTime||isAccTime){
     return `<td class="${isSub?'td-sub-item ':''}td-time" data-label="${lbl}"><input class="fi date-input" type="time" id="${id}" placeholder="${lbl}"></td>`;
@@ -1050,12 +1063,14 @@ function onMonthChange(){
   const mm=String(currentMonth).padStart(2,'0');
   const firstDay=`${currentADYear}-${mm}-01`;
   const lastDay=`${currentADYear}-${mm}-${new Date(currentADYear,currentMonth,0).getDate()}`;
-  document.querySelectorAll('input[type="date"].date-input').forEach(el=>{
-    if(!el.id.startsWith('Elec_')&&!el.id.startsWith('Water_')&&el.id!=='KEY_Check'){
-      el.min=firstDay;
-      el.max=lastDay;
-    }
-  });
+  setTimeout(()=>{
+    document.querySelectorAll('input[type="date"].date-input').forEach(el=>{
+      if(!el.id.startsWith('Elec_')&&!el.id.startsWith('Water_')&&el.id!=='KEY_Check'){
+        el.min=firstDay;
+        el.max=lastDay;
+      }
+    });
+  },100);
 
   const g=adToGengo(currentADYear);
   const pm=prevMonthAD(currentADYear,currentMonth);
@@ -1075,6 +1090,16 @@ function onMonthChange(){
 // データ読み込み
 // ============================================================
 function loadCurrentMonth(){
+  // 動的行を全部リセット（tr-hiddenに戻す）してからデータ読み込み
+  ['rec-rows','res-rows','vis-rows','ins-rows','rep-rows','acc-rows','eve-rows'].forEach(tid=>{
+    const tbody=document.getElementById(tid);
+    if(!tbody) return;
+    tbody.querySelectorAll('tr').forEach((tr,idx)=>{
+      if(idx>0) tr.classList.add('tr-hidden');
+      // サブ項目も閉じる
+      tr.querySelectorAll('.td-sub-item').forEach(el=>el.classList.remove('open'));
+    });
+  });
   const current  = loadFromStorage(currentADYear, currentMonth);
   const pm       = prevMonthAD(currentADYear, currentMonth);
   const ly       = lastYearAD(currentADYear, currentMonth);
@@ -1617,6 +1642,18 @@ async function downloadPDF(){
   }
 }
 
+
+// 前月・来月ボタン
+function changeMonthBy(delta){
+  const selYear=document.getElementById('sel-year');
+  const selMonth=document.getElementById('sel-month');
+  let y=parseInt(selYear.value), m=parseInt(selMonth.value)+delta;
+  if(m<1){m=12;y--;}
+  if(m>12){m=1;y++;}
+  if(y<parseInt(selYear.min||2021)||y>parseInt(selYear.max||2045)) return;
+  selYear.value=y; selMonth.value=m;
+  onMonthChange();
+}
 
 // 起動
 init();
