@@ -68,6 +68,12 @@ input[type="date"],input[type="time"]{
   box-sizing:border-box !important;
   min-width:0 !important;
 }
+/* テーブル内の日付欄が枠から飛び出さないように */
+.form-table td input[type="date"],
+.form-table td input[type="time"]{
+  max-width:100% !important;
+  width:100% !important;
+}
 .fi:focus{border-color:var(--accent);background:#fafcff;}
 .fi.date-input{text-align:center;}
 .fi.date-input.invalid{border-color:#c0392b;background:#fff0f0;}
@@ -261,7 +267,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.30</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.31</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -748,8 +754,8 @@ function buildTableRows(containerId, prefixes, count, labels, useDynamic=false){
         // 日付欄：onchangeにopenSubRowを追加
         const pf2=prefixes[dateIdx], id2=`${pf2}${i}`;
         const dynAttr = useDynamic
-          ? `onchange="onDatePickDay(this,'${containerId}',${i},${count});openSubRow(this,'${containerId}',${i})"`
-          : `onchange="onDatePickDay(this,null,0,0);openSubRow(this,'${containerId}',${i})"`;
+          ? `onfocus="onDateFocus(this,'${containerId}',${i},${count})" onchange="onDatePickDay(this,'${containerId}',${i},${count})"`
+          : `onfocus="onDateFocus(this,'${containerId}',${i},0)" onchange="onDatePickDay(this,null,0,0)"`;
         html += `<td class="td-date" data-label="${labels[dateIdx]||''}"><input class="fi date-input" type="date" id="${id2}" ${dynAttr}></td>`;
       }
     });
@@ -793,6 +799,18 @@ function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynami
 }
 
 // 行内ふわっと：日付入力時にサブ項目を表示
+// ② 日付にフォーカスしたら全項目表示＋次行表示
+function onDateFocus(dateEl, containerId, rowIdx, maxCount){
+  // サブ項目をふわっと表示
+  const tr = document.getElementById(`${containerId}_tr${rowIdx}`);
+  if(tr) tr.querySelectorAll('.td-sub-item').forEach(el=>el.classList.add('open'));
+  // 次行も表示
+  if(maxCount > 0 && rowIdx < maxCount){
+    const nextTr = document.getElementById(`${containerId}_tr${rowIdx+1}`);
+    if(nextTr) nextTr.classList.remove('tr-hidden');
+  }
+}
+
 function openSubRow(dateEl, containerId, rowIdx){
   // その行のtd-sub-itemを全部取得してopenクラスを切り替え
   const tr = document.getElementById(`${containerId}_tr${rowIdx}`);
@@ -882,7 +900,14 @@ function restoreDynamicRows(containerId, prefixes, count){
       const nextTr=document.getElementById(`${containerId}_tr${i+1}`);
       if(nextTr) nextTr.classList.remove('tr-hidden');
     }
-
+    // ③ 日付に値があればサブ項目も表示
+    const datePrefix=prefixes.find(p=>p.endsWith('_D'));
+    if(datePrefix){
+      const dateEl=document.getElementById(`${datePrefix}${i}`);
+      if(dateEl && dateEl.value){
+        tr.querySelectorAll('.td-sub-item').forEach(el=>el.classList.add('open'));
+      }
+    }
   }
 }
 
@@ -1020,6 +1045,17 @@ function onMonthChange(){
   }
 
   currentADYear=newADYear; currentMonth=newMonth;
+
+  // ④ 日付inputのmin/maxを選択中の月に設定（カレンダーの初期月）
+  const mm=String(currentMonth).padStart(2,'0');
+  const firstDay=`${currentADYear}-${mm}-01`;
+  const lastDay=`${currentADYear}-${mm}-${new Date(currentADYear,currentMonth,0).getDate()}`;
+  document.querySelectorAll('input[type="date"].date-input').forEach(el=>{
+    if(!el.id.startsWith('Elec_')&&!el.id.startsWith('Water_')&&el.id!=='KEY_Check'){
+      el.min=firstDay;
+      el.max=lastDay;
+    }
+  });
 
   const g=adToGengo(currentADYear);
   const pm=prevMonthAD(currentADYear,currentMonth);
