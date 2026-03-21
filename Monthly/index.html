@@ -236,16 +236,18 @@ textarea.fi{resize:vertical;min-height:36px;}
   .form-table td input{width:100%;box-sizing:border-box;}
   /* date/timeのplaceholder代替：ラベルをdata-labelで表示済みなので追加不要 */
   .form-table td.td-date input:not([value=""]):not([value]){color:var(--text);}
-  /* 行内ふわっと：日付以外の項目を非表示→日付入力で表示 */
-  .td-sub-row{
+  /* 行内ふわっと：日付以外のtdを非表示→日付入力で表示 */
+  .td-sub-item{
     overflow:hidden;
-    max-height:0;
+    max-height:0 !important;
     opacity:0;
+    padding:0 !important;
     transition:max-height .35s ease, opacity .3s ease;
   }
-  .td-sub-row.open{
-    max-height:1000px;
+  .td-sub-item.open{
+    max-height:200px !important;
     opacity:1;
+    padding:0 0 6px 0 !important;
   }
   .row-num{
     display:block;font-size:.88rem;font-weight:700;color:var(--accent);
@@ -259,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.13</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.14</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -734,24 +736,23 @@ function buildTableRows(containerId, prefixes, count, labels, useDynamic=false){
 
     let html=`<td class="row-num">${i}行目</td>`;
 
-    // 日付欄を先頭に表示
+    // 全項目を順番に出力
+    // スマホのふわっとはCSSクラスで制御
     const dateIdx = prefixes.findIndex(p=>p.endsWith('_D'));
-    if(dateIdx>=0){
-      const pf=prefixes[dateIdx], id=`${pf}${i}`;
-      const dynAttr = useDynamic
-        ? `onchange="onDatePickDay(this,'${containerId}',${i},${count});openSubRow('${containerId}_sub${i}',this)"`
-        : `onchange="onDatePickDay(this,null,0,0);openSubRow('${containerId}_sub${i}',this)"`;
-      html += `<td class="td-date" data-label="${labels[dateIdx]||''}"><input class="fi date-input" type="date" id="${id}" ${dynAttr}></td>`;
-    }
-
-    // 残り項目をtd-sub-rowでラップ（スマホでふわっと表示）
-    html += `<div class="td-sub-row" id="${containerId}_sub${i}">`;
     prefixes.forEach((pf,pi)=>{
-      if(pi===dateIdx) return;
       const id=`${pf}${i}`;
-      html += makeTdHtml(pf, pi, id, labels, containerId, i, count, useDynamic, prefixes);
+      // 日付以外はtd-sub-itemクラスを付ける（スマホでふわっと対象）
+      if(pi !== dateIdx && dateIdx >= 0){
+        html += makeTdHtml(pf, pi, id, labels, containerId, i, count, useDynamic, prefixes, true);
+      } else {
+        // 日付欄：onchangeにopenSubRowを追加
+        const pf2=prefixes[dateIdx], id2=`${pf2}${i}`;
+        const dynAttr = useDynamic
+          ? `onchange="onDatePickDay(this,'${containerId}',${i},${count});openSubRow(this,'${containerId}',${i})"`
+          : `onchange="onDatePickDay(this,null,0,0);openSubRow(this,'${containerId}',${i})"`;
+        html += `<td class="td-date" data-label="${labels[dateIdx]||''}"><input class="fi date-input" type="date" id="${id2}" ${dynAttr}></td>`;
+      }
     });
-    html += '</div>';
 
     tr.insertAdjacentHTML('beforeend', html);
     tbody.appendChild(tr);
@@ -760,7 +761,7 @@ function buildTableRows(containerId, prefixes, count, labels, useDynamic=false){
 }
 
 // td要素のHTML生成（buildTableRowsのヘルパー）
-function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynamic, prefixes){
+function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynamic, prefixes, isSub=false){
   const isDatePicker = pf.endsWith('_S');
   const isDayInput   = pf.endsWith('_D');
   const isVisTime    = pf==='Vis_T';
@@ -770,10 +771,10 @@ function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynami
   const lbl = labels[pi]||'';
 
   if(isDatePicker){
-    return `<td data-label="${lbl}"><input class="fi date-input" type="date" id="${id}" placeholder="${lbl}"></td>`;
+    return `<td class="${isSub?'td-sub-item ':''}">` + `<input class="fi date-input" type="date" id="${id}" placeholder="${lbl}"></td>`;
   }
   if(isVisTime||isAccTime){
-    return `<td class="td-time" data-label="${lbl}"><input class="fi date-input" type="time" id="${id}" placeholder="${lbl}"></td>`;
+    return `<td class="${isSub?'td-sub-item ':''}td-time" data-label="${lbl}"><input class="fi date-input" type="time" id="${id}" placeholder="${lbl}"></td>`;
   }
   if(isDayInput){
     const dynAttr = useDynamic
@@ -784,21 +785,23 @@ function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynami
   if(isRoomNum){
     // inputmode="numeric" → 数字・記号キーボードをデフォルトに
     const dynAttr = isLastCol ? `oninput="onLastColInput(this,'${containerId}',${rowIdx},${maxCount})"` : '';
-    return `<td class="td-room" data-label="${lbl}"><input class="fi" type="text" inputmode="numeric" id="${id}" placeholder="${lbl}" ${dynAttr}></td>`;
+    return `<td class="${isSub?'td-sub-item ':''}td-room" data-label="${lbl}"><input class="fi" type="text" inputmode="numeric" id="${id}" placeholder="${lbl}" ${dynAttr}></td>`;
   }
   // 通常テキスト
   const dynAttr = (useDynamic && isLastCol) ? `oninput="onLastColInput(this,'${containerId}',${rowIdx},${maxCount})"` : '';
-  return `<td data-label="${lbl}"><input class="fi" type="text" id="${id}" placeholder="${lbl}" ${dynAttr}></td>`;
+  return `<td class="${isSub?'td-sub-item ':''}" data-label="${lbl}"><input class="fi" type="text" id="${id}" placeholder="${lbl}" ${dynAttr}></td>`;
 }
 
 // 行内ふわっと：日付入力時にサブ項目を表示
-function openSubRow(subId, dateEl){
-  const sub = document.getElementById(subId);
-  if(!sub) return;
+function openSubRow(dateEl, containerId, rowIdx){
+  // その行のtd-sub-itemを全部取得してopenクラスを切り替え
+  const tr = document.getElementById(`${containerId}_tr${rowIdx}`);
+  if(!tr) return;
+  const subItems = tr.querySelectorAll('.td-sub-item');
   if(dateEl && dateEl.value){
-    sub.classList.add('open');
+    subItems.forEach(el=>el.classList.add('open'));
   } else {
-    sub.classList.remove('open');
+    subItems.forEach(el=>el.classList.remove('open'));
   }
 }
 
