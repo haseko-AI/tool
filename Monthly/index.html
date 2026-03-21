@@ -261,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.22</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.24</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1383,6 +1383,7 @@ async function downloadPDF(){
   try{
     if(typeof PDFLib==='undefined'){showBanner('pdf-libの読み込みに失敗しています','error');return;}
     if(typeof fontkit==='undefined'){showBanner('fontkitの読み込みに失敗しています','error');return;}
+
     showBanner('PDF生成中...','saved',10000);
 
     const [pdfResp, fontResp] = await Promise.all([
@@ -1396,59 +1397,76 @@ async function downloadPDF(){
       fontResp.arrayBuffer(),
     ]);
 
-    const {PDFDocument} = PDFLib;
+    const {PDFDocument, PDFName, PDFHexString, PDFString} = PDFLib;
     const pdfDoc = await PDFDocument.load(pdfBytes);
     pdfDoc.registerFontkit(fontkit);
     const ipaFont = await pdfDoc.embedFont(fontBytes);
-    const form = pdfDoc.getForm();
 
-    const {PDFName} = PDFLib;
+    // ============================================================
+    // 全フィールドをAP削除→ipaFont登録→HexStringで値書き込み
+    // form.getFields()を使わず直接PDFオブジェクトを操作
+    // ============================================================
 
-    // setText/updateAppearances を一切使わない完全低レベル方式
-    // /V にUTF-16BEで値を書き込み、/APは削除してPDFビューア側に描画させる
-
-    // ipaFontをAcroFormのDRに登録（PDFビューアが参照できるように）
+    // AcroFormのDRにipaFontを登録
     try {
       const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
-      const acroForm = pdfDoc.context.lookup(acroFormRef);
-      if(acroForm){
-        let dr = acroForm.lookup(PDFName.of('DR'));
-        if(dr){
-          let fontDict = dr.lookup(PDFName.of('Font'));
-          if(fontDict){
-            fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
-          }
-        }
-        // AcroFormのDAをIPAexGothicに設定
-        acroForm.set(PDFName.of('DA'), PDFLib.PDFString.of('/IPAexGothic 10 Tf 0 g'));
+      if(acroFormRef){
+        const acroForm = pdfDoc.context.lookup(acroFormRef);
+        const dr = acroForm ? acroForm.lookup(PDFName.of('DR')) : null;
+        const fontDict = dr ? dr.lookup(PDFName.of('Font')) : null;
+        if(fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
       }
-    } catch(e){ console.warn('AcroForm設定:', e); }
+    } catch(e){}
+
+    // 全アノテーション（フィールド）のAPを削除してDAをIPAexGothicに設定
+    pdfDoc.getPages().forEach(page => {
+      try {
+        const annotsRef = page.node.get(PDFName.of('Annots'));
+        if(!annotsRef) return;
+        const annots = page.node.lookup(annotsRef);
+        if(!annots || !annots.size) return;
+        for(let i=0; i<annots.size(); i++){
+          try {
+            const annot = pdfDoc.context.lookup(annots.get(i));
+            if(annot){
+              annot.delete(PDFName.of('AP'));
+              annot.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+            }
+          } catch(e){}
+        }
+      } catch(e){}
+    });
+
+    // テキスト書き込みヘルパー
+    // 全アノテーションをT(フィールド名)でマップ化
+    const fieldMap = new Map();
+    pdfDoc.getPages().forEach(page => {
+      try {
+        const annotsRef = page.node.get(PDFName.of('Annots'));
+        if(!annotsRef) return;
+        const annots = page.node.lookup(annotsRef);
+        if(!annots || !annots.size) return;
+        for(let i=0; i<annots.size(); i++){
+          try {
+            const ref = annots.get(i);
+            const annot = pdfDoc.context.lookup(ref);
+            if(!annot) continue;
+            const t = annot.get(PDFName.of('T'));
+            if(t) fieldMap.set(t.asString ? t.asString() : String(t), annot);
+          } catch(e){}
+        }
+      } catch(e){}
+    });
 
     const f = (name, val) => {
       try {
         const str = String(val || '');
-        const field = form.getTextField(name);
-
-        // APを削除（PDFビューアが/Vの値を使って再描画する）
-        field.acroField.getWidgets().forEach(w => {
-          w.dict.delete(PDFName.of('AP'));
-          // DAをIPAexGothicに設定
-          w.dict.set(PDFName.of('DA'), PDFLib.PDFString.of('/IPAexGothic 10 Tf 0 g'));
-        });
-        field.acroField.dict.set(PDFName.of('DA'), PDFLib.PDFString.of('/IPAexGothic 10 Tf 0 g'));
-
-        if(str !== '') {
-          // UTF-16BE HexStringとして書き込む
-          // PDFHexStringはsave()時にWinAnsiチェックが走らない
+        const annot = fieldMap.get(name);
+        if(!annot) return;
+        if(str !== ''){
           let hex = 'FEFF';
-          for(let i = 0; i < str.length; i++){
-            hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
-          }
-          const vStr = PDFLib.PDFHexString.of(hex);
-          field.acroField.dict.set(PDFName.of('V'), vStr);
-          field.acroField.getWidgets().forEach(w => {
-            w.dict.set(PDFName.of('V'), vStr);
-          });
+          for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
+          annot.set(PDFName.of('V'), PDFHexString.of(hex));
         }
       } catch(e) {
         console.warn(`field ${name}:`, e);
@@ -1484,7 +1502,7 @@ async function downloadPDF(){
       f(`Comment_${i}`, el?el.value:'');
     }
 
-    // 鍵確認ラジオ → ○テキスト
+    // 鍵確認ラジオ → 〇テキスト
     f('KEY_Yes',    circleState['KEY']==='Yes'?'〇':'');
     f('KEY_No',     circleState['KEY']==='No' ?'〇':'');
     f('CHANGE_Yes', circleState['CHANGE']==='Yes'?'〇':'');
@@ -1537,15 +1555,13 @@ async function downloadPDF(){
       }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
     }
 
-    // AcroFormを削除（save()時のWinAnsiチェックを完全回避）
-    // フィールドの値はAP（外観ストリーム）として既に描画済みなので表示は維持される
+    // AcroFormを削除してsave()時のWinAnsiチェックを完全回避
     try {
       pdfDoc.catalog.delete(PDFName.of('AcroForm'));
-      // 各ページのAnnotsも削除
       pdfDoc.getPages().forEach(page => {
         page.node.delete(PDFName.of('Annots'));
       });
-    } catch(e){ console.warn('AcroForm削除:', e); }
+    } catch(e){}
 
     // ダウンロード
     const savedBytes=await pdfDoc.save();
@@ -1562,6 +1578,7 @@ async function downloadPDF(){
     showBanner(`エラー: ${err.message}`,'error');
   }
 }
+
 
 // 起動
 init();
