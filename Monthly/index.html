@@ -259,7 +259,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.12</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.13</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -734,11 +734,24 @@ function buildTableRows(containerId, prefixes, count, labels, useDynamic=false){
 
     let html=`<td class="row-num">${i}行目</td>`;
 
-    // 全項目を順番に出力
+    // 日付欄を先頭に表示
+    const dateIdx = prefixes.findIndex(p=>p.endsWith('_D'));
+    if(dateIdx>=0){
+      const pf=prefixes[dateIdx], id=`${pf}${i}`;
+      const dynAttr = useDynamic
+        ? `onchange="onDatePickDay(this,'${containerId}',${i},${count});openSubRow('${containerId}_sub${i}',this)"`
+        : `onchange="onDatePickDay(this,null,0,0);openSubRow('${containerId}_sub${i}',this)"`;
+      html += `<td class="td-date" data-label="${labels[dateIdx]||''}"><input class="fi date-input" type="date" id="${id}" ${dynAttr}></td>`;
+    }
+
+    // 残り項目をtd-sub-rowでラップ（スマホでふわっと表示）
+    html += `<div class="td-sub-row" id="${containerId}_sub${i}">`;
     prefixes.forEach((pf,pi)=>{
+      if(pi===dateIdx) return;
       const id=`${pf}${i}`;
       html += makeTdHtml(pf, pi, id, labels, containerId, i, count, useDynamic, prefixes);
     });
+    html += '</div>';
 
     tr.insertAdjacentHTML('beforeend', html);
     tbody.appendChild(tr);
