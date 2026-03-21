@@ -261,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.20</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.21</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1540,9 +1540,18 @@ async function downloadPDF(){
       }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
     }
 
+    // AcroFormを削除（save()時のWinAnsiチェックを完全回避）
+    // フィールドの値はAP（外観ストリーム）として既に描画済みなので表示は維持される
+    try {
+      pdfDoc.catalog.delete(PDFName.of('AcroForm'));
+      // 各ページのAnnotsも削除
+      pdfDoc.getPages().forEach(page => {
+        page.node.delete(PDFName.of('Annots'));
+      });
+    } catch(e){ console.warn('AcroForm削除:', e); }
+
     // ダウンロード
-    // objectsPerTick:Infinityで一括処理、updateFieldAppearances:falseで外観再生成をスキップ
-    const savedBytes=await pdfDoc.save({objectsPerTick: Infinity});
+    const savedBytes=await pdfDoc.save();
     const blob=new Blob([savedBytes],{type:'application/pdf'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
