@@ -261,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.17</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.18</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1404,47 +1404,44 @@ async function downloadPDF(){
 
     const {PDFName} = PDFLib;
 
-    const {PDFString} = PDFLib;
+    // setText()を完全に使わない
+    // UTF-16BEバイト列を直接/Vに書き込む
+    // ipaFontはupdateAppearancesのためだけに使用
 
     const f = (name, val) => {
       try {
         const str = String(val || '');
         const field = form.getTextField(name);
+
         // APを削除
         field.acroField.getWidgets().forEach(w => {
           w.dict.delete(PDFName.of('AP'));
         });
+
         if(str !== '') {
-          // setTextの前にipaFontをフィールドに設定
-          // → これによりsetText内のエンコードチェックがIPAexGothicで行われる
-          field.defaultValueAppearance = { font: ipaFont, size: 10, color: PDFLib.rgb(0,0,0) };
-          field.acroField.dict.set(PDFName.of('DA'), PDFString.of('/F1 10 Tf 0 g'));
-          field.setText(str);
+          // UTF-16BEバイト列を作成（BOM付き）
+          const buf = new Uint8Array((str.length + 1) * 2);
+          buf[0] = 0xFE; buf[1] = 0xFF;
+          for(let i = 0; i < str.length; i++){
+            buf[(i+1)*2]   = (str.charCodeAt(i) >> 8) & 0xFF;
+            buf[(i+1)*2+1] = str.charCodeAt(i) & 0xFF;
+          }
+          // Latin-1文字列としてPDFStringに変換
+          let s = '';
+          for(let i = 0; i < buf.length; i++) s += String.fromCharCode(buf[i]);
+          // /Vに直接セット（WinAnsiチェックなし）
+          const vStr = PDFLib.PDFString.of(s);
+          field.acroField.dict.set(PDFName.of('V'), vStr);
+          field.acroField.getWidgets().forEach(w => {
+            w.dict.set(PDFName.of('V'), vStr);
+          });
+          // updateAppearancesでipaFontを使って外観を描画
           field.updateAppearances(ipaFont);
         }
       } catch(e) {
         console.warn(`field ${name}:`, e);
       }
     };
-
-    // ipaFontをF1として登録
-    const fontRef = pdfDoc.context.register(ipaFont.ref);
-    try {
-      const acroForm = pdfDoc.catalog.lookup(PDFName.of('AcroForm'));
-      if(acroForm){
-        let dr = acroForm.lookup(PDFName.of('DR'));
-        if(!dr){
-          dr = pdfDoc.context.obj({});
-          acroForm.set(PDFName.of('DR'), dr);
-        }
-        let fontDict = dr.lookup(PDFName.of('Font'));
-        if(!fontDict){
-          fontDict = pdfDoc.context.obj({});
-          dr.set(PDFName.of('Font'), fontDict);
-        }
-        fontDict.set(PDFName.of('F1'), ipaFont.ref);
-      }
-    } catch(e){ console.warn('フォント登録:', e); }
 
     // 年月
     f('R_Year',  currentADYear);
