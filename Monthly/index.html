@@ -261,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.29</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.30</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1418,24 +1418,7 @@ async function downloadPDF(){
       }
     } catch(e){}
 
-    // 全アノテーション（フィールド）のAPを削除してDAをIPAexGothicに設定
-    pdfDoc.getPages().forEach(page => {
-      try {
-        const annotsRef = page.node.get(PDFName.of('Annots'));
-        if(!annotsRef) return;
-        const annots = page.node.lookup(annotsRef);
-        if(!annots || !annots.size) return;
-        for(let i=0; i<annots.size(); i++){
-          try {
-            const annot = pdfDoc.context.lookup(annots.get(i));
-            if(annot){
-              annot.delete(PDFName.of('AP'));
-              annot.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
-            }
-          } catch(e){}
-        }
-      } catch(e){}
-    });
+    // AP削除はfieldMap構築後に行う（後で実施）
 
     // テキスト書き込みヘルパー
     // AcroForm.Fieldsから再帰的にフィールドを取得してマップ化
@@ -1477,6 +1460,14 @@ async function downloadPDF(){
     } catch(e){ console.warn('fieldMap構築:', e); }
     console.log('fieldMap size:', fieldMap.size);
     console.log('fieldMap keys:', [...fieldMap.keys()].slice(0,5));
+
+    // fieldMapの全フィールドのAPを削除（元の表示を消してVの値を表示させる）
+    fieldMap.forEach((annot, name) => {
+      try {
+        annot.delete(PDFName.of('AP'));
+        annot.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+      } catch(e){}
+    });
 
     const f = (name, val) => {
       try {
