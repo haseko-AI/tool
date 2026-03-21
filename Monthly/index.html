@@ -261,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.27</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.28</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1482,8 +1482,9 @@ async function downloadPDF(){
       try {
         const str = String(val || '');
         const annot = fieldMap.get(name);
-        if(!annot) return;
+        if(!annot){ if(str) console.warn('field not found:', name); return; }
         if(str !== ''){
+          console.log('writing:', name, '->', str.substring(0,10));
           let hex = 'FEFF';
           for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
           annot.set(PDFName.of('V'), PDFHexString.of(hex));
