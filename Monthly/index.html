@@ -261,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.25</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.26</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1438,25 +1438,34 @@ async function downloadPDF(){
     });
 
     // テキスト書き込みヘルパー
-    // 全アノテーションをT(フィールド名)でマップ化
+    // AcroForm.Fieldsから再帰的にフィールドを取得してマップ化
     const fieldMap = new Map();
-    pdfDoc.getPages().forEach(page => {
-      try {
-        const annotsRef = page.node.get(PDFName.of('Annots'));
-        if(!annotsRef) return;
-        const annots = page.node.lookup(annotsRef);
-        if(!annots || !annots.size) return;
-        for(let i=0; i<annots.size(); i++){
-          try {
-            const ref = annots.get(i);
-            const annot = pdfDoc.context.lookup(ref);
-            if(!annot) continue;
-            const t = annot.get(PDFName.of('T'));
-            if(t) fieldMap.set(t.asString ? t.asString() : String(t), annot);
-          } catch(e){}
-        }
-      } catch(e){}
-    });
+    const collectFields = (arr) => {
+      if(!arr) return;
+      for(let i=0; i<arr.size(); i++){
+        try {
+          const ref = arr.get(i);
+          const obj = pdfDoc.context.lookup(ref);
+          if(!obj) continue;
+          const t = obj.get(PDFName.of('T'));
+          if(t){
+            const name = t.decodeText ? t.decodeText() : t.value || String(t);
+            fieldMap.set(name, obj);
+          }
+          // 子フィールドも再帰的に取得
+          const kids = obj.get(PDFName.of('Kids'));
+          if(kids) collectFields(pdfDoc.context.lookup(kids));
+        } catch(e){}
+      }
+    };
+    try {
+      const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+      const acroForm = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
+      const fieldsRef = acroForm ? acroForm.get(PDFName.of('Fields')) : null;
+      const fieldsArr = fieldsRef ? pdfDoc.context.lookup(fieldsRef) : null;
+      if(fieldsArr) collectFields(fieldsArr);
+    } catch(e){ console.warn('fieldMap構築:', e); }
+    console.log('fieldMap size:', fieldMap.size);
 
     console.log('fieldMap size:', fieldMap.size);
     console.log('fieldMap keys:', [...fieldMap.keys()].slice(0,5));
