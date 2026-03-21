@@ -236,6 +236,17 @@ textarea.fi{resize:vertical;min-height:36px;}
   .form-table td input{width:100%;box-sizing:border-box;}
   /* date/timeのplaceholder代替：ラベルをdata-labelで表示済みなので追加不要 */
   .form-table td.td-date input:not([value=""]):not([value]){color:var(--text);}
+  /* 行内ふわっと：日付以外の項目を非表示→日付入力で表示 */
+  .td-sub-row{
+    overflow:hidden;
+    max-height:0;
+    opacity:0;
+    transition:max-height .35s ease, opacity .3s ease;
+  }
+  .td-sub-row.open{
+    max-height:1000px;
+    opacity:1;
+  }
   .row-num{
     display:block;font-size:.88rem;font-weight:700;color:var(--accent);
     border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:6px;
@@ -248,7 +259,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 2.23</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.12</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -765,6 +776,17 @@ function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynami
   // 通常テキスト
   const dynAttr = (useDynamic && isLastCol) ? `oninput="onLastColInput(this,'${containerId}',${rowIdx},${maxCount})"` : '';
   return `<td data-label="${lbl}"><input class="fi" type="text" id="${id}" placeholder="${lbl}" ${dynAttr}></td>`;
+}
+
+// 行内ふわっと：日付入力時にサブ項目を表示
+function openSubRow(subId, dateEl){
+  const sub = document.getElementById(subId);
+  if(!sub) return;
+  if(dateEl && dateEl.value){
+    sub.classList.add('open');
+  } else {
+    sub.classList.remove('open');
+  }
 }
 
 // カレンダー選択→日だけ取り出して2桁表示
@@ -1345,16 +1367,14 @@ async function downloadPDF(){
   try{
     if(typeof PDFLib==='undefined'){showBanner('pdf-libの読み込みに失敗しています','error');return;}
     if(typeof fontkit==='undefined'){showBanner('fontkitの読み込みに失敗しています','error');return;}
-
     showBanner('PDF生成中...','saved',10000);
 
-    // PDF・フォントを並行取得
     const [pdfResp, fontResp] = await Promise.all([
       fetch('Report_M.pdf'),
       fetch('ipaexg.ttf'),
     ]);
-    if(!pdfResp.ok)  throw new Error('Report_M.pdf が見つかりません（同じフォルダに置いてください）');
-    if(!fontResp.ok) throw new Error('ipaexg.ttf が見つかりません（同じフォルダに置いてください）');
+    if(!pdfResp.ok)  throw new Error('Report_M.pdf が見つかりません');
+    if(!fontResp.ok) throw new Error('ipaexg.ttf が見つかりません');
     const [pdfBytes, fontBytes] = await Promise.all([
       pdfResp.arrayBuffer(),
       fontResp.arrayBuffer(),
@@ -1366,22 +1386,26 @@ async function downloadPDF(){
     const ipaFont = await pdfDoc.embedFont(fontBytes);
     const form = pdfDoc.getForm();
 
-    // 全テキストフィールドにIPAフォントを事前設定してからflatten
-    // → flattenがフォントを使って外観を描画するので文字化けしない
+    // 全フィールドのAP（外観ストリーム）を先に削除
+    // → pdf-libが外観を再生成しようとしなくなる → WinAnsiチェックが走らない
+    const {PDFName} = PDFLib;
     form.getFields().forEach(field => {
       try {
-        if(field.constructor.name === 'PDFTextField') {
-          field.updateAppearances(ipaFont);
-        }
+        field.acroField.getWidgets().forEach(w => {
+          w.dict.delete(PDFName.of('AP'));
+        });
       } catch(e) {}
     });
 
-    // テキスト書き込みヘルパー
     const f = (name, val) => {
       try {
+        const str = String(val || '');
         const field = form.getTextField(name);
-        field.setText(String(val || ''));
-        field.updateAppearances(ipaFont);
+        // 空文字はsetTextを呼ばない（WinAnsiエラー回避）
+        if(str !== '') {
+          field.setText(str);
+          field.updateAppearances(ipaFont);
+        }
       } catch(e) {
         console.warn(`field ${name}:`, e);
       }
@@ -1391,7 +1415,7 @@ async function downloadPDF(){
     f('R_Year',  currentADYear);
     f('R_Month', currentMonth);
 
-    // テーブル系フィールドをそのまま書き込み
+    // テーブル系フィールド
     const allFields=[
       ...['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].flatMap(p=>Array.from({length:7},(_,i)=>`${p}${i+1}`)),
       ...['Res_D','Res_R','Res_T'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
@@ -1415,7 +1439,6 @@ async function downloadPDF(){
       const el=document.getElementById(`Comment_${i}`);
       f(`Comment_${i}`, el?el.value:'');
     }
-
 
     // 鍵確認ラジオ → ○テキスト
     f('KEY_Yes',    circleState['KEY']==='Yes'?'○':'');
@@ -1455,36 +1478,20 @@ async function downloadPDF(){
       }
     });
 
-    // 印鑑画像をSeal_3に埋め込む（選択されている場合のみ）
+    // 印鑑画像をSeal_1に埋め込む
     if(sealImageData){
       try{
-        // base64部分だけ取り出してArrayBufferに変換
-        const base64 = sealImageData.split(',')[1];
-        const binary = atob(base64);
-        const bytes  = new Uint8Array(binary.length);
+        const base64=sealImageData.split(',')[1];
+        const binary=atob(base64);
+        const bytes=new Uint8Array(binary.length);
         for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-
-        // 画像を埋め込む
-        const isPng = sealImageType === 'image/png';
-        const sealImg = isPng
-          ? await pdfDoc.embedPng(bytes.buffer)
-          : await pdfDoc.embedJpg(bytes.buffer);
-
-        // Seal_1の座標（PDF座標系：左下原点）= 画面上は右端＝現場スタッフ欄
-        // Rect: [528.609, 31.09, 565.46, 67.9404]
-        const page = pdfDoc.getPages()[0];
-        const x = 528.609, y = 31.09;
-        const w = 565.46 - 528.609; // 約36.85
-        const h = 67.9404 - 31.09;  // 約36.85
-
-        page.drawImage(sealImg, { x, y, width:w, height:h });
-      } catch(e){
-        console.warn('印鑑埋め込みエラー:', e);
-      }
+        const isPng=sealImageType==='image/png';
+        const sealImg=isPng?await pdfDoc.embedPng(bytes.buffer):await pdfDoc.embedJpg(bytes.buffer);
+        const page=pdfDoc.getPages()[0];
+        const x=528.609,y=31.09,w=565.46-528.609,h=67.9404-31.09;
+        page.drawImage(sealImg,{x,y,width:w,height:h});
+      }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
     }
-
-    // フォームをフラット化（フィールドを固定テキストに変換・フォント問題解消）
-    form.flatten();
 
     // ダウンロード
     const savedBytes=await pdfDoc.save();
@@ -1495,6 +1502,7 @@ async function downloadPDF(){
     a.download=`管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
     a.click(); URL.revokeObjectURL(url);
     showBanner('PDFをダウンロードしました','saved');
+
   }catch(err){
     console.error(err);
     showBanner(`エラー: ${err.message}`,'error');
