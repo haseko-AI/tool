@@ -1458,9 +1458,6 @@ async function downloadPDF(){
       const fieldsArr = fieldsRef ? pdfDoc.context.lookup(fieldsRef) : null;
       if(fieldsArr) collectFields(fieldsArr);
     } catch(e){ console.warn('fieldMap構築:', e); }
-    console.log('fieldMap size:', fieldMap.size);
-    console.log('fieldMap keys:', [...fieldMap.keys()].slice(0,5));
-
     // fieldMapの全フィールドのAPを削除（元の表示を消してVの値を表示させる）
     fieldMap.forEach((annot, name) => {
       try {
@@ -1473,9 +1470,8 @@ async function downloadPDF(){
       try {
         const str = String(val || '');
         const annot = fieldMap.get(name);
-        if(!annot){ if(str) console.warn('field not found:', name); return; }
+        if(!annot) return;
         if(str !== ''){
-          console.log('writing:', name, '->', str.substring(0,10));
           let hex = 'FEFF';
           for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
           annot.set(PDFName.of('V'), PDFHexString.of(hex));
