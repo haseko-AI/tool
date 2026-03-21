@@ -261,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.15</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.16</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1402,21 +1402,16 @@ async function downloadPDF(){
     const ipaFont = await pdfDoc.embedFont(fontBytes);
     const form = pdfDoc.getForm();
 
-    // 全フィールドのAP（外観ストリーム）を先に削除
-    // → pdf-libが外観を再生成しようとしなくなる → WinAnsiチェックが走らない
     const {PDFName} = PDFLib;
-    form.getFields().forEach(field => {
-      try {
-        field.acroField.getWidgets().forEach(w => {
-          w.dict.delete(PDFName.of('AP'));
-        });
-      } catch(e) {}
-    });
 
     const f = (name, val) => {
       try {
         const str = String(val || '');
         const field = form.getTextField(name);
+        // まずAPを削除してからsetText→updateAppearances
+        field.acroField.getWidgets().forEach(w => {
+          w.dict.delete(PDFName.of('AP'));
+        });
         // 空文字はsetTextを呼ばない（WinAnsiエラー回避）
         if(str !== '') {
           field.setText(str);
