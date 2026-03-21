@@ -261,7 +261,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.28</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 4.29</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1576,13 +1576,7 @@ async function downloadPDF(){
       }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
     }
 
-    // AcroFormを削除してsave()時のWinAnsiチェックを完全回避
-    try {
-      pdfDoc.catalog.delete(PDFName.of('AcroForm'));
-      pdfDoc.getPages().forEach(page => {
-        page.node.delete(PDFName.of('Annots'));
-      });
-    } catch(e){}
+    // AcroForm・Annotsは削除しない（削除すると値も消えるため）
 
     // ダウンロード
     const savedBytes=await pdfDoc.save();
