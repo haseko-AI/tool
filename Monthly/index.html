@@ -105,7 +105,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 .meter-date-input:focus{border-color:var(--accent);}
 .meter-date-range{font-size:.75rem;color:var(--text2);background:var(--surface2);border-radius:5px;padding:4px 10px;}
 .col-headers{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-bottom:5px;padding:0 0 5px;border-bottom:1px solid var(--border);}
-.col-header{font-size:.68rem;font-weight:700;color:var(--text2);text-align:center;}
+.col-header{font-size:.8rem;font-weight:700;color:var(--text2);text-align:center;}
 .col-header.today{color:var(--text);}
 .meter-block{padding:6px 0 3px;border-bottom:1px solid #f0f2f5;}
 .meter-block:last-child{border-bottom:none;}
@@ -120,8 +120,8 @@ textarea.fi{resize:vertical;min-height:36px;}
 .meter-input.has-value{background:#fffef0;}
 .meter-input.meter-warn{background:#fff0f0;border-color:#c0392b;}
 .usage-row{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-top:2px;}
-.usage-cell{text-align:right;font-size:.68rem;color:var(--text2);padding-right:3px;min-height:14px;}
-.usage-cell.this-month{font-weight:700;color:var(--accent);}
+.usage-cell{text-align:right;font-size:.78rem;color:var(--text2);padding-right:3px;min-height:14px;}
+.usage-cell.this-month{font-weight:700;color:var(--accent);font-size:.82rem;}
 .usage-cell.warn{color:#c0392b;font-weight:700;}
 
 /* 規定値セクション */
@@ -273,7 +273,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.02</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.03</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -284,10 +284,7 @@ textarea.fi{resize:vertical;min-height:36px;}
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;">
     <label style="font-size:.9rem;font-weight:700;color:var(--text2);">対象年月</label>
     <button class="btn-month-nav" onclick="changeMonthBy(-1)">◀</button>
-    <div class="month-selectors">
-      <div class="select-wrap"><select id="sel-year" style="font-size:1rem;font-weight:700;"></select><span style="font-size:1rem;font-weight:700;">年</span></div>
-      <div class="select-wrap"><select id="sel-month" style="font-size:1rem;font-weight:700;"></select><span style="font-size:1rem;font-weight:700;">月</span></div>
-    </div>
+    <select id="sel-yearmonth" style="font-size:1rem;font-weight:700;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;"></select>
     <button class="btn-month-nav" onclick="changeMonthBy(1)">▶</button>
   </div>
   <div class="month-info" id="month-info"></div>
@@ -697,16 +694,20 @@ function init(){
   console.log("is-mobile:", document.body.classList.contains("is-mobile"), "width:", window.innerWidth, "touch:", ('ontouchstart' in window));
   window.addEventListener('resize', checkMobile);
 
-  const selYear=document.getElementById('sel-year');
+  const selYearMonth=document.getElementById('sel-yearmonth');
   for(let ad=YEAR_START_AD;ad<=YEAR_END_AD;ad++){
-    const g=adToGengo(ad),opt=document.createElement('option');
-    opt.value=ad; opt.textContent=`${ad}（${g.name}${g.year}）`; selYear.appendChild(opt);
-  }
-  const selMonth=document.getElementById('sel-month');
-  for(let m=1;m<=12;m++){
-    const opt=document.createElement('option'); opt.value=m; opt.textContent=m; selMonth.appendChild(opt);
+    for(let m=1;m<=12;m++){
+      const g=adToGengo(ad),opt=document.createElement('option');
+      opt.value=`${ad}_${m}`;
+      opt.textContent=`${ad}年${m}月（${g.name}${g.year}年）`;
+      selYearMonth.appendChild(opt);
+    }
   }
   const today=new Date();
+  selYearMonth.value=`${today.getFullYear()}_${today.getMonth()+1}`;
+  // 後方互換性のためsel-year/sel-monthも非表示で残す
+  const selYear=document.createElement('select'); selYear.id='sel-year'; selYear.style.display='none'; document.body.appendChild(selYear);
+  const selMonth=document.createElement('select'); selMonth.id='sel-month'; selMonth.style.display='none'; document.body.appendChild(selMonth);
   selYear.value=today.getFullYear(); selMonth.value=today.getMonth()+1;
 
   // useDynamic=true で行数が多いセクションは動的行追加
@@ -721,8 +722,11 @@ function init(){
   buildMeterRows('elec-rows',  'Elec',  'elec');
   buildMeterRows('water-rows', 'Water', 'water');
 
-  selYear.addEventListener('change',  onMonthChange);
-  selMonth.addEventListener('change', onMonthChange);
+  selYearMonth.addEventListener('change', ()=>{
+    const [y,m]=selYearMonth.value.split('_');
+    selYear.value=y; selMonth.value=m;
+    onMonthChange();
+  });
   onMonthChange();
   refreshDataList();
 
@@ -1045,8 +1049,10 @@ function toggleCircle(group, key){
 // ④ 自動保存（クレーマー対策）
 // ============================================================
 function onMonthChange(){
-  const newADYear=parseInt(document.getElementById('sel-year').value);
-  const newMonth =parseInt(document.getElementById('sel-month').value);
+  const ymVal=document.getElementById('sel-yearmonth').value||`${new Date().getFullYear()}_${new Date().getMonth()+1}`;
+  const [ymY,ymM]=ymVal.split('_');
+  const newADYear=parseInt(ymY);
+  const newMonth =parseInt(ymM);
 
   const isSameMonth=(currentADYear===newADYear && currentMonth===newMonth);
   let didAutoSave=false;
@@ -1059,7 +1065,7 @@ function onMonthChange(){
 
   currentADYear=newADYear; currentMonth=newMonth;
 
-  // ④ 日付inputのmin/maxを選択中の月に設定（カレンダーの初期月）
+  // ④ カレンダーの初期月を選択中の月に設定
   const mm=String(currentMonth).padStart(2,'0');
   const firstDay=`${currentADYear}-${mm}-01`;
   const lastDay=`${currentADYear}-${mm}-${new Date(currentADYear,currentMonth,0).getDate()}`;
@@ -1068,6 +1074,11 @@ function onMonthChange(){
       if(!el.id.startsWith('Elec_')&&!el.id.startsWith('Water_')&&el.id!=='KEY_Check'){
         el.min=firstDay;
         el.max=lastDay;
+        // valueが空のときだけ一時的に1日をセットしてカレンダー初期月を誘導
+        if(!el.value){
+          el.value=firstDay;
+          el.value='';
+        }
       }
     });
   },100);
@@ -1238,15 +1249,22 @@ function loadCurrentMonth(){
 // 入力チェック（今月値に何か入っているか）
 // ============================================================
 function hasAnyInput(){
+  // メーター値確認
   for(const p of ['Elec','Water']){
     for(let i=1;i<=METER_COUNT;i++){
       const v=document.getElementById(`${p}_T${i}`).value.trim();
       if(v!==''&&v!=='0') return true;
     }
   }
-  // テーブル系も確認
-  const spot=document.getElementById('Rec_D1');
-  if(spot&&spot.value.trim()!=='') return true;
+  // テーブル系：日付欄に値があるか確認
+  const dayFields=['Rec_D1','Res_D1','Vis_D1','Ins_D1','Rep_D1','Acc_D1','Eve_D1'];
+  for(const id of dayFields){
+    const el=document.getElementById(id);
+    if(el&&el.value.trim()!=='') return true;
+  }
+  // コメント確認
+  const c1=document.getElementById('Comment_1');
+  if(c1&&c1.value.trim()!=='') return true;
   return false;
 }
 
@@ -1376,7 +1394,7 @@ function refreshDataList(){
     const div=document.createElement('div'); div.className=`data-list-item${isActive?' active':''}`;
     const label=document.createElement('span'); label.className='data-list-label';
     label.textContent=`${isActive?'▶ ':'　'}${ad}年${m}月（${g.name}${g.year}年）`;
-    label.onclick=()=>{ document.getElementById('sel-year').value=ad; document.getElementById('sel-month').value=m; onMonthChange(); };
+    label.onclick=()=>{ document.getElementById('sel-yearmonth').value=`${ad}_${m}`; document.getElementById('sel-year').value=ad; document.getElementById('sel-month').value=m; onMonthChange(); };
     const delBtn=document.createElement('button'); delBtn.className='del-btn'; delBtn.textContent='削除';
     delBtn.onclick=(e)=>{
       e.stopPropagation();
@@ -1645,13 +1663,15 @@ async function downloadPDF(){
 
 // 前月・来月ボタン
 function changeMonthBy(delta){
-  const selYear=document.getElementById('sel-year');
-  const selMonth=document.getElementById('sel-month');
-  let y=parseInt(selYear.value), m=parseInt(selMonth.value)+delta;
+  const sel=document.getElementById('sel-yearmonth');
+  const [ys,ms]=sel.value.split('_');
+  let y=parseInt(ys), m=parseInt(ms)+delta;
   if(m<1){m=12;y--;}
   if(m>12){m=1;y++;}
-  if(y<parseInt(selYear.min||2021)||y>parseInt(selYear.max||2045)) return;
-  selYear.value=y; selMonth.value=m;
+  if(y<YEAR_START_AD||y>YEAR_END_AD) return;
+  sel.value=`${y}_${m}`;
+  document.getElementById('sel-year').value=y;
+  document.getElementById('sel-month').value=m;
   onMonthChange();
 }
 
