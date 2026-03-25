@@ -275,7 +275,7 @@ width:100%;
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.07</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.08</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1563,31 +1563,6 @@ async function downloadPDF(){
         annot.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
       } catch(e){}
     });
-
-    // フィールドのRectを取得してAPストリームを生成するヘルパー
-    const makeAP = (rect, str, fontSize) => {
-      if(!rect || !str) return null;
-      try {
-        const [x1,y1,x2,y2] = [
-          rect.get(PDFLib.PDFName.of('0')) || rect.lookup(PDFLib.PDFName.of('0')),
-          rect.get(PDFLib.PDFName.of('1')) || rect.lookup(PDFLib.PDFName.of('1')),
-          rect.get(PDFLib.PDFName.of('2')) || rect.lookup(PDFLib.PDFName.of('2')),
-          rect.get(PDFLib.PDFName.of('3')) || rect.lookup(PDFLib.PDFName.of('3')),
-        ].map(v=>v&&v.asNumber?v.asNumber():0);
-        const w=x2-x1, h=y2-y1;
-        // ipaFontを使ってテキストを描画するAPストリーム
-        const encoded = ipaFont.encodeText(str);
-        const encodedHex = [...encoded].map(b=>b.toString(16).padStart(2,'0')).join('');
-        const stream = `q BT /IPAexGothic ${fontSize} Tf 2 ${h*0.25} Td <${encodedHex}> Tj ET Q`;
-        const apStream = pdfDoc.context.stream(stream, {
-          'Type': 'XObject',
-          'Subtype': 'Form',
-          'BBox': [0,0,w,h],
-          'Resources': { 'Font': { 'IPAexGothic': ipaFont.ref } },
-        });
-        return pdfDoc.context.register(apStream);
-      } catch(e){ return null; }
-    };
 
     const f = (name, val) => {
       try {
