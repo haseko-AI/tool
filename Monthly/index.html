@@ -275,7 +275,7 @@ width:100%;
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.06</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.07</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1564,23 +1564,75 @@ async function downloadPDF(){
       } catch(e){}
     });
 
+    // フィールドのRectを取得してAPストリームを生成するヘルパー
+    const makeAP = (rect, str, fontSize) => {
+      if(!rect || !str) return null;
+      try {
+        const [x1,y1,x2,y2] = [
+          rect.get(PDFLib.PDFName.of('0')) || rect.lookup(PDFLib.PDFName.of('0')),
+          rect.get(PDFLib.PDFName.of('1')) || rect.lookup(PDFLib.PDFName.of('1')),
+          rect.get(PDFLib.PDFName.of('2')) || rect.lookup(PDFLib.PDFName.of('2')),
+          rect.get(PDFLib.PDFName.of('3')) || rect.lookup(PDFLib.PDFName.of('3')),
+        ].map(v=>v&&v.asNumber?v.asNumber():0);
+        const w=x2-x1, h=y2-y1;
+        // ipaFontを使ってテキストを描画するAPストリーム
+        const encoded = ipaFont.encodeText(str);
+        const encodedHex = [...encoded].map(b=>b.toString(16).padStart(2,'0')).join('');
+        const stream = `q BT /IPAexGothic ${fontSize} Tf 2 ${h*0.25} Td <${encodedHex}> Tj ET Q`;
+        const apStream = pdfDoc.context.stream(stream, {
+          'Type': 'XObject',
+          'Subtype': 'Form',
+          'BBox': [0,0,w,h],
+          'Resources': { 'Font': { 'IPAexGothic': ipaFont.ref } },
+        });
+        return pdfDoc.context.register(apStream);
+      } catch(e){ return null; }
+    };
+
     const f = (name, val) => {
       try {
         const str = String(val || '');
         const annot = fieldMap.get(name);
         if(!annot) return;
 
-        // DAをIPAexGothicに設定（印刷時もこのフォントで描画）
+        // DAをIPAexGothicに設定
         annot.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
-        // Printフラグを確実にON（/F bit3=4）
+        // Printフラグ確実ON
         annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
-        // APを削除（再描画させる）
-        annot.delete(PDFName.of('AP'));
 
         if(str !== ''){
+          // /Vに値を書き込み
           let hex = 'FEFF';
           for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
           annot.set(PDFName.of('V'), PDFHexString.of(hex));
+
+          // APを生成して書き込む（印刷時に表示されるように）
+          try {
+            const rectArr = annot.get(PDFName.of('Rect'));
+            const rect = rectArr ? pdfDoc.context.lookup(rectArr) : null;
+            if(rect){
+              const r = [];
+              for(let i=0;i<4;i++) r.push(rect.get(i));
+              const w = (r[2]&&r[2].asNumber?r[2].asNumber():0)-(r[0]&&r[0].asNumber?r[0].asNumber():0);
+              const h = (r[3]&&r[3].asNumber?r[3].asNumber():0)-(r[1]&&r[1].asNumber?r[1].asNumber():0);
+              const fs = Math.min(h*0.65, 10);
+              // IPAフォントでエンコード
+              const encoded = ipaFont.encodeText(str);
+              const encodedHex = [...encoded].map(b=>b.toString(16).padStart(2,'0')).join('');
+              const streamContent = `/Tx BMC BT /IPAexGothic ${fs.toFixed(1)} Tf 2 ${(h*0.2).toFixed(1)} Td <${encodedHex}> Tj ET EMC`;
+              const apStream = pdfDoc.context.stream(streamContent, {
+                'Type': 'XObject',
+                'Subtype': 'Form',
+                'BBox': pdfDoc.context.obj([0,0,w,h]),
+                'Resources': pdfDoc.context.obj({'Font': pdfDoc.context.obj({'IPAexGothic': ipaFont.ref})}),
+              });
+              const apRef = pdfDoc.context.register(apStream);
+              const apDict = pdfDoc.context.obj({'N': apRef});
+              annot.set(PDFName.of('AP'), apDict);
+            }
+          } catch(e){ annot.delete(PDFName.of('AP')); }
+        } else {
+          annot.delete(PDFName.of('AP'));
         }
       } catch(e) {
         console.warn(`field ${name}:`, e);
