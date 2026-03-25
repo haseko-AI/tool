@@ -273,7 +273,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.09</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.10</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1574,8 +1574,7 @@ async function downloadPDF(){
             const field = form.getTextField(name);
             field.updateAppearances(ipaFont);
           } catch(e){
-            // updateAppearancesが失敗してもエラーにしない
-            console.warn('AP生成スキップ:', name);
+            console.warn('AP生成スキップ:', name, e.message);
           }
         }
       } catch(e) {
