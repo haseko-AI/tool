@@ -273,7 +273,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.19</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.21</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;">─</div>
@@ -1546,20 +1546,26 @@ async function downloadPDF(){
           if(!obj) continue;
           const t = obj.get(PDFName.of('T'));
           if(t){
-            // 複数の方法でフィールド名を取得
             let name = '';
             try { name = t.decodeText(); } catch(e1){
-              try { name = t.value; } catch(e2){
-                try { name = t.asString(); } catch(e3){
-                  name = String(t);
+              try { name = t.value; } catch(e2){ name = String(t); }
+            }
+            name = name.replace(/^[(]+|[)]+$/g,'').trim();
+
+            // DAを取得して括弧を除去
+            const daObj = obj.get(PDFName.of('DA'));
+            let daStr = '';
+            if(daObj){
+              try { daStr = daObj.decodeText(); } catch(e1){
+                try { daStr = daObj.value || ''; } catch(e2){
+                  daStr = String(daObj).replace(/^[(]+|[)]+$/g,'');
                 }
               }
+              daStr = daStr.replace(/^[(]+|[)]+$/g,'').trim();
             }
-            // PDFStringは括弧で囲まれているので除去
-            name = name.replace(/^[(﻿]+|[)]+$/g,'').trim();
-            if(name) fieldMap.set(name, obj);
+
+            if(name) fieldMap.set(name, {obj, da: daStr});
           }
-          // 子フィールドも再帰的に取得
           const kids = obj.get(PDFName.of('Kids'));
           if(kids) collectFields(pdfDoc.context.lookup(kids));
         } catch(e){}
@@ -1586,31 +1592,20 @@ async function downloadPDF(){
     const f = (name, val) => {
       try {
         const str = String(val || '');
-        const annot = fieldMap.get(name);
-        if(!annot) return;
+        const entry = fieldMap.get(name);
+        if(!entry) return;
+        const annot = entry.obj;
+        const origDAStr = entry.da || '';
 
         // Printフラグ確実ON
         annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
-
-        // PDF側のDAからフォントサイズを取得して引き継ぐ
-        const origDA = annot.get(PDFName.of('DA'));
-        const origDAStr = origDA
-          ? (origDA.asString ? origDA.asString()
-            : origDA.decodeText ? origDA.decodeText()
-            : origDA.value ? origDA.value
-            : String(origDA))
-          : '';
         // フォントサイズをDAから抽出（例：/MSPGothic 10.5 Tf → 10.5）
         const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
         const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
         // フォント名を使用フォントに置き換えてDAを再設定
         const fontName = numericFields.has(name) ? 'Helvetica' : 'IPAexGothic';
         const newDA = `/${fontName} ${fontSize} Tf 0 g`;
-        if(name==='Ma_Name'||name==='R_Year') {
-          console.log(name,'origDA:',origDAStr,'→',newDA);
-          console.log(name,'DA type:', origDA ? origDA.constructor.name : 'null');
-          console.log(name,'DA raw:', String(origDA));
-        }
+        if(name==='Ma_Name'||name==='R_Year') console.log(name,'origDA:',origDAStr,'→',newDA);
         annot.set(PDFName.of('DA'), PDFString.of(newDA));
 
         // APを削除（updateAppearancesで再生成するため）
