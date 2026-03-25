@@ -273,7 +273,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.11</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.12</span></h1>
   <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
 </header>
 <div id="toast" class="toast"></div>
@@ -1481,6 +1481,18 @@ async function downloadPDF(){
     const {PDFDocument, PDFName, PDFHexString, PDFString} = PDFLib;
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const form = pdfDoc.getForm(); // updateAppearances用
+
+    // Helvetica（数字フィールド用・内蔵フォント）
+    const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+    // 数字のみフィールドリスト
+    const numericFields = new Set([
+      'R_Year','R_Month','TOTAL',
+      'Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL',
+      ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+        `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+      ]))
+    ]);
     pdfDoc.registerFontkit(fontkit);
     const ipaFont = await pdfDoc.embedFont(fontBytes);
 
@@ -1570,10 +1582,11 @@ async function downloadPDF(){
           for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
           annot.set(PDFName.of('V'), PDFHexString.of(hex));
 
-          // form.getTextField経由でupdateAppearancesを呼んでAPを生成
+          // フィールドごとにフォントを切り替えてAPを生成
           try {
             const field = form.getTextField(name);
-            field.updateAppearances(ipaFont);
+            const useFont = numericFields.has(name) ? helveticaFont : ipaFont;
+            field.updateAppearances(useFont);
           } catch(e){
             console.warn('AP生成スキップ:', name, e.message);
           }
