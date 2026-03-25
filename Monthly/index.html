@@ -273,7 +273,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.17</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.18</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;">─</div>
@@ -1472,7 +1472,7 @@ async function downloadPDF(){
     showBanner('PDF生成中...','saved',10000);
 
     const [pdfResp, fontResp] = await Promise.all([
-      fetch('Report_M.pdf?v=' + Date.now()),
+      fetch('Report_M.pdf', {cache: 'no-store'}),
       fetch('ipaexg.ttf'),
     ]);
     if(!pdfResp.ok)  throw new Error('Report_M.pdf が見つかりません');
