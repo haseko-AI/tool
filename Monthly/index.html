@@ -273,8 +273,12 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.12</span></h1>
-  <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 12px;white-space:nowrap;">─</div>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.13</span></h1>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+    <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
+    <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;">─</div>
+    <button onclick="changeMonthBy(1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">▶</button>
+  </div>
 </header>
 <div id="toast" class="toast"></div>
 <div class="container">
@@ -285,7 +289,7 @@ textarea.fi{resize:vertical;min-height:36px;}
     <label style="font-size:.85rem;font-weight:700;color:var(--text2);">対象年月</label>
     <div style="display:flex;align-items:center;gap:6px;">
       <button class="btn-month-nav" onclick="changeMonthBy(-1)">◀</button>
-      <select id="sel-yearmonth" style="font-size:1rem;font-weight:700;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;flex:1;"></select>
+      <select id="sel-yearmonth" style="font-size:1rem;font-weight:700;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;width:auto;max-width:260px;"></select>
       <button class="btn-month-nav" onclick="changeMonthBy(1)">▶</button>
     </div>
   </div>
@@ -1485,13 +1489,29 @@ async function downloadPDF(){
     // Helvetica（数字フィールド用・内蔵フォント）
     const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
 
-    // 数字のみフィールドリスト
+    // 数字のみフィールドリスト（Helveticaを使用）
     const numericFields = new Set([
       'R_Year','R_Month','TOTAL',
       'Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL',
       ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
         `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
       ]))
+    ]);
+
+    // 中央寄せフィールド（日付・時間・部屋番号）
+    const centerFields = new Set([
+      'R_Year','R_Month',
+      ...['Rec','Res','Vis','Ins','Rep','Acc','Eve'].flatMap(p=>{
+        const counts={'Rec':7,'Res':2,'Vis':5,'Ins':8,'Rep':3,'Acc':2,'Eve':4};
+        return [...Array(counts[p]||0)].flatMap((_,i)=>[
+          `${p}_D${i+1}`,`${p}_R${i+1}`,`${p}_T${i+1}`
+        ]);
+      }),
+      'KEY_Check',
+      ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+        `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+      ])),
+      'Elec_DS','Elec_DE','Water_DS','Water_DE'
     ]);
     pdfDoc.registerFontkit(fontkit);
     const ipaFont = await pdfDoc.embedFont(fontBytes);
@@ -1586,6 +1606,10 @@ async function downloadPDF(){
           try {
             const field = form.getTextField(name);
             const useFont = numericFields.has(name) ? helveticaFont : ipaFont;
+            // 中央寄せ設定
+            if(centerFields.has(name)){
+              field.setAlignment(PDFLib.TextAlignment.Center);
+            }
             field.updateAppearances(useFont);
           } catch(e){
             console.warn('AP生成スキップ:', name, e.message);
