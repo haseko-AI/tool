@@ -306,7 +306,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.28</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.29</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;">─</div>
@@ -833,7 +833,7 @@ function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynami
   const lbl = labels[pi]||'';
 
   if(isDatePicker){
-    return `<td class="${isSub?'td-sub-item ':''}date-input-td" data-label="${lbl}"><input class="fi date-input" type="date" id="${id}" placeholder="${lbl}"></td>`;
+    return `<td class="${isSub?'td-sub-item ':''}td-date" data-label="${lbl}"><input class="fi date-input" type="date" id="${id}" placeholder="${lbl}"></td>`;
   }
   if(isVisTime||isAccTime){
     return `<td class="${isSub?'td-sub-item ':''}td-time" data-label="${lbl}"><input class="fi date-input" type="time" id="${id}" placeholder="${lbl}"></td>`;
