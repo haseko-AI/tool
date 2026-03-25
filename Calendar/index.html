@@ -2122,7 +2122,6 @@
 
                         setTextField(`WEEK_${dayStr}`, weekdayNamesEn[dayOfWeek]);
                         setTextField(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
-
                         const comment = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
                         setTextField(`MEMO_${dayStr3}`, comment);
 
