@@ -2069,7 +2069,10 @@
                 const firstDay = new Date(year, month, 1).getDay();
 
                 const pdfBytes = await fetch('calendar_v8.pdf').then(res => res.arrayBuffer());
-                const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, {
+                    ignoreEncryption: true,
+                    updateMetadata: false,
+                });
                 const form = pdfDoc.getForm();
 
                 function setTextField(fieldName, value) {
