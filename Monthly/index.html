@@ -273,7 +273,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.13</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.8;margin-left:4px;">Ver 5.14</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;">─</div>
@@ -1591,8 +1591,18 @@ async function downloadPDF(){
 
         // Printフラグ確実ON
         annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
-        // DAをIPAexGothicに設定
-        annot.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+
+        // PDF側のDAからフォントサイズを取得して引き継ぐ
+        const origDA = annot.get(PDFName.of('DA'));
+        const origDAStr = origDA ? (origDA.decodeText ? origDA.decodeText() : origDA.value||String(origDA)) : '';
+        // フォントサイズをDAから抽出（例：/MSPGothic 10.5 Tf → 10.5）
+        const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
+        const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
+        // フォント名を使用フォントに置き換えてDAを再設定
+        const fontName = numericFields.has(name) ? 'Helvetica' : 'IPAexGothic';
+        const newDA = `/${fontName} ${fontSize} Tf 0 g`;
+        annot.set(PDFName.of('DA'), PDFString.of(newDA));
+
         // APを削除（updateAppearancesで再生成するため）
         annot.delete(PDFName.of('AP'));
 
