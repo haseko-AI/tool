@@ -212,10 +212,20 @@ textarea.fi{resize:vertical;min-height:36px;}
 .btn-clear-seal:hover{color:#c0392b;}
 
 /* レスポンシブ */
-/* PC版：未入力のdate inputのプレースホルダー */
-input[type="date"].date-input:not(:focus):invalid,
-input[type="date"].date-input:not(:focus)[value=""]{
-  color: #aaa;
+/* PC版：未入力のdate inputのグレー日付を隠す */
+input[type="date"].date-input:not(:focus)::-webkit-datetime-edit{
+  color: transparent;
+}
+input[type="date"].date-input:focus::-webkit-datetime-edit{
+  color: var(--text);
+}
+/* 未入力時に「日付」とグレーで表示（相対位置で重ねる） */
+.date-input-wrap{position:relative;display:block;}
+.date-input-wrap input[type="date"]:not([value=""]) ~ .date-placeholder,
+.date-input-wrap input[type="date"]:focus ~ .date-placeholder{display:none;}
+.date-placeholder{
+  position:absolute;top:50%;left:9px;transform:translateY(-50%);
+  color:#aaa;font-size:.88rem;pointer-events:none;
 }
 /* PC版：日付・時間・部屋番号列の幅を統一 */
 @media(min-width:601px){
@@ -320,7 +330,7 @@ input[type="date"].date-input:not(:focus)[value=""]{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.33</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.34</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -452,7 +462,7 @@ input[type="date"].date-input:not(:focus)[value=""]{
   <div class="section-body" style="display:flex;flex-direction:column;gap:14px;">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;">確認日</span>
-      <input class="fi date-input" type="date" id="KEY_Check" style="width:175px;">
+      <div class="date-input-wrap" style="width:175px;"><input class="fi date-input" type="date" id="KEY_Check"><span class="date-placeholder">確認日</span></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -847,7 +857,7 @@ function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynami
   const lbl = labels[pi]||'';
 
   if(isDatePicker){
-    return `<td class="${isSub?'td-sub-item ':''}td-date" data-label="${lbl}"><input class="fi date-input" type="date" id="${id}" placeholder="${lbl}"></td>`;
+    return `<td class="${isSub?'td-sub-item ':''}td-date" data-label="${lbl}"><div class="date-input-wrap"><input class="fi date-input" type="date" id="${id}"><span class="date-placeholder">${lbl}</span></div></td>`;
   }
   if(isVisTime||isAccTime){
     return `<td class="${isSub?'td-sub-item ':''}td-time" data-label="${lbl}"><input class="fi date-input" type="time" id="${id}" placeholder="${lbl}"></td>`;
@@ -856,7 +866,7 @@ function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynami
     const dynAttr = useDynamic
       ? `onchange="onDatePickDay(this,'${containerId}',${rowIdx},${maxCount})"`
       : `onchange="onDatePickDay(this,null,0,0)"`;
-    return `<td class="td-date" data-label="${lbl}"><input class="fi date-input" type="date" id="${id}" ${dynAttr}></td>`;
+    return `<td class="td-date" data-label="${lbl}"><div class="date-input-wrap"><input class="fi date-input" type="date" id="${id}" ${dynAttr}><span class="date-placeholder">日付</span></div></td>`;
   }
   if(isRoomNum){
     // inputmode="numeric" → 数字・記号キーボードをデフォルトに
