@@ -212,12 +212,9 @@ textarea.fi{resize:vertical;min-height:36px;}
 .btn-clear-seal:hover{color:#c0392b;}
 
 /* レスポンシブ */
-/* 未入力のdate inputは全部透明（グレー日付を完全に隠す） */
-input[type="date"].date-input:not(:focus)::-webkit-datetime-edit-fields-wrapper,
-input[type="date"].date-input:not(:focus)::-webkit-datetime-edit-text,
-input[type="date"].date-input:not(:focus)::-webkit-datetime-edit-month-field,
-input[type="date"].date-input:not(:focus)::-webkit-datetime-edit-day-field,
-input[type="date"].date-input:not(:focus)::-webkit-datetime-edit-year-field{
+/* 未入力のdate inputのグレー日付を隠す（値なし・非フォーカス時のみ） */
+input[type="date"].date-input[value=""]:not(:focus)::-webkit-datetime-edit-fields-wrapper,
+input[type="date"].date-input:not([value]):not(:focus)::-webkit-datetime-edit-fields-wrapper{
   color: transparent;
 }
 /* PC版：日付・時間・部屋番号列の幅を統一 */
@@ -323,7 +320,7 @@ input[type="date"].date-input:not(:focus)::-webkit-datetime-edit-year-field{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.35</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.36</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
