@@ -213,8 +213,18 @@ textarea.fi{resize:vertical;min-height:36px;}
 
 /* レスポンシブ */
 /* date inputの透明化はJSで制御 */
-input[type="date"].date-input.empty::-webkit-datetime-edit-fields-wrapper{
-  color: transparent;
+input[type="date"].date-input.empty{
+  color: transparent !important;
+}
+input[type="date"].date-input.empty::-webkit-datetime-edit,
+input[type="date"].date-input.empty::-webkit-datetime-edit-fields-wrapper,
+input[type="date"].date-input.empty::-webkit-datetime-edit-text,
+input[type="date"].date-input.empty::-webkit-datetime-edit-month-field,
+input[type="date"].date-input.empty::-webkit-datetime-edit-day-field,
+input[type="date"].date-input.empty::-webkit-datetime-edit-year-field,
+input[type="date"].date-input.empty::-webkit-inner-spin-button{
+  color: transparent !important;
+  opacity: 0 !important;
 }
 /* PC版：日付・時間・部屋番号列の幅を統一 */
 @media(min-width:601px){
@@ -319,7 +329,7 @@ input[type="date"].date-input.empty::-webkit-datetime-edit-fields-wrapper{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.37</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.38</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
