@@ -361,7 +361,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.00</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.01</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -1931,96 +1931,142 @@ function closePastModal(){
 
 function buildPastModalBody(prefix, hasCurrentVal){
   const body = document.getElementById('past-modal-body');
-  const meterCount = 4;
+  const N = 4; // メーター本数
 
-  // 今月の値を取得
+  // 今月のメーター値を取得
   const currentVals = [];
-  for(let i=1;i<=meterCount;i++){
+  for(let i=1;i<=N;i++){
     const el = document.getElementById(`${prefix}_T${i}`);
-    currentVals.push(el ? parseFloat(el.value)||0 : 0);
+    currentVals.push(el ? parseFloat(el.value)||null : null);
   }
 
-  // 過去12ヶ月分のラベルと既存データを取得
+  // 過去12ヶ月分の年月リスト（0=今月使用量、1=先月使用量、...）
   const months = [];
+  months.push({year:currentADYear, month:currentMonth,
+    label:`${currentADYear}年${currentMonth}月（今月）`, isCurrent:true});
   for(let m=1;m<=12;m++){
-    const pm = prevMonthAD(currentADYear, currentMonth);
-    let y = currentADYear, mo = currentMonth;
-    for(let k=0;k<m;k++){
-      const p = prevMonthAD(y, mo);
-      y = p.year; mo = p.month;
-    }
-    months.push({year:y, month:mo, label:`${y}年${mo}月`});
+    let y=currentADYear, mo=currentMonth;
+    for(let k=0;k<m;k++){ const p=prevMonthAD(y,mo); y=p.year; mo=p.month; }
+    months.push({year:y, month:mo, label:`${y}年${mo}月`, isCurrent:false});
   }
 
   // テーブル生成
   let html = `<div class="modal-meter-grid">`;
   html += `<div class="mh">年月</div>`;
-  for(let i=1;i<=meterCount;i++) html += `<div class="mh">${i}番</div>`;
+  for(let i=1;i<=N;i++) html += `<div class="mh">${i}番　使用量</div>`;
 
-  // 今月行（参照用・readonly）
-  html += `<div class="month-label">今月（参照）</div>`;
-  for(let i=1;i<=meterCount;i++){
-    html += `<input class="mi readonly" type="text" readonly value="${currentVals[i-1]||''}">`;
+  // 今月値（参照用readonly）
+  html += `<div class="month-label" style="color:var(--text2);font-size:.75rem;">今月メーター値<br>（参照）</div>`;
+  for(let i=1;i<=N;i++){
+    html += `<input class="mi readonly" type="text" readonly
+      value="${currentVals[i-1]!==null ? currentVals[i-1] : '未入力'}">`;
   }
 
-  // 過去12ヶ月：使用量入力欄
-  for(let m=0;m<12;m++){
-    const {year,month,label} = months[m];
+  // 今月〜12ヶ月前の使用量入力欄
+  for(let m=0;m<13;m++){
+    const {year,month,label,isCurrent} = months[m];
     const data = loadFromStorage(year, month);
+    // 既存の使用量を計算（保存済みのT値から前月T値を引く）
     html += `<div class="month-label">${label}</div>`;
-    for(let i=1;i<=meterCount;i++){
-      const existingVal = data ? (data[`${prefix}_T${i}`]||'') : '';
+    for(let i=1;i<=N;i++){
+      // 既存の使用量を取得（保存済みデータから）
+      let savedUsage = '';
+      if(data && data[`${prefix}_T${i}`]){
+        const thisVal = parseFloat(data[`${prefix}_T${i}`]);
+        // 前月データから引き算して使用量を計算
+        let prevY=year, prevMo=month;
+        const pp = prevMonthAD(prevY, prevMo);
+        const prevData = loadFromStorage(pp.year, pp.month);
+        if(prevData && prevData[`${prefix}_T${i}`]){
+          const prevVal = parseFloat(prevData[`${prefix}_T${i}`]);
+          if(!isNaN(thisVal) && !isNaN(prevVal)) savedUsage = (thisVal-prevVal).toFixed(1);
+        }
+      }
       const disabled = !hasCurrentVal ? 'disabled' : '';
       html += `<input class="mi" type="number" step="0.1" min="0"
-        id="past_${prefix}_${m}_${i}" value="${existingVal}"
-        oninput="updatePastComputed('${prefix}')" ${disabled}>`;
+        id="past_${prefix}_${m}_${i}"
+        value="${savedUsage}"
+        oninput="updatePastComputed('${prefix}')"
+        placeholder="使用量" ${disabled}>`;
     }
   }
   html += `</div>`;
-
-  // 使い方の説明
   html += `<div style="font-size:.72rem;color:var(--text2);margin-top:10px;">
-    ℹ️ 各月の「メーター読み取り値」を入力してください。保存すると各月のデータに自動反映されます。
+    ℹ️ 各月の使用量を入力してください。今月メーター値から逆算して各月のメーター値を自動計算・保存します。
   </div>`;
 
   body.innerHTML = html;
+  updatePastComputed(prefix);
 }
 
 function updatePastComputed(prefix){
-  // 特に何もしない（値をそのまま保存する方式）
+  // 逆算してcomputed値を表示（将来の拡張用・現在は入力値をそのまま使用）
 }
 
 function savePastData(){
   const prefix = pastModalPrefix;
-  const meterCount = 4;
+  const N = 4;
 
-  // 過去12ヶ月分のデータを保存
-  for(let m=0;m<12;m++){
-    let y = currentADYear, mo = currentMonth;
-    for(let k=0;k<=m;k++){
-      const p = prevMonthAD(y, mo);
-      y = p.year; mo = p.month;
-    }
+  // 今月のメーター値を取得
+  const currentVals = [];
+  for(let i=1;i<=N;i++){
+    const el = document.getElementById(`${prefix}_T${i}`);
+    currentVals.push(el ? parseFloat(el.value)||0 : 0);
+  }
 
-    // 既存データを取得（なければ空オブジェクト）
-    const existing = loadFromStorage(y, mo) || {_savedAt: new Date().toISOString()};
+  // 各月の使用量から逆算してメーター値を計算・保存
+  // prevMeterVals[i] = 直前に計算したメーター値（最初は今月値）
+  const prevMeterVals = [...currentVals];
 
-    let hasAnyVal = false;
-    for(let i=1;i<=meterCount;i++){
+  for(let m=0;m<13;m++){
+    let y=currentADYear, mo=currentMonth;
+    for(let k=0;k<m;k++){ const p=prevMonthAD(y,mo); y=p.year; mo=p.month; }
+
+    // 使用量を取得
+    const usages = [];
+    for(let i=1;i<=N;i++){
       const el = document.getElementById(`past_${prefix}_${m}_${i}`);
-      if(el && el.value.trim() !== ''){
-        existing[`${prefix}_T${i}`] = el.value;
-        hasAnyVal = true;
-      }
+      usages.push(el && el.value.trim()!=='' ? parseFloat(el.value) : null);
     }
 
-    if(hasAnyVal){
-      localStorage.setItem(storageKey(y, mo), JSON.stringify(existing));
+    // このm月のメーター値 = 直前月のメーター値（今月値から逆算不要・そのまま保存）
+    // m=0: 今月の使用量 → 今月のデータに使用量情報として保存
+    // m=1: 先月の使用量 → 先月値 = 今月値 - 今月使用量
+    // m=2: 先々月の使用量 → 先々月値 = 先月値 - 先月使用量
+    if(m === 0){
+      // 今月の使用量は今月データに保存（メーター値はそのまま）
+      const existing = loadFromStorage(currentADYear, currentMonth)
+        || {_savedAt: new Date().toISOString()};
+      // 今月値は既存のまま保存
+      localStorage.setItem(storageKey(currentADYear, currentMonth), JSON.stringify(existing));
+      // 今月使用量から先月メーター値を計算
+      for(let i=1;i<=N;i++){
+        if(usages[i-1]!==null){
+          prevMeterVals[i-1] = prevMeterVals[i-1] - usages[i-1];
+        }
+      }
+    } else {
+      // m>=1: この月のメーター値として保存
+      const existing = loadFromStorage(y, mo) || {_savedAt: new Date().toISOString()};
+      let hasVal = false;
+      for(let i=1;i<=N;i++){
+        if(!isNaN(prevMeterVals[i-1])){
+          existing[`${prefix}_T${i}`] = prevMeterVals[i-1].toFixed(1);
+          hasVal = true;
+        }
+      }
+      if(hasVal) localStorage.setItem(storageKey(y, mo), JSON.stringify(existing));
+
+      // 次の月のメーター値を計算
+      for(let i=1;i<=N;i++){
+        if(usages[i-1]!==null){
+          prevMeterVals[i-1] = prevMeterVals[i-1] - usages[i-1];
+        }
+      }
     }
   }
 
   closePastModal();
-  // 現在月を再読み込み（前月値・前年値を更新）
   loadCurrentMonth();
   showBanner('過去データを保存しました','saved');
 }
