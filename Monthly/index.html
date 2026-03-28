@@ -329,7 +329,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.39</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.40</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -1141,7 +1141,18 @@ function onMonthChange(){
 
   currentADYear=newADYear; currentMonth=newMonth;
 
-  // カレンダーのmin/maxは設定しない（ブラウザが今日の日付を表示してしまうため）
+  // カレンダーの初期月をminで誘導（maxは設定しない）
+  const mm=String(currentMonth).padStart(2,'0');
+  const firstDay=`${currentADYear}-${mm}-01`;
+  setTimeout(()=>{
+    document.querySelectorAll('input[type="date"].date-input').forEach(el=>{
+      if(!el.id.startsWith('Elec_')&&!el.id.startsWith('Water_')&&el.id!=='KEY_Check'){
+        if(!el.value){
+          el.min=firstDay;
+        }
+      }
+    });
+  },150);
 
   const g=adToGengo(currentADYear);
   const pm=prevMonthAD(currentADYear,currentMonth);
