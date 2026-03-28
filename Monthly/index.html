@@ -188,17 +188,18 @@ textarea.fi{resize:vertical;min-height:36px;}
 .sh-eve .section-icon{background:#f39c12;}
 .sh-eve .section-title{color:#f39c12;}
 .sh-key .section-icon{background:#7f8c8d;}
-.sh-key.required-alert .section-header{background:#fff0f0;}
-.sh-key.required-alert .section-icon{background:#c0392b;}
-.sh-key.required-alert .section-title{color:#c0392b;}
+.sh-key.required-alert .section-header{background:#fff0f0 !important;}
 .sh-key .section-title{color:#7f8c8d;}
 .sh-elec .section-header{background:var(--elec-bg);}
+.sh-elec.required-alert .section-header{background:#fff0f0 !important;}
 .sh-elec .section-icon{background:var(--elec);}
 .sh-elec .section-title{color:var(--elec);}
 .sh-water .section-header{background:var(--water-bg);}
+.sh-water.required-alert .section-header{background:#fff0f0 !important;}
 .sh-water .section-icon{background:var(--water);}
 .sh-water .section-title{color:var(--water);}
 .sh-fixed .section-icon{background:#34495e;}
+.sh-fixed.required-alert .section-header{background:#fff0f0 !important;}
 .sh-fixed .section-title{color:#34495e;}
 .sh-comment .section-icon{background:#95a5a6;}
 .sh-comment .section-title{color:#555;}
@@ -332,7 +333,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.43</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.44</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -558,7 +559,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     <div class="fixed-grid">
       <div class="fixed-item full">
         <span class="fixed-label">マンション名</span>
-        <input class="fi" type="text" id="Ma_Name" placeholder="マンション名">
+        <input class="fi" type="text" id="Ma_Name" placeholder="マンション名" oninput="checkRequiredFields()">
       </div>
       <div class="fixed-item">
         <span class="fixed-label">マンションコード</span>
@@ -945,11 +946,34 @@ function checkRequiredFields(){
   const keyCheck = document.getElementById('KEY_Check');
   const keyHeader = document.querySelector('.sh-key');
   if(keyHeader){
-    if(keyCheck && !keyCheck.value){
-      keyHeader.classList.add('required-alert');
-    } else {
-      keyHeader.classList.remove('required-alert');
-    }
+    keyHeader.classList.toggle('required-alert', !!(keyCheck && !keyCheck.value));
+  }
+
+  // ② 電気メーター（4項目のうち1つでも入力があればOK）
+  const elecHeader = document.querySelector('.sh-elec');
+  if(elecHeader){
+    const hasElec = [1,2,3,4].some(i=>{
+      const el = document.getElementById(`Elec_T${i}`);
+      return el && el.value.trim()!=='' && el.value!=='0';
+    });
+    elecHeader.classList.toggle('required-alert', !hasElec);
+  }
+
+  // ② 水道メーター（4項目のうち1つでも入力があればOK）
+  const waterHeader = document.querySelector('.sh-water');
+  if(waterHeader){
+    const hasWater = [1,2,3,4].some(i=>{
+      const el = document.getElementById(`Water_T${i}`);
+      return el && el.value.trim()!=='' && el.value!=='0';
+    });
+    waterHeader.classList.toggle('required-alert', !hasWater);
+  }
+
+  // ③ マンション名
+  const maName = document.getElementById('Ma_Name');
+  const fixedHeader = document.querySelector('.sh-fixed');
+  if(fixedHeader){
+    fixedHeader.classList.toggle('required-alert', !!(maName && !maName.value.trim()));
   }
 }
 
@@ -1241,8 +1265,10 @@ function loadCurrentMonth(){
   // 規定値：今月データがあればそれを、なければ前月から引継ぎ
   FIXED_FIELDS.forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
-    if(current && current[id]!==undefined) el.value=current[id];
-    else if(prevData && prevData[id]) el.value=prevData[id];
+    if(current && current[id]!==undefined && current[id]!==null && String(current[id])!=='')
+      el.value=current[id];
+    else if(prevData && prevData[id]!==undefined && prevData[id]!==null && String(prevData[id])!=='')
+      el.value=prevData[id];
     else el.value='';
   });
 
