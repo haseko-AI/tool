@@ -329,7 +329,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.41</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.42</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -902,21 +902,7 @@ function onDateFocus(dateEl, containerId, rowIdx, maxCount){
     const nextTr = document.getElementById(`${containerId}_tr${rowIdx+1}`);
     if(nextTr) nextTr.classList.remove('tr-hidden');
   }
-  // 未入力時のカレンダー初期月を選択中の月に設定
-  if(!dateEl.value){
-    const mm = String(currentMonth).padStart(2,'0');
-    const firstDay = `${currentADYear}-${mm}-01`;
-    dateEl.value = firstDay;
-    // すぐに消す（カレンダーが開いた後に消す）
-    requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{
-        if(dateEl.value === firstDay){
-          dateEl.value = '';
-          dateEl.classList.add('empty');
-        }
-      });
-    });
-  }
+
 }
 
 function openSubRow(dateEl, containerId, rowIdx){
