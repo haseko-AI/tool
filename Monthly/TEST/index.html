@@ -1,0 +1,2037 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>管理業務月報</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+<style>
+:root {
+  --bg:#f0f2f5; --surface:#fff; --surface2:#f8f9fb; --border:#dde1e8;
+  --accent:#1a5fa8; --accent2:#e8f0fb; --text:#1a1d23; --text2:#5a6070;
+  --elec:#e67e22; --elec-bg:#fef6ed; --elec-border:#f5cfa0;
+  --water:#2980b9; --water-bg:#edf5fc; --water-border:#a8d4ef;
+  --success:#27ae60; --radius:10px; --shadow:0 2px 8px rgba(0,0,0,.08);
+  --green:#27ae60; --green-bg:#edfaf2; --green-border:#b2e8c9;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+header{background:var(--accent);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.15);position:sticky;top:0;z-index:100;}
+header h1{font-size:1.05rem;font-weight:700;letter-spacing:.05em;flex:1;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#7fd17f;box-shadow:0 0 0 2px rgba(127,209,127,.3);}
+.container{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
+
+/* トースト */
+.toast{position:fixed;top:62px;left:50%;transform:translateX(-50%) translateY(-12px);border-radius:8px;padding:10px 20px;font-size:.88rem;font-weight:600;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.15);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:999;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.saved{background:#edfaf2;color:var(--success);border:1px solid #b2e8c9;}
+.toast.error{background:#fff0f0;color:#c0392b;border:1px solid #f5c0bc;}
+
+/* 月選択カード */
+.month-card{background:var(--surface);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.month-card>label{font-size:.8rem;font-weight:700;color:var(--text2);}
+.month-selectors{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.select-wrap{display:flex;align-items:center;gap:6px;}
+.select-wrap span{font-size:.85rem;color:var(--text2);}
+select{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:.92rem;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;}
+select:focus{border-color:var(--accent);}
+.month-info{margin-left:auto;font-size:.78rem;color:var(--text2);text-align:right;line-height:1.7;}
+.btn-month-nav{border:1.5px solid var(--border);border-radius:6px;padding:6px 12px;font-size:.9rem;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--accent);font-family:inherit;transition:all .15s;}
+.btn-month-nav:hover{background:var(--accent);color:#fff;}
+.month-info .main-month{font-size:.95rem;font-weight:700;color:var(--accent);}
+
+/* セクションカード共通 */
+.section-card{background:var(--surface);border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);overflow:hidden;}
+.section-header{padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid var(--border);background:var(--surface2);}
+.section-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--accent);color:#fff;}
+.section-title{font-size:.93rem;font-weight:700;color:var(--accent);flex:1;}
+.btn-past{border:1.5px solid currentColor;border-radius:6px;padding:4px 10px;font-size:.75rem;font-weight:700;cursor:pointer;background:transparent;color:inherit;font-family:inherit;opacity:.8;transition:opacity .15s;margin-left:auto;}
+.btn-past:hover{opacity:1;}
+.section-body{padding:14px 18px;}
+
+/* 汎用テーブル */
+.form-table{width:100%;border-collapse:collapse;}
+.form-table th{font-size:.78rem;font-weight:700;color:var(--text2);padding:5px 6px;border-bottom:1.5px solid var(--border);text-align:center;background:var(--surface2);}
+.form-table td{padding:4px 4px;border-bottom:1px solid #f0f2f5;vertical-align:middle;}
+.form-table tr:last-child td{border-bottom:none;}
+/* PC：備考欄を全幅で下段に（予約） */
+
+.row-num{font-size:.75rem;color:var(--text2);text-align:center;width:24px;}
+
+/* 汎用インプット */
+.fi{border:1.5px solid var(--border);border-radius:6px;padding:7px 8px;font-size:.88rem;width:100%;background:var(--surface);color:var(--text);outline:none;transition:border-color .15s;font-family:inherit;}
+/* iOSでtype=date/timeが親幅を超えて膨張するのを防ぐ */
+input[type="date"],input[type="time"]{
+  max-width:100% !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+  min-width:0 !important;
+}
+/* テーブル内の日付欄が枠から飛び出さないように */
+.form-table td input[type="date"],
+.form-table td input[type="time"]{
+  max-width:100% !important;
+  width:100% !important;
+}
+.fi:focus{border-color:var(--accent);background:#fafcff;}
+.fi.date-input{text-align:center;}
+.fi.date-input.invalid{border-color:#c0392b;background:#fff0f0;}
+.fi.invalid{border-color:#c0392b;background:#fff0f0;}
+/* number inputのスピナー非表示 */
+input[type="number"].fi::-webkit-outer-spin-button,
+input[type="number"].fi::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+input[type="number"].fi{-moz-appearance:textfield;}
+
+/* 動的行追加：最初は非表示 */
+.tr-hidden{display:none;}
+.fi.auto-today{background:var(--surface2);}
+textarea.fi{resize:vertical;min-height:36px;}
+
+/* ○ラジオ風トグル */
+.circle-wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.circle-btn{border:2px solid var(--border);border-radius:7px;padding:6px 14px;font-size:.82rem;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--text2);transition:all .15s;font-family:inherit;}
+.circle-btn.selected{border-color:var(--accent);background:var(--accent2);color:var(--accent);}
+.circle-btn.selected.danger{border-color:#c0392b;background:#fff0f0;color:#c0392b;}
+.circle-note{flex:1;}
+
+/* メーターセクション */
+.meter-grid{padding:14px 18px;}
+.meter-date-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.meter-date-label{font-size:.78rem;font-weight:700;color:var(--text2);white-space:nowrap;}
+.meter-date-input{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:.88rem;width:110px;max-width:110px;background:var(--surface);color:var(--text);outline:none;text-align:center;}
+.meter-date-input:focus{border-color:var(--accent);}
+.meter-date-range{font-size:.75rem;color:var(--text2);background:var(--surface2);border-radius:5px;padding:4px 10px;}
+.col-headers{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-bottom:5px;padding:0 0 5px;border-bottom:1px solid var(--border);}
+.col-header{font-size:.8rem;font-weight:700;color:var(--text2);text-align:center;}
+.col-header.today{color:var(--text);}
+.meter-block{padding:6px 0 3px;border-bottom:1px solid #f0f2f5;}
+.meter-block:last-child{border-bottom:none;}
+.meter-row{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;align-items:center;}
+.meter-label{font-size:.88rem;font-weight:700;color:var(--text2);}
+.meter-input{border:1.5px solid var(--border);border-radius:6px;padding:8px 5px;font-size:1.1rem;font-weight:600;text-align:right;width:100%;background:var(--surface);color:var(--text);outline:none;transition:border-color .15s;-moz-appearance:textfield;}
+.meter-input::-webkit-outer-spin-button,.meter-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.meter-input:focus{border-color:var(--accent);background:#fafcff;}
+.meter-input.auto{background:var(--surface2);border-style:dashed;}
+.meter-input.elec-auto{border-color:var(--elec-border);color:var(--elec);}
+.meter-input.water-auto{border-color:var(--water-border);color:var(--water);}
+.meter-input.has-value{background:#fffef0;}
+.meter-input.meter-warn{background:#fff0f0;border-color:#c0392b;}
+.usage-row{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-top:2px;}
+.usage-cell{text-align:right;font-size:.78rem;color:var(--text2);padding-right:3px;min-height:14px;}
+.usage-cell.this-month{font-weight:700;color:var(--accent);font-size:.82rem;}
+.usage-cell.warn{color:#c0392b;font-weight:700;}
+
+/* 規定値セクション */
+.fixed-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fixed-item{display:flex;flex-direction:column;gap:3px;}
+.fixed-label{font-size:.72rem;font-weight:700;color:var(--text2);}
+.fixed-item.full{grid-column:1/-1;}
+.capacity-row{display:flex;align-items:center;gap:8px;}
+.capacity-now{flex:1;text-align:right;}
+.capacity-all{flex:1;text-align:left;}
+.capacity-sep{font-size:1.1rem;font-weight:700;color:var(--text2);flex-shrink:0;}
+
+/* アクションエリア */
+.action-area{background:var(--surface);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;margin-bottom:14px;}
+.action-row{display:flex;gap:10px;flex-wrap:wrap;}
+.btn{border:none;border-radius:7px;padding:11px 18px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px;letter-spacing:.03em;font-family:inherit;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--accent);color:#fff;flex:1;justify-content:center;min-width:160px;}
+.btn-primary:hover{background:#1550a0;}
+.btn-save{background:var(--success);color:#fff;flex:1;justify-content:center;}
+.btn-save:hover{background:#219a52;}
+.btn-outline{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);flex:1;justify-content:center;}
+.btn-outline:hover{background:var(--border);}
+.note{font-size:.74rem;color:var(--text2);display:flex;align-items:flex-start;gap:5px;line-height:1.5;}
+.notes-area{display:flex;flex-direction:column;gap:4px;margin-top:4px;}
+
+/* データ一覧 */
+.data-card{background:var(--surface);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow);margin-bottom:14px;}
+.data-card-title{font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:12px;}
+.data-list{max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;}
+.data-list-item{padding:7px 10px;font-size:.82rem;display:flex;align-items:center;border-bottom:1px solid var(--border);transition:background .1s;}
+.data-list-item:last-child{border-bottom:none;}
+.data-list-item:hover{background:var(--accent2);}
+.data-list-item.active{background:var(--accent2);font-weight:700;color:var(--accent);}
+.data-list-label{flex:1;cursor:pointer;padding:2px 0;}
+.data-list-empty{padding:16px;font-size:.82rem;color:var(--text2);text-align:center;}
+.del-btn{flex-shrink:0;border:1px solid #f5c0bc;border-radius:5px;background:#fff0f0;color:#c0392b;font-size:.72rem;font-weight:700;padding:3px 8px;cursor:pointer;font-family:inherit;line-height:1;transition:background .1s;}
+.del-btn:hover{background:#ffe0e0;}
+
+/* seal */
+.seal-area{display:flex;gap:12px;padding:14px 18px;}
+
+/* 過去データ入力モーダル */
+.modal-overlay{
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;
+}
+.modal-overlay.show{display:flex;}
+.modal-box{
+  background:#fff;border-radius:12px;padding:20px;width:90%;max-width:560px;
+  max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);
+}
+.modal-title{font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.modal-sub{font-size:.78rem;color:var(--text2);margin-bottom:16px;}
+.modal-meter-grid{display:grid;grid-template-columns:1fr repeat(4,1fr);gap:4px;align-items:center;}
+.modal-meter-grid .mh{font-size:.7rem;font-weight:700;color:var(--text2);text-align:center;padding:4px 2px;}
+.modal-meter-grid .ml{font-size:.8rem;font-weight:700;color:var(--text2);padding:4px 2px;}
+.modal-meter-grid .mi{border:1.5px solid var(--border);border-radius:6px;padding:6px 5px;font-size:.88rem;text-align:right;width:100%;box-sizing:border-box;-moz-appearance:textfield;}
+.modal-meter-grid .mi::-webkit-outer-spin-button,.modal-meter-grid .mi::-webkit-inner-spin-button{-webkit-appearance:none;}
+.modal-meter-grid .mi:focus{border-color:var(--accent);outline:none;}
+.modal-meter-grid .mi.readonly{background:var(--surface2);color:var(--text2);}
+.modal-meter-grid .mi.computed{background:#edfaf2;color:var(--success);font-weight:700;}
+.modal-meter-grid .month-label{font-size:.8rem;font-weight:700;color:var(--accent);}
+.modal-footer{display:flex;gap:10px;margin-top:16px;justify-content:flex-end;}
+.btn-modal-save{background:var(--success);color:#fff;border:none;border-radius:7px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-modal-cancel{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);border-radius:7px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.modal-notice{background:#fff9e6;border:1px solid #f5d26b;border-radius:6px;padding:8px 12px;font-size:.78rem;color:#856404;margin-bottom:12px;}
+.seal-box{width:60px;height:60px;border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text2);text-align:center;line-height:1.3;}
+
+/* コメント行入力 */
+.comment-lines{display:flex;flex-direction:column;gap:4px;}
+.comment-line-wrap{position:relative;}
+.comment-line{width:100%;font-family:inherit;}
+.comment-counter{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.68rem;color:var(--text2);pointer-events:none;}
+.comment-counter.warn{color:#c0392b;font-weight:700;}
+
+/* セクションカラー */
+.sh-rec .section-icon{background:#8e44ad;}
+.sh-rec .section-title{color:#8e44ad;}
+.sh-res .section-icon{background:#16a085;}
+.sh-res .section-title{color:#16a085;}
+.sh-vis .section-icon{background:#2980b9;}
+.sh-vis .section-title{color:#2980b9;}
+.sh-ins .section-icon{background:#27ae60;}
+.sh-ins .section-title{color:#27ae60;}
+.sh-rep .section-icon{background:#e67e22;}
+.sh-rep .section-title{color:#e67e22;}
+.sh-acc .section-icon{background:#c0392b;}
+.sh-acc .section-title{color:#c0392b;}
+.sh-eve .section-icon{background:#f39c12;}
+.sh-eve .section-title{color:#f39c12;}
+.sh-key .section-icon{background:#7f8c8d;}
+.section-header.sh-key.required-alert{background:#fff0f0 !important;}
+.sh-key .section-title{color:#7f8c8d;}
+.sh-elec .section-header{background:var(--elec-bg);}
+.section-header.sh-elec.required-alert{background:#fff0f0 !important;}
+.sh-elec .section-icon{background:var(--elec);}
+.sh-elec .section-title{color:var(--elec);}
+.sh-water .section-header{background:var(--water-bg);}
+.section-header.sh-water.required-alert{background:#fff0f0 !important;}
+.sh-water .section-icon{background:var(--water);}
+.sh-water .section-title{color:var(--water);}
+.sh-fixed .section-icon{background:#34495e;}
+.section-header.sh-fixed.required-alert{background:#fff0f0 !important;}
+.sh-fixed .section-title{color:#34495e;}
+.sh-comment .section-icon{background:#95a5a6;}
+.sh-comment .section-title{color:#555;}
+
+/* 印鑑選択エリア */
+.seal-select-area{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px;}
+.seal-preview{width:60px;height:60px;border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--surface2);overflow:hidden;flex-shrink:0;}
+.seal-preview img{width:100%;height:100%;object-fit:contain;}
+.seal-preview.empty{font-size:.65rem;color:var(--text2);text-align:center;line-height:1.3;}
+.btn-seal{background:#fff5f5;color:#c0392b;border:1.5px solid #f5c0bc;border-radius:7px;padding:9px 16px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+.btn-seal:hover{background:#ffe0e0;}
+.btn-seal.selected{background:#edfaf2;color:var(--success);border-color:#b2e8c9;}
+.btn-clear-seal{background:none;border:none;color:var(--text2);font-size:.75rem;cursor:pointer;padding:2px 6px;font-family:inherit;}
+.btn-clear-seal:hover{color:#c0392b;}
+
+/* レスポンシブ */
+/* date inputの透明化はJSで制御 */
+input[type="date"].date-input.empty{
+  color: transparent !important;
+}
+input[type="date"].date-input.empty::-webkit-datetime-edit,
+input[type="date"].date-input.empty::-webkit-datetime-edit-fields-wrapper,
+input[type="date"].date-input.empty::-webkit-datetime-edit-text,
+input[type="date"].date-input.empty::-webkit-datetime-edit-month-field,
+input[type="date"].date-input.empty::-webkit-datetime-edit-day-field,
+input[type="date"].date-input.empty::-webkit-datetime-edit-year-field,
+input[type="date"].date-input.empty::-webkit-inner-spin-button{
+  color: transparent !important;
+  opacity: 0 !important;
+}
+/* PC版：日付・時間・部屋番号列の幅を統一 */
+@media(min-width:601px){
+  .form-table td.td-date{width:110px;min-width:110px;}
+  .form-table td.td-time{width:100px;min-width:100px;}
+  .form-table td.td-room{width:85px;min-width:85px;}
+  .form-table td.row-num{width:28px;min-width:28px;}
+}
+@media(max-width:600px){
+  .month-card{flex-direction:column;align-items:flex-start;}
+  .month-info{margin-left:0;text-align:left;}
+  .col-headers,.meter-row,.usage-row{grid-template-columns:38px repeat(3,1fr);gap:3px;}
+  .meter-input{padding:7px 3px;font-size:1rem;}
+  /* 駐車場などは常に2列 fixed-gridはスマホでも2列維持 */
+  .btn{padding:10px 12px;font-size:.82rem;}
+  select{font-size:.85rem;padding:6px 8px;}
+  /* スマホ：縦積みシンプルレイアウト */
+  .form-table thead{display:none;}
+  .form-table tbody,.form-table tr{display:block;}
+  .form-table tr{
+    border:1.5px solid var(--border);border-radius:8px;
+    margin-bottom:6px;padding:8px 10px;
+    background:var(--surface);
+  }
+  .form-table tr.tr-hidden{display:none;}
+  .form-table td{
+    display:flex;flex-direction:column;
+    padding:0 0 6px 0;border:none;width:100%;box-sizing:border-box;
+  }
+  .form-table td:last-child{padding-bottom:0;}
+  .form-table td::before{
+    content:attr(data-label);
+    font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:4px;
+  }
+  .form-table td input{width:100%;box-sizing:border-box;min-width:0;}
+  /* スマホでは固定幅をリセットして全幅に */
+  .form-table td.td-date,
+  .form-table td.td-time,
+  .form-table td.td-room{width:100% !important;min-width:0 !important;max-width:100% !important;overflow:hidden;}
+  /* 日付・時間・部屋番号を横2列並びに */
+  .form-table td.td-date,
+  .form-table td.td-time,
+  .form-table td.td-room{
+    width:48% !important;
+    max-width:48% !important;
+    display:inline-flex !important;
+    flex-direction:column;
+    vertical-align:top;
+    margin-right:2% !important;
+    box-sizing:border-box;
+  }
+  .form-table td.td-date input,
+  .form-table td.td-time input{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+    -webkit-appearance:none;
+    appearance:none;
+    padding:7px 8px !important;
+    min-height:38px !important;
+    height:auto !important;
+    font-size:.88rem;
+    color:var(--text);
+  }
+  /* スマホ：未入力の日付欄 */
+  .form-table td.td-date input:not([value])::-webkit-datetime-edit,
+  .form-table td.td-date input[value=""]::-webkit-datetime-edit,
+  .form-table td.td-time input:not([value])::-webkit-datetime-edit,
+  .form-table td.td-time input[value=""]::-webkit-datetime-edit{
+    color:#aaa;
+    content:'日付';
+  }
+  .form-table td.td-room input{
+    width:100% !important;
+    box-sizing:border-box !important;
+  }
+  /* date/timeのplaceholder代替：ラベルをdata-labelで表示済みなので追加不要 */
+  .form-table td.td-date input:not([value=""]):not([value]){color:var(--text);}
+  /* 行内ふわっと：日付以外のtdを非表示→日付入力で表示 */
+  .td-sub-item{
+    overflow:hidden;
+    max-height:0 !important;
+    opacity:0;
+    padding:0 !important;
+    transition:max-height .35s ease, opacity .3s ease;
+  }
+  .td-sub-item.open{
+    max-height:200px !important;
+    opacity:1;
+    padding:0 0 6px 0 !important;
+  }
+  .row-num{
+    display:block;font-size:.88rem;font-weight:700;color:var(--accent);
+    border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:6px;
+    width:100%;
+  }
+
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="status-dot"></div>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.00</span></h1>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+    <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
+    <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
+    <button onclick="changeMonthBy(1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">▶</button>
+  </div>
+</header>
+<div id="toast" class="toast"></div>
+<!-- 過去データ入力モーダル -->
+<div class="modal-overlay" id="past-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="past-modal-title">過去データ入力</div>
+    <div class="modal-sub">今月のメーター値から逆算して過去１年分を自動計算します</div>
+    <div class="modal-notice" id="past-modal-notice" style="display:none;"></div>
+    <div id="past-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="closePastModal()">キャンセル</button>
+      <button class="btn-modal-save" id="past-modal-save" onclick="savePastData()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ① 月選択 -->
+<div class="month-card">
+  <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+    <label style="font-size:.85rem;font-weight:700;color:var(--text2);">対象年月</label>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="btn-month-nav" onclick="changeMonthBy(-1)">◀</button>
+      <select id="sel-yearmonth" style="font-size:1rem;font-weight:700;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;flex:1;min-width:0;"></select>
+      <button class="btn-month-nav" onclick="changeMonthBy(1)">▶</button>
+    </div>
+  </div>
+  <div class="month-info" id="month-info"></div>
+</div>
+
+<!-- ② 申請受付状況 -->
+<div class="section-card">
+  <div class="section-header sh-rec">
+    <div class="section-icon">📋</div>
+    <div class="section-title">申請受付状況</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr>
+        <th></th><th>受付日</th><th>部屋番号</th><th>申請名</th><th>区画番号</th><th>開始・解約日</th><th>備考</th>
+      </tr></thead>
+      <tbody id="rec-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ③ 組合員の異動 -->
+<div class="section-card">
+  <div class="section-header sh-res">
+    <div class="section-icon">🏠</div>
+    <div class="section-title">組合員の異動</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>部屋番号</th><th>種別</th></tr></thead>
+      <tbody id="res-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ④ 主な来訪者 -->
+<div class="section-card">
+  <div class="section-header sh-vis">
+    <div class="section-icon">👤</div>
+    <div class="section-title">主な来訪者</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>時間</th><th>来訪者</th><th>来訪目的・内容</th></tr></thead>
+      <tbody id="vis-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑤ 点検清掃等 -->
+<div class="section-card">
+  <div class="section-header sh-ins">
+    <div class="section-icon">🔧</div>
+    <div class="section-title">点検清掃等</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>業務内容</th><th>会社名</th></tr></thead>
+      <tbody id="ins-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑥ 補修作業状況 -->
+<div class="section-card">
+  <div class="section-header sh-rep">
+    <div class="section-icon">🔨</div>
+    <div class="section-title">補修作業状況</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>業務内容</th><th>会社名</th><th>備考</th></tr></thead>
+      <tbody id="rep-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑦ 事故報告 -->
+<div class="section-card">
+  <div class="section-header sh-acc">
+    <div class="section-icon">🚨</div>
+    <div class="section-title">事故報告</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>時間</th><th>場所</th><th>発生内容</th><th>対処内容</th></tr></thead>
+      <tbody id="acc-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑧ 組合行事 -->
+<div class="section-card">
+  <div class="section-header sh-eve">
+    <div class="section-icon">📅</div>
+    <div class="section-title">組合行事</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>行事</th><th>備考</th></tr></thead>
+      <tbody id="eve-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑨ 鍵確認 -->
+<div class="section-card">
+  <div class="section-header sh-key">
+    <div class="section-icon">🔑</div>
+    <div class="section-title">鍵確認</div>
+  </div>
+  <div class="section-body" style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;">確認日</span>
+      <input class="fi date-input" type="date" id="KEY_Check" style="width:175px;" onchange="checkRequiredFields()">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;">鍵の状態</span>
+        <div class="circle-wrap">
+          <button class="circle-btn" id="KEY_Yes_btn" onclick="toggleCircle('KEY','Yes')">異常あり ○</button>
+          <button class="circle-btn" id="KEY_No_btn"  onclick="toggleCircle('KEY','No')">異常なし ○</button>
+        </div>
+        <input class="fi circle-note" type="text" id="KEY_Note" placeholder="備考">
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;">鍵の変更</span>
+        <div class="circle-wrap">
+          <button class="circle-btn" id="CHANGE_Yes_btn" onclick="toggleCircle('CHANGE','Yes')">変更あり ○</button>
+          <button class="circle-btn" id="CHANGE_No_btn"  onclick="toggleCircle('CHANGE','No')">変更なし ○</button>
+        </div>
+        <input class="fi circle-note" type="text" id="CHANGE_Note" placeholder="備考">
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ⑩ 電気メーター -->
+<div class="section-card">
+  <div class="section-header sh-elec">
+    <div class="section-icon">⚡</div>
+    <div class="section-title">電気メーター　読み取り値</div>
+    <button class="btn-past" onclick="openPastModal('Elec')">📅 過去</button>
+  </div>
+  <div class="meter-grid">
+    <div class="meter-date-row">
+      <span class="meter-date-label">当月検針日</span>
+      <input class="meter-date-input" type="date" id="Elec_DateT"
+        onfocus="autoFillToday(this)" onchange="updateMeterDateRange('Elec')">
+      <span class="meter-date-range" id="Elec_DateRange">─</span>
+    </div>
+    <div class="col-headers">
+      <div class="col-header"></div>
+      <div class="col-header today">今月値</div>
+      <div class="col-header">先月値</div>
+      <div class="col-header">前年値</div>
+    </div>
+    <div id="elec-rows"></div>
+  </div>
+</div>
+
+<!-- ⑪ 水道メーター -->
+<div class="section-card">
+  <div class="section-header sh-water">
+    <div class="section-icon">💧</div>
+    <div class="section-title">水道メーター　読み取り値</div>
+    <button class="btn-past" onclick="openPastModal('Water')">📅 過去</button>
+  </div>
+  <div class="meter-grid">
+    <div class="meter-date-row">
+      <span class="meter-date-label">当月検針日</span>
+      <input class="meter-date-input" type="date" id="Water_DateT"
+        onfocus="autoFillToday(this)" onchange="updateMeterDateRange('Water')">
+      <span class="meter-date-range" id="Water_DateRange">─</span>
+    </div>
+    <div class="col-headers">
+      <div class="col-header"></div>
+      <div class="col-header today">今月値</div>
+      <div class="col-header">先月値</div>
+      <div class="col-header">前年値</div>
+    </div>
+    <div id="water-rows"></div>
+  </div>
+</div>
+
+<!-- ⑫ その他報告 -->
+<div class="section-card">
+  <div class="section-header sh-comment">
+    <div class="section-icon">📝</div>
+    <div class="section-title">その他報告　（1行27文字・5行まで）</div>
+  </div>
+  <div class="section-body">
+    <div class="comment-lines" id="comment-lines"></div>
+    <div style="font-size:.72rem;color:var(--text2);margin-top:6px;">
+      ℹ️ 27文字で自動的に次の行へ移ります。行頭でBackspaceを押すと前の行に戻ります
+    </div>
+  </div>
+</div>
+
+<!-- ⑬ 規定値 -->
+<div class="section-card">
+  <div class="section-header sh-fixed">
+    <div class="section-icon">🏢</div>
+    <div class="section-title">規定値　（前月から自動引継ぎ・変更箇所のみ修正）</div>
+  </div>
+  <div class="section-body">
+    <div class="fixed-grid">
+      <div class="fixed-item full">
+        <span class="fixed-label">マンション名</span>
+        <input class="fi" type="text" id="Ma_Name" placeholder="マンション名" oninput="checkRequiredFields()">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">マンションコード</span>
+        <input class="fi" type="number" min="0" id="MaCD" oninput="toHankaku(this)" placeholder="コード">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">総戸数</span>
+        <input class="fi" type="number" min="0" id="TOTAL" oninput="toHankaku(this)" placeholder="戸">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">駐車場　利用台数</span>
+        <input class="fi" type="number" min="0" id="Car_NOW" oninput="toHankaku(this);checkCapacity('Car_NOW','Car_ALL')" placeholder="台"
+          oninput="checkCapacity('Car_NOW','Car_ALL')" onchange="checkCapacity('Car_NOW','Car_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">駐車場　区画総数</span>
+        <input class="fi" type="number" min="0" id="Car_ALL" oninput="toHankaku(this);checkCapacity('Car_NOW','Car_ALL')" placeholder="台"
+          oninput="checkCapacity('Car_NOW','Car_ALL')" onchange="checkCapacity('Car_NOW','Car_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">バイク　利用台数</span>
+        <input class="fi" type="number" min="0" id="Bike_NOW" oninput="toHankaku(this);checkCapacity('Bike_NOW','Bike_ALL')" placeholder="台"
+          oninput="checkCapacity('Bike_NOW','Bike_ALL')" onchange="checkCapacity('Bike_NOW','Bike_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">バイク　区画総数</span>
+        <input class="fi" type="number" min="0" id="Bike_ALL" oninput="toHankaku(this);checkCapacity('Bike_NOW','Bike_ALL')" placeholder="台"
+          oninput="checkCapacity('Bike_NOW','Bike_ALL')" onchange="checkCapacity('Bike_NOW','Bike_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">自転車　利用台数</span>
+        <input class="fi" type="number" min="0" id="Cycle_NOW" oninput="toHankaku(this);checkCapacity('Cycle_NOW','Cycle_ALL')" placeholder="台"
+          oninput="checkCapacity('Cycle_NOW','Cycle_ALL')" onchange="checkCapacity('Cycle_NOW','Cycle_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">自転車　区画総数</span>
+        <input class="fi" type="number" min="0" id="Cycle_ALL" oninput="toHankaku(this);checkCapacity('Cycle_NOW','Cycle_ALL')" placeholder="台"
+          oninput="checkCapacity('Cycle_NOW','Cycle_ALL')" onchange="checkCapacity('Cycle_NOW','Cycle_ALL')">
+      </div>
+      <div class="fixed-item full">
+        <span class="fixed-label">フロントメールアドレス</span>
+        <input class="fi" type="email" id="Front_Add" placeholder="mail@example.com">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- アクションエリア -->
+<div class="action-area">
+  <!-- 印鑑エリア -->
+  <div style="border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;background:var(--surface2);">
+    <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;">🔴 印鑑（PDFの右欄に押印されます）</div>
+    <div class="seal-select-area">
+      <div class="seal-preview empty" id="seal-preview">印鑑<br>未選択</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="btn-seal" id="seal-btn" onclick="selectSeal()">印鑑画像を選択</button>
+        <button class="btn-clear-seal" id="seal-clear" onclick="clearSeal()" style="display:none;">✕ クリア</button>
+      </div>
+      <input type="file" id="seal-file" accept="image/png,image/jpeg" style="display:none" onchange="onSealSelected(event)">
+      <div style="font-size:.72rem;color:var(--text2);line-height:1.5;">PNG・JPEG対応<br>規定値に登録すると<br>毎月自動で押印</div>
+    </div>
+  </div>
+  <div class="action-row">
+    <button class="btn btn-save"    onclick="saveData()">💾 このデータを保存</button>
+    <button class="btn btn-primary" onclick="downloadPDF()">📄 PDFダウンロード</button>
+  </div>
+  <div class="action-row">
+    <button class="btn btn-outline" onclick="exportJSON()">⬇️ データを書き出し</button>
+    <label class="btn btn-outline" style="cursor:pointer;">
+      ⬆️ データを読み込み
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+    </label>
+  </div>
+  <div class="notes-area">
+    <div class="note">ℹ️ 電気・水道の入力欄はメーター読み取り値。PDFには使用量（今月値－先月値）が書き込まれます</div>
+    <div class="note">ℹ️ 規定値・メーター先月値・前年値は保存済みデータから自動引継ぎされます</div>
+    <div class="note">⚠️ データはこのブラウザのlocalStorageに保存されます。定期的に「データを書き出し」でバックアップしてください</div>
+  </div>
+</div>
+
+<!-- データ一覧 -->
+<div class="data-card">
+  <div class="data-card-title">📋 保存済みデータ一覧</div>
+  <div class="data-list" id="data-list"></div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+// ============================================================
+// ★ 元号テーブル
+// 新しい元号になったらここに1行追加するだけでOKです
+// start  = 元号が始まる西暦年
+// offset = 西暦 - offset = 元号の年数
+// ============================================================
+const GENGO_LIST = [
+  { name:'令和', start:2019, offset:2018 },
+  // { name:'○○', start:2050, offset:2049 }, // 次の元号はここに追加
+];
+function adToGengo(y){ for(let i=GENGO_LIST.length-1;i>=0;i--){ if(y>=GENGO_LIST[i].start) return{name:GENGO_LIST[i].name,year:y-GENGO_LIST[i].offset}; } return{name:'',year:y}; }
+
+// ============================================================
+// 定数
+// ============================================================
+const METER_COUNT    = 4;
+const STORAGE_PREFIX = 'monthly_report_';
+const YEAR_START_AD  = 2021;
+const YEAR_END_AD    = 2045;
+
+// 規定値フィールド（前月から自動引継ぎ対象）
+const FIXED_FIELDS = ['Ma_Name','MaCD','TOTAL','Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL','Front_Add'];
+
+// 鍵確認・ラジオ状態
+const circleState = { KEY:'', CHANGE:'' };
+
+// 印鑑画像データ（base64）
+let sealImageData = null;
+let sealImageType = 'image/png';
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function storageKey(y,m){ return `${STORAGE_PREFIX}${y}_${String(m).padStart(2,'0')}`; }
+function prevMonthAD(y,m){ return m===1?{year:y-1,month:12}:{year:y,month:m-1}; }
+function lastYearAD(y,m){ return {year:y-1,month:m}; }
+function valOrEmpty(v){ const n=Number(v); return(v===''||v===null||isNaN(n)||n===0)?'':n.toFixed(1); }
+function calcUsage(t,p){ const tv=parseFloat(t),pv=parseFloat(p); if(isNaN(tv)||isNaN(pv)||t===''||p==='') return ''; return (tv-pv).toFixed(1); }
+
+// ============================================================
+// 印鑑画像の選択・クリア・プレビュー
+// ============================================================
+function selectSeal(){
+  document.getElementById('seal-file').click();
+}
+
+function onSealSelected(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  sealImageType = file.type;
+  const reader = new FileReader();
+  reader.onload = e => {
+    sealImageData = e.target.result; // data:image/png;base64,....
+    // プレビュー更新
+    const preview = document.getElementById('seal-preview');
+    preview.innerHTML = `<img src="${sealImageData}" alt="印鑑">`;
+    preview.classList.remove('empty');
+    // ボタン表示更新
+    document.getElementById('seal-btn').classList.add('selected');
+    document.getElementById('seal-btn').textContent = '🔴 印鑑選択済み（変更）';
+    document.getElementById('seal-clear').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function clearSeal(){
+  sealImageData = null;
+  const preview = document.getElementById('seal-preview');
+  preview.innerHTML = '印鑑<br>未選択';
+  preview.classList.add('empty');
+  document.getElementById('seal-btn').classList.remove('selected');
+  document.getElementById('seal-btn').textContent = '🔴 印鑑画像を選択';
+  document.getElementById('seal-clear').style.display = 'none';
+}
+
+// 全角数字→半角変換
+function toHankaku(el){
+  el.value = el.value.replace(/[０-９]/g, s=>String.fromCharCode(s.charCodeAt(0)-0xFEE0));
+}
+
+// YYYY-MM-DD 形式で今日を返す
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+// 日付文字列の前日を返す
+function prevDay(dateStr){ if(!dateStr) return ''; const d=new Date(dateStr); d.setDate(d.getDate()-1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+// YYYY-MM-DD → M/D 表示
+function fmtDate(s){ if(!s) return '─'; const p=s.split('-'); return `${parseInt(p[1])}/${parseInt(p[2])}`; }
+
+// ============================================================
+// 状態
+// ============================================================
+let currentADYear=0, currentMonth=0;
+
+// ============================================================
+// 初期化
+// ============================================================
+function init(){
+  // スマホ判定：タッチデバイスかつ画面幅800px以下
+  function checkMobile(){
+    const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const isNarrow = window.innerWidth <= 800;
+    if(isTouchDevice && isNarrow){
+      document.body.classList.add('is-mobile');
+    } else {
+      document.body.classList.remove('is-mobile');
+    }
+  }
+  checkMobile();
+  console.log("is-mobile:", document.body.classList.contains("is-mobile"), "width:", window.innerWidth, "touch:", ('ontouchstart' in window));
+  window.addEventListener('resize', checkMobile);
+
+  const selYearMonth=document.getElementById('sel-yearmonth');
+  for(let ad=YEAR_START_AD;ad<=YEAR_END_AD;ad++){
+    for(let m=1;m<=12;m++){
+      const g=adToGengo(ad),opt=document.createElement('option');
+      opt.value=`${ad}_${m}`;
+      opt.textContent=`${ad}年${m}月（${g.name}${g.year}年）`;
+      selYearMonth.appendChild(opt);
+    }
+  }
+  const today=new Date();
+  selYearMonth.value=`${today.getFullYear()}_${today.getMonth()+1}`;
+  // 後方互換性のためsel-year/sel-monthも非表示で残す
+  const selYear=document.createElement('select'); selYear.id='sel-year'; selYear.style.display='none'; document.body.appendChild(selYear);
+  const selMonth=document.createElement('select'); selMonth.id='sel-month'; selMonth.style.display='none'; document.body.appendChild(selMonth);
+  selYear.value=today.getFullYear(); selMonth.value=today.getMonth()+1;
+
+  // useDynamic=true で行数が多いセクションは動的行追加
+  buildTableRows('rec-rows',  ['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'], 7, ['日付','部屋番号','申請名','区画番号','開始・解約日','備考'], true);
+  buildTableRows('res-rows',  ['Res_D','Res_R','Res_T'], 2, ['日付','部屋番号','種別'], true);
+  buildTableRows('vis-rows',  ['Vis_D','Vis_T','Vis_V','Vis_N'], 5, ['日付','時間','来訪者','目的・内容'], true);
+  buildTableRows('ins-rows',  ['Ins_D','Ins_C','Ins_E'], 8, ['日付','業務内容','会社名'], true);
+  buildTableRows('rep-rows',  ['Rep_D','Rep_C','Rep_E','Rep_N'], 3, ['日付','業務内容','会社名','備考'], true);
+  buildTableRows('acc-rows',  ['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'], 2, ['日付','時間','場所','発生内容','対処内容'], true);
+  buildTableRows('eve-rows',  ['Eve_D','Eve_C','Eve_N'], 4, ['日付','行事','備考'], true);
+  buildCommentLines();
+  buildMeterRows('elec-rows',  'Elec',  'elec');
+  buildMeterRows('water-rows', 'Water', 'water');
+
+  // date inputの空チェック（未入力時にグレー日付を隠す）
+  function updateDateInputEmpty(el){
+    if(!el.value){ el.classList.add('empty'); }
+    else { el.classList.remove('empty'); }
+  }
+  function initDateInputEmpty(){
+    document.querySelectorAll('input[type="date"].date-input').forEach(el=>{
+      updateDateInputEmpty(el);
+      el.addEventListener('change', ()=>updateDateInputEmpty(el));
+      el.addEventListener('blur', ()=>updateDateInputEmpty(el));
+    });
+  }
+  setTimeout(initDateInputEmpty, 200);
+
+  selYearMonth.addEventListener('change', ()=>{
+    const [y,m]=selYearMonth.value.split('_');
+    selYear.value=y; selMonth.value=m;
+    onMonthChange();
+  });
+  onMonthChange();
+  refreshDataList();
+
+
+}
+
+// ============================================================
+// テーブル行生成（汎用）
+// prefixes = フィールド名のプレフィックス配列（番号を後付け）
+// ============================================================
+// ============================================================
+// テーブル行生成（汎用・動的行追加付き）
+// useDynamic=true のとき、1行目だけ表示して入力で次行が出る
+// ============================================================
+// ============================================================
+// テーブル行生成（汎用・動的行追加付き）
+// スマホ：日付を入力するとサブ項目がふわっと表示
+// ============================================================
+function buildTableRows(containerId, prefixes, count, labels, useDynamic=false){
+  const tbody=document.getElementById(containerId);
+  tbody.innerHTML='';
+
+  for(let i=1;i<=count;i++){
+    const tr=document.createElement('tr');
+    tr.id=`${containerId}_tr${i}`;
+    if(useDynamic && i>1) tr.className='tr-hidden';
+
+    let html=`<td class="row-num">${i}行目</td>`;
+
+    // 全項目を順番に出力
+    // スマホのふわっとはCSSクラスで制御
+    const dateIdx = prefixes.findIndex(p=>p.endsWith('_D'));
+    // 2番目の項目（部屋番号・業務内容など）のインデックス
+    const secondVisibleIdx = dateIdx >= 0 ? (dateIdx === 0 ? 1 : 0) : -1;
+    prefixes.forEach((pf,pi)=>{
+      const id=`${pf}${i}`;
+      // 日付・2番目以外はtd-sub-itemクラスを付ける
+      const isHidden = dateIdx >= 0 && pi !== dateIdx && pi !== secondVisibleIdx;
+      if(pi === dateIdx){
+        // 日付欄：onfocusにopenSubRowを追加
+        const pf2=prefixes[dateIdx], id2=`${pf2}${i}`;
+        const dynAttr = useDynamic
+          ? `onfocus="onDateFocus(this,'${containerId}',${i},${count})" onchange="onDatePickDay(this,'${containerId}',${i},${count})"`
+          : `onfocus="onDateFocus(this,'${containerId}',${i},0)" onchange="onDatePickDay(this,null,0,0)"`;
+        html += `<td class="td-date" data-label="${labels[dateIdx]||''}"><input class="fi date-input" type="date" id="${id2}" ${dynAttr}></td>`;
+      } else {
+        html += makeTdHtml(pf, pi, id, labels, containerId, i, count, useDynamic, prefixes, isHidden);
+      }
+    });
+
+    tr.insertAdjacentHTML('beforeend', html);
+    tbody.appendChild(tr);
+  }
+
+}
+
+// td要素のHTML生成（buildTableRowsのヘルパー）
+function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynamic, prefixes, isSub=false){
+  const isDatePicker = pf.endsWith('_S');
+  const isDayInput   = pf.endsWith('_D');
+  const isVisTime    = pf==='Vis_T';
+  const isAccTime    = pf==='Acc_T';
+  const isRoomNum    = pf==='Rec_R'||pf==='Res_R'||pf==='Rec_P';
+  const isLastCol    = pi===prefixes.length-1;
+  const lbl = labels[pi]||'';
+
+  if(isDatePicker){
+    return `<td class="${isSub?'td-sub-item ':''}td-date" data-label="${lbl}"><input class="fi date-input" type="date" id="${id}"></td>`;
+  }
+  if(isVisTime||isAccTime){
+    return `<td class="${isSub?'td-sub-item ':''}td-time" data-label="${lbl}"><input class="fi date-input" type="time" id="${id}" placeholder="${lbl}"></td>`;
+  }
+  if(isDayInput){
+    const dynAttr = useDynamic
+      ? `onchange="onDatePickDay(this,'${containerId}',${rowIdx},${maxCount})"`
+      : `onchange="onDatePickDay(this,null,0,0)"`;
+    return `<td class="td-date" data-label="${lbl}"><input class="fi date-input" type="date" id="${id}" ${dynAttr}></td>`;
+  }
+  if(isRoomNum){
+    // inputmode="numeric" → 数字・記号キーボードをデフォルトに
+    const dynAttr = isLastCol ? `oninput="onLastColInput(this,'${containerId}',${rowIdx},${maxCount})"` : '';
+    return `<td class="${isSub?'td-sub-item ':''}td-room" data-label="${lbl}"><input class="fi" type="text" inputmode="numeric" id="${id}" placeholder="${lbl}" ${dynAttr}></td>`;
+  }
+  // 通常テキスト
+  const dynAttr = (useDynamic && isLastCol) ? `oninput="onLastColInput(this,'${containerId}',${rowIdx},${maxCount})"` : '';
+  return `<td class="${isSub?'td-sub-item ':''}" data-label="${lbl}"><input class="fi" type="text" id="${id}" placeholder="${lbl}" ${dynAttr}></td>`;
+}
+
+// 行内ふわっと：日付入力時にサブ項目を表示
+// ② 日付にフォーカスしたら全項目表示＋次行表示
+function onDateFocus(dateEl, containerId, rowIdx, maxCount){
+  // サブ項目をふわっと表示
+  const tr = document.getElementById(`${containerId}_tr${rowIdx}`);
+  if(tr) tr.querySelectorAll('.td-sub-item').forEach(el=>el.classList.add('open'));
+  // 次行も表示
+  if(maxCount > 0 && rowIdx < maxCount){
+    const nextTr = document.getElementById(`${containerId}_tr${rowIdx+1}`);
+    if(nextTr) nextTr.classList.remove('tr-hidden');
+  }
+
+}
+
+function openSubRow(dateEl, containerId, rowIdx){
+  // その行のtd-sub-itemを全部取得してopenクラスを切り替え
+  const tr = document.getElementById(`${containerId}_tr${rowIdx}`);
+  if(!tr) return;
+  const subItems = tr.querySelectorAll('.td-sub-item');
+  if(dateEl && dateEl.value){
+    subItems.forEach(el=>el.classList.add('open'));
+  } else {
+    subItems.forEach(el=>el.classList.remove('open'));
+  }
+}
+
+// カレンダー選択→日だけ取り出して2桁表示
+function onDatePickDay(el, containerId, rowIdx, maxCount){
+  if(el.value){
+    const day = parseInt(el.value.split('-')[2]);
+    el.dataset.dayVal = String(day).padStart(2,'0');
+    el.dataset.fullDate = el.value;
+
+  } else {
+    el.dataset.dayVal = '';
+    el.dataset.fullDate = '';
+
+  }
+  // 動的行追加
+  if(el.value && containerId && rowIdx < maxCount){
+    const nextTr = document.getElementById(`${containerId}_tr${rowIdx+1}`);
+    if(nextTr) nextTr.classList.remove('tr-hidden');
+  }
+}
+
+// 必須項目チェック（未入力時にセクションヘッダーを赤くする）
+function checkRequiredFields(){
+  // ① 鍵確認日
+  const keyCheck = document.getElementById('KEY_Check');
+  const keyHeader = document.querySelector('.sh-key');
+  if(keyHeader){
+    keyHeader.classList.toggle('required-alert', !!(keyCheck && !keyCheck.value));
+  }
+
+  // ② 電気メーター（4項目のうち1つでも入力があればOK）
+  const elecHeader = document.querySelector('.sh-elec');
+  if(elecHeader){
+    const hasElec = [1,2,3,4].some(i=>{
+      const el = document.getElementById(`Elec_T${i}`);
+      return el && el.value.trim()!=='' && el.value!=='0';
+    });
+    elecHeader.classList.toggle('required-alert', !hasElec);
+  }
+
+  // ② 水道メーター（4項目のうち1つでも入力があればOK）
+  const waterHeader = document.querySelector('.sh-water');
+  if(waterHeader){
+    const hasWater = [1,2,3,4].some(i=>{
+      const el = document.getElementById(`Water_T${i}`);
+      return el && el.value.trim()!=='' && el.value!=='0';
+    });
+    waterHeader.classList.toggle('required-alert', !hasWater);
+  }
+
+  // ③ マンション名
+  const maName = document.getElementById('Ma_Name');
+  const fixedHeader = document.querySelector('.sh-fixed');
+  if(fixedHeader){
+    fixedHeader.classList.toggle('required-alert', !!(maName && !maName.value.trim()));
+  }
+}
+
+// 駐車場・バイク・自転車：利用台数 > 総数 で赤表示
+function checkCapacity(nowId, allId){
+  const nowEl=document.getElementById(nowId);
+  const allEl=document.getElementById(allId);
+  if(!nowEl||!allEl) return;
+  const now=parseFloat(nowEl.value), all=parseFloat(allEl.value);
+  const over = !isNaN(now)&&!isNaN(all)&&now>all;
+  nowEl.classList.toggle('invalid', over);
+  // 総数欄も赤にする（利用が超えていることを両方で示す）
+  allEl.classList.toggle('invalid', over);
+}
+
+// データ読み込み後に台数チェックを再実行
+function recheckCapacities(){
+  checkCapacity('Car_NOW','Car_ALL');
+  checkCapacity('Bike_NOW','Bike_ALL');
+  checkCapacity('Cycle_NOW','Cycle_ALL');
+}
+
+// 日付（日のみ）バリデーション：1〜末日、2桁まで
+function validateDay(el){
+  const v=parseInt(el.value);
+  const lastDay=new Date(currentADYear,currentMonth,0).getDate(); // 末日
+  el.classList.toggle('invalid', el.value!=='' && (isNaN(v)||v<1||v>lastDay));
+}
+
+// 動的行追加：日付欄入力時
+function onDayInput(el, containerId, rowIdx, maxCount){
+  validateDay(el);
+  // 値が入ったら次行を表示
+  if(el.value.trim()!=='' && rowIdx<maxCount){
+    const nextTr=document.getElementById(`${containerId}_tr${rowIdx+1}`);
+    if(nextTr) nextTr.classList.remove('tr-hidden');
+  }
+}
+
+// 動的行追加：最終列入力時（日付以外のテーブル）
+function onLastColInput(el, containerId, rowIdx, maxCount){
+  if(el.value.trim()!=='' && rowIdx<maxCount){
+    const nextTr=document.getElementById(`${containerId}_tr${rowIdx+1}`);
+    if(nextTr) nextTr.classList.remove('tr-hidden');
+  }
+}
+
+// 動的行の表示状態を復元（データ読み込み時）
+function restoreDynamicRows(containerId, prefixes, count){
+  for(let i=1;i<=count;i++){
+    const tr=document.getElementById(`${containerId}_tr${i}`);
+    if(!tr) continue;
+    const hasVal=prefixes.some(pf=>{
+      const el=document.getElementById(`${pf}${i}`);
+      return el && el.value.trim()!=='';
+    });
+    if(hasVal || i===1) tr.classList.remove('tr-hidden');
+    if(hasVal && i<count){
+      const nextTr=document.getElementById(`${containerId}_tr${i+1}`);
+      if(nextTr) nextTr.classList.remove('tr-hidden');
+    }
+    // ③ 日付に値があればサブ項目も表示
+    const datePrefix=prefixes.find(p=>p.endsWith('_D'));
+    if(datePrefix){
+      const dateEl=document.getElementById(`${datePrefix}${i}`);
+      if(dateEl && dateEl.value){
+        tr.querySelectorAll('.td-sub-item').forEach(el=>el.classList.add('open'));
+      }
+    }
+  }
+}
+
+// ============================================================
+// コメント行生成（5行×27文字、自動カーソル移動）
+// ============================================================
+const COMMENT_LINES = 5;
+const COMMENT_COLS  = 27;
+
+function buildCommentLines(){
+  const container=document.getElementById('comment-lines');
+  if(!container) return;
+  container.innerHTML='';
+  for(let i=1;i<=COMMENT_LINES;i++){
+    const wrap=document.createElement('div'); wrap.className='comment-line-wrap';
+    const input=document.createElement('input');
+    input.type='text'; input.id=`Comment_${i}`; input.className='fi comment-line';
+    input.maxLength=COMMENT_COLS;
+    input.placeholder=`${i}行目`;
+    input.dataset.line=i;
+
+    // 27文字に達したら自動で次行へ
+    input.addEventListener('input', ()=>{
+      updateCommentCounter(i);
+      if(input.value.length>=COMMENT_COLS && i<COMMENT_LINES){
+        document.getElementById(`Comment_${i+1}`).focus();
+      }
+    });
+
+    // 行頭でBackspaceを押したら前の行末へ
+    input.addEventListener('keydown', e=>{
+      if(e.key==='Backspace' && input.value==='' && i>1){
+        e.preventDefault();
+        const prev=document.getElementById(`Comment_${i-1}`);
+        prev.focus();
+        prev.setSelectionRange(prev.value.length, prev.value.length);
+      }
+    });
+
+    const counter=document.createElement('span');
+    counter.className='comment-counter'; counter.id=`Comment_counter_${i}`;
+    counter.textContent='';
+
+    wrap.appendChild(input); wrap.appendChild(counter);
+    container.appendChild(wrap);
+  }
+}
+
+function updateCommentCounter(i){
+  const input=document.getElementById(`Comment_${i}`);
+  const counter=document.getElementById(`Comment_counter_${i}`);
+  if(!input||!counter) return;
+  const len=input.value.length;
+  counter.textContent=len>0?`${len}/${COMMENT_COLS}`:'';
+  counter.classList.toggle('warn', len>=COMMENT_COLS);
+}
+
+// ============================================================
+// メーター行生成
+// ============================================================
+function buildMeterRows(containerId, prefix, cls){
+  const container=document.getElementById(containerId);
+  container.innerHTML='';
+  for(let i=1;i<=METER_COUNT;i++){
+    const block=document.createElement('div'); block.className='meter-block';
+    block.innerHTML=`
+      <div class="meter-row">
+        <div class="meter-label">${i}番</div>
+        <input class="meter-input" type="text" inputmode="decimal"
+          id="${prefix}_T${i}" placeholder="読み取り値"
+          oninput="onTodayInput('${prefix}',${i})">
+        <input class="meter-input auto ${cls}-auto" type="text"
+          id="${prefix}_P${i}" placeholder="─" readonly tabindex="-1">
+        <input class="meter-input auto ${cls}-auto" type="text"
+          id="${prefix}_L${i}" placeholder="─" readonly tabindex="-1">
+      </div>
+      <div class="usage-row">
+        <div></div>
+        <div class="usage-cell this-month" id="${prefix}_U${i}"></div>
+        <div class="usage-cell"            id="${prefix}_UP${i}"></div>
+        <div class="usage-cell"            id="${prefix}_UL${i}"></div>
+      </div>`;
+    container.appendChild(block);
+  }
+}
+
+// ============================================================
+// 検針日：空欄なら今日を自動入力
+// ============================================================
+function autoFillToday(el){
+  if(!el.value) el.value=todayStr();
+  updateMeterDateRange(el.id.startsWith('Elec')?'Elec':'Water');
+}
+
+// 検針期間表示を更新（前月の検針日〜今月の検針日の前日）
+function updateMeterDateRange(prefix){
+  const todayInput=document.getElementById(`${prefix}_DateT`);
+  const rangeEl=document.getElementById(`${prefix}_DateRange`);
+  if(!todayInput||!rangeEl) return;
+  const pm=prevMonthAD(currentADYear,currentMonth);
+  const prevData=loadFromStorage(pm.year,pm.month);
+  const ds = prevData ? (prevData[`${prefix}_DateT`]||'') : '';
+  const de = prevDay(todayInput.value);
+  rangeEl.textContent = (ds||de) ? `${fmtDate(ds)} 〜 ${fmtDate(de)}` : '─';
+}
+
+// ============================================================
+// ○トグル（鍵確認）
+// ============================================================
+function toggleCircle(group, key){
+  circleState[group] = circleState[group]===key ? '' : key;
+  ['Yes','No'].forEach(k=>{
+    const btn=document.getElementById(`${group}_${k}_btn`);
+    btn.classList.toggle('selected', circleState[group]===k);
+    // 異常あり・変更ありは赤色
+    if(k==='Yes') btn.classList.toggle('danger', circleState[group]==='Yes');
+  });
+}
+
+// ============================================================
+// 月変更（自動保存付き）
+// ④ 自動保存（クレーマー対策）
+// ============================================================
+function onMonthChange(){
+  const ymVal=document.getElementById('sel-yearmonth').value||`${new Date().getFullYear()}_${new Date().getMonth()+1}`;
+  const [ymY,ymM]=ymVal.split('_');
+  const newADYear=parseInt(ymY);
+  const newMonth =parseInt(ymM);
+
+  const isSameMonth=(currentADYear===newADYear && currentMonth===newMonth);
+  let didAutoSave=false;
+  if(currentADYear>0 && !isSameMonth && hasAnyInput()){
+    saveDataSilent();
+    const g=adToGengo(currentADYear);
+    showBanner(`${currentADYear}年${currentMonth}月を自動保存しました`,'saved',2500);
+    didAutoSave=true;
+  }
+
+  currentADYear=newADYear; currentMonth=newMonth;
+
+  // カレンダー初期月はonfocusで制御
+
+  const g=adToGengo(currentADYear);
+  const pm=prevMonthAD(currentADYear,currentMonth);
+  const ly=lastYearAD(currentADYear,currentMonth);
+  document.getElementById('month-info').innerHTML=
+    `<span class="main-month">${currentADYear}年${currentMonth}月（${g.name}${g.year}年）</span><br>`+
+    `先月: ${pm.year}年${pm.month}月（${adToGengo(pm.year).name}${adToGengo(pm.year).year}年）<br>`+
+    `前年: ${ly.year}年${ly.month}月（${adToGengo(ly.year).name}${adToGengo(ly.year).year}年）`;
+  // ヘッダーにも年月を表示（スクロールしても見える）
+  document.getElementById('header-month').textContent=`${currentADYear}年${currentMonth}月`;
+
+  loadCurrentMonth();
+  if(!didAutoSave) hideBanner();
+}
+
+// ============================================================
+// データ読み込み
+// ============================================================
+function loadCurrentMonth(){
+  // 動的行を全部リセット（tr-hiddenに戻す）してからデータ読み込み
+  ['rec-rows','res-rows','vis-rows','ins-rows','rep-rows','acc-rows','eve-rows'].forEach(tid=>{
+    const tbody=document.getElementById(tid);
+    if(!tbody) return;
+    tbody.querySelectorAll('tr').forEach((tr,idx)=>{
+      if(idx>0) tr.classList.add('tr-hidden');
+      // サブ項目も閉じる
+      tr.querySelectorAll('.td-sub-item').forEach(el=>el.classList.remove('open'));
+    });
+  });
+  const current  = loadFromStorage(currentADYear, currentMonth);
+  const pm       = prevMonthAD(currentADYear, currentMonth);
+  const ly       = lastYearAD(currentADYear, currentMonth);
+  const ppm      = prevMonthAD(pm.year, pm.month);
+  const lym      = prevMonthAD(ly.year, ly.month);
+  const prevData = loadFromStorage(pm.year,  pm.month);
+  const lyData   = loadFromStorage(ly.year,  ly.month);
+  const ppData   = loadFromStorage(ppm.year, ppm.month);
+  const lymData  = loadFromStorage(lym.year, lym.month);
+
+  // テーブル系フィールドを復元
+  const tableFields = [];
+  ['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].forEach(p=>{ for(let i=1;i<=7;i++) tableFields.push(`${p}${i}`); });
+  ['Res_D','Res_R','Res_T'].forEach(p=>{ for(let i=1;i<=2;i++) tableFields.push(`${p}${i}`); });
+  ['Vis_D','Vis_T','Vis_V','Vis_N'].forEach(p=>{ for(let i=1;i<=5;i++) tableFields.push(`${p}${i}`); });
+  ['Ins_D','Ins_C','Ins_E'].forEach(p=>{ for(let i=1;i<=8;i++) tableFields.push(`${p}${i}`); });
+  ['Rep_D','Rep_C','Rep_E','Rep_N'].forEach(p=>{ for(let i=1;i<=3;i++) tableFields.push(`${p}${i}`); });
+  ['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'].forEach(p=>{ for(let i=1;i<=2;i++) tableFields.push(`${p}${i}`); });
+  ['Eve_D','Eve_C','Eve_N'].forEach(p=>{ for(let i=1;i<=4;i++) tableFields.push(`${p}${i}`); });
+  tableFields.push('KEY_Check','KEY_Note','CHANGE_Note');
+  const dayIds=[];
+  ['Rec_D','Res_D','Vis_D','Ins_D','Rep_D','Acc_D','Eve_D'].forEach(p=>{
+    const counts={'Rec_D':7,'Res_D':2,'Vis_D':5,'Ins_D':8,'Rep_D':3,'Acc_D':2,'Eve_D':4};
+    for(let i=1;i<=(counts[p]||0);i++) dayIds.push(`${p}${i}`);
+  });
+  tableFields.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    const raw=current?(current[id]||''):'';
+    if(dayIds.includes(id)){
+      try{
+        const obj=JSON.parse(raw);
+        el.value=obj.full||'';
+        el.dataset.fullDate=obj.full||'';
+        el.dataset.dayVal=obj.day||'';
+      }catch{ el.value=raw; el.dataset.dayVal=raw; el.dataset.fullDate=''; }
+    } else {
+      el.value=raw;
+    }
+  });
+
+  // 鍵確認ラジオ復元
+  ['KEY','CHANGE'].forEach(grp=>{
+    circleState[grp] = current?(current[`${grp}_state`]||''):'';
+    ['Yes','No'].forEach(k=>{
+      const btn=document.getElementById(`${grp}_${k}_btn`);
+      if(btn) btn.classList.toggle('selected', circleState[grp]===k);
+    });
+  });
+
+  // 規定値：今月データがあればそれを、なければ前月から引継ぎ
+  FIXED_FIELDS.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    if(current && current[id]!==undefined && current[id]!==null && String(current[id])!=='')
+      el.value=current[id];
+    else if(prevData && prevData[id]!==undefined && prevData[id]!==null && String(prevData[id])!=='')
+      el.value=prevData[id];
+    else el.value='';
+  });
+
+  // メーター今月値
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++){
+      const tEl=document.getElementById(`${prefix}_T${i}`);
+      const tVal=current?(current[`${prefix}_T${i}`]||''):'';
+      tEl.value=tVal;
+      tEl.classList.toggle('has-value', tVal!==''&&tVal!=='0');
+    }
+  });
+
+  // メーター先月値（前月の今月値から自動引継ぎ）
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++){
+      document.getElementById(`${prefix}_P${i}`).value = prevData?(prevData[`${prefix}_T${i}`]||''):'';
+      document.getElementById(`${prefix}_L${i}`).value = lyData  ?(lyData[`${prefix}_T${i}`]||''):'';
+    }
+  });
+
+  // 検針日の復元と期間表示
+  ['Elec','Water'].forEach(prefix=>{
+    const dtEl=document.getElementById(`${prefix}_DateT`);
+    if(dtEl) dtEl.value=current?(current[`${prefix}_DateT`]||''):'';
+    updateMeterDateRange(prefix);
+  });
+
+  // 使用量表示
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++){
+      updateUsage(prefix,i,
+        document.getElementById(`${prefix}_T${i}`).value,
+        document.getElementById(`${prefix}_P${i}`).value,
+        ppData ?(ppData[`${prefix}_T${i}`]||''):'',
+        document.getElementById(`${prefix}_L${i}`).value,
+        lymData?(lymData[`${prefix}_T${i}`]||''):''
+      );
+    }
+  });
+
+  // 動的行の表示状態を復元
+  restoreDynamicRows('rec-rows', ['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'], 7);
+  restoreDynamicRows('vis-rows', ['Vis_D','Vis_T','Vis_V','Vis_N'], 5);
+  restoreDynamicRows('ins-rows', ['Ins_D','Ins_C','Ins_E'], 8);
+  restoreDynamicRows('eve-rows', ['Eve_D','Eve_C','Eve_N'], 4);
+  restoreDynamicRows('res-rows', ['Res_D','Res_R','Res_T'], 2);
+  restoreDynamicRows('acc-rows', ['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'], 2);
+  restoreDynamicRows('rep-rows', ['Rep_D','Rep_C','Rep_E','Rep_N'], 3);
+  recheckCapacities();
+  checkRequiredFields();
+
+  // 印鑑復元（今月データがあればそれを、なければ前月から引継ぎ）
+  const sealSrc = current?._sealImage || prevData?._sealImage || null;
+  const sealTypeSrc = current?._sealType || prevData?._sealType || 'image/png';
+  if(sealSrc){
+    sealImageData=sealSrc; sealImageType=sealTypeSrc;
+    const preview=document.getElementById('seal-preview');
+    preview.innerHTML=`<img src="${sealSrc}" alt="印鑑">`;
+    preview.classList.remove('empty');
+    document.getElementById('seal-btn').classList.add('selected');
+    document.getElementById('seal-btn').textContent='印鑑選択済み（変更）';
+    document.getElementById('seal-clear').style.display='block';
+  } else {
+    sealImageData=null;
+    const preview=document.getElementById('seal-preview');
+    preview.innerHTML='印鑑<br>未選択'; preview.classList.add('empty');
+    document.getElementById('seal-btn').classList.remove('selected');
+    document.getElementById('seal-btn').textContent='印鑑画像を選択';
+    document.getElementById('seal-clear').style.display='none';
+  }
+
+  // コメント行復元
+  for(let i=1;i<=COMMENT_LINES;i++){
+    const el=document.getElementById(`Comment_${i}`);
+    if(el){ el.value=current?(current[`Comment_${i}`]||''):''; updateCommentCounter(i); }
+  }
+
+  refreshDataList();
+  setTimeout(()=>{ if(typeof initDateInputEmpty==="function") initDateInputEmpty(); }, 300);
+}
+
+// ============================================================
+// 入力チェック（今月値に何か入っているか）
+// ============================================================
+function hasAnyInput(){
+  // メーター値確認
+  for(const p of ['Elec','Water']){
+    for(let i=1;i<=METER_COUNT;i++){
+      const v=document.getElementById(`${p}_T${i}`).value.trim();
+      if(v!==''&&v!=='0') return true;
+    }
+  }
+  // テーブル系：日付欄に値があるか確認
+  const dayFields=['Rec_D1','Res_D1','Vis_D1','Ins_D1','Rep_D1','Acc_D1','Eve_D1'];
+  for(const id of dayFields){
+    const el=document.getElementById(id);
+    if(el&&el.value.trim()!=='') return true;
+  }
+  // コメント確認
+  const c1=document.getElementById('Comment_1');
+  if(c1&&c1.value.trim()!=='') return true;
+  return false;
+}
+
+// ============================================================
+// 今月値入力時
+// ============================================================
+function onTodayInput(prefix,idx){
+  const tEl=document.getElementById(`${prefix}_T${idx}`);
+  tEl.classList.toggle('has-value', tEl.value!==''&&tEl.value!=='0');
+  const pVal=document.getElementById(`${prefix}_P${idx}`).value;
+  const lVal=document.getElementById(`${prefix}_L${idx}`).value;
+  const pm=prevMonthAD(currentADYear,currentMonth);
+  const ppm=prevMonthAD(pm.year,pm.month);
+  const ly=lastYearAD(currentADYear,currentMonth);
+  const lym=prevMonthAD(ly.year,ly.month);
+  updateUsage(prefix,idx,tEl.value,pVal,
+    (()=>{const d=loadFromStorage(ppm.year,ppm.month);return d?(d[`${prefix}_T${idx}`]||''):'';})(),
+    lVal,
+    (()=>{const d=loadFromStorage(lym.year,lym.month);return d?(d[`${prefix}_T${idx}`]||''):'';})()
+  );
+}
+
+// 使用量表示更新
+function updateUsage(prefix,idx,tVal,pVal,ppVal,lVal,lymVal){
+  const uToday=calcUsage(tVal,pVal), uPrev=calcUsage(pVal,ppVal), uLast=calcUsage(lVal,lymVal);
+  const uEl=document.getElementById(`${prefix}_U${idx}`);
+  const upEl=document.getElementById(`${prefix}_UP${idx}`);
+  const ulEl=document.getElementById(`${prefix}_UL${idx}`);
+  uEl.textContent  = uToday!==''?`( ${uToday})`:'';
+  upEl.textContent = uPrev !==''?`( ${uPrev})`:'';
+  ulEl.textContent = uLast !==''?`( ${uLast})`:'';
+  const isNeg = !isNaN(parseFloat(uToday))&&parseFloat(uToday)<0;
+  uEl.classList.toggle('warn', isNeg);
+  // 今月値入力欄の背景も赤に
+  const tInput=document.getElementById(`${prefix}_T${idx}`);
+  if(tInput) tInput.classList.toggle('meter-warn', isNeg);
+}
+
+// ============================================================
+// localStorage
+// ============================================================
+function loadFromStorage(y,m){
+  const raw=localStorage.getItem(storageKey(y,m)); return raw?JSON.parse(raw):null;
+}
+
+// 全フィールドを収集してオブジェクトに
+function collectData(){
+  const data={ _savedAt:new Date().toISOString() };
+
+  // テーブル系（日付欄はfullDateとdayValを両方保存）
+  const dayPrefixes=['Rec_D','Res_D','Vis_D','Ins_D','Rep_D','Acc_D','Eve_D'];
+  function getFieldVal(el, pf){
+    if(!el) return '';
+    if(dayPrefixes.includes(pf)){
+      return JSON.stringify({full:el.dataset.fullDate||el.value||'', day:el.dataset.dayVal||''});
+    }
+    return el.value;
+  }
+  ['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].forEach(p=>{ for(let i=1;i<=7;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Res_D','Res_R','Res_T'].forEach(p=>{ for(let i=1;i<=2;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Vis_D','Vis_T','Vis_V','Vis_N'].forEach(p=>{ for(let i=1;i<=5;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Ins_D','Ins_C','Ins_E'].forEach(p=>{ for(let i=1;i<=8;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Rep_D','Rep_C','Rep_E','Rep_N'].forEach(p=>{ for(let i=1;i<=3;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'].forEach(p=>{ for(let i=1;i<=2;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Eve_D','Eve_C','Eve_N'].forEach(p=>{ for(let i=1;i<=4;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+
+  // 鍵確認
+  data.KEY_Check    = document.getElementById('KEY_Check').value;
+  data.KEY_Note     = document.getElementById('KEY_Note').value;
+  data.KEY_state    = circleState['KEY'];
+  data.CHANGE_Note  = document.getElementById('CHANGE_Note').value;
+  data.CHANGE_state = circleState['CHANGE'];
+
+  // コメント（5行）
+  for(let i=1;i<=COMMENT_LINES;i++){
+    const el=document.getElementById(`Comment_${i}`);
+    data[`Comment_${i}`]=el?el.value:'';
+  }
+
+  // 規定値
+  FIXED_FIELDS.forEach(id=>{ const el=document.getElementById(id); if(el) data[id]=el.value; });
+
+  // メーター
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++) data[`${prefix}_T${i}`]=document.getElementById(`${prefix}_T${i}`).value;
+    const dtEl=document.getElementById(`${prefix}_DateT`);
+    if(dtEl) data[`${prefix}_DateT`]=dtEl.value;
+  });
+
+  // 印鑑画像（base64）を保存
+  if(sealImageData){
+    data._sealImage=sealImageData;
+    data._sealType=sealImageType;
+  }
+
+  return data;
+}
+
+function saveDataSilent(){
+  localStorage.setItem(storageKey(currentADYear,currentMonth), JSON.stringify(collectData()));
+  refreshDataList();
+}
+
+function saveData(){
+  saveDataSilent();
+  const g=adToGengo(currentADYear);
+  showBanner(`${currentADYear}年${currentMonth}月（${g.name}${g.year}年）を保存しました`,'saved');
+}
+
+// ============================================================
+// データ一覧
+// ============================================================
+function refreshDataList(){
+  const container=document.getElementById('data-list');
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.startsWith(STORAGE_PREFIX)) keys.push(k);
+  }
+  keys.sort().reverse();
+  if(keys.length===0){ container.innerHTML='<div class="data-list-empty">保存済みデータはありません</div>'; return; }
+  container.innerHTML='';
+  keys.forEach(k=>{
+    const match=k.match(/(\d{4})_(\d{2})$/); if(!match) return;
+    const ad=parseInt(match[1]),m=parseInt(match[2]),g=adToGengo(ad);
+    const isActive=ad===currentADYear&&m===currentMonth;
+    const div=document.createElement('div'); div.className=`data-list-item${isActive?' active':''}`;
+    const label=document.createElement('span'); label.className='data-list-label';
+    label.textContent=`${isActive?'▶ ':'　'}${ad}年${m}月（${g.name}${g.year}年）`;
+    label.onclick=()=>{ document.getElementById('sel-yearmonth').value=`${ad}_${m}`; document.getElementById('sel-year').value=ad; document.getElementById('sel-month').value=m; onMonthChange(); };
+    const delBtn=document.createElement('button'); delBtn.className='del-btn'; delBtn.textContent='削除';
+    delBtn.onclick=(e)=>{
+      e.stopPropagation();
+      if(!confirm(`${ad}年${m}月（${g.name}${g.year}年）のデータを削除しますか？`)) return;
+      localStorage.removeItem(k);
+      showBanner(`${ad}年${m}月を削除しました`,'saved',2500);
+      if(ad===currentADYear&&m===currentMonth) loadCurrentMonth(); else refreshDataList();
+    };
+    div.appendChild(label); div.appendChild(delBtn); container.appendChild(div);
+  });
+}
+
+// ============================================================
+// JSON エクスポート / インポート
+// ============================================================
+function exportJSON(){
+  const all={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.startsWith(STORAGE_PREFIX)) all[k]=JSON.parse(localStorage.getItem(k));
+  }
+  const t=new Date();
+  const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`月報データ_${t.getFullYear()}${String(t.getMonth()+1).padStart(2,'0')}${String(t.getDate()).padStart(2,'0')}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showBanner('データを書き出しました','saved');
+}
+
+function importJSON(event){
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const all=JSON.parse(e.target.result); let count=0;
+      Object.keys(all).forEach(k=>{ if(k.startsWith(STORAGE_PREFIX)){localStorage.setItem(k,JSON.stringify(all[k]));count++;} });
+      showBanner(`${count}件のデータを読み込みました`,'saved');
+      loadCurrentMonth();
+    }catch{ showBanner('ファイルの読み込みに失敗しました','error'); }
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// トースト
+// ============================================================
+function showBanner(msg,type,duration=3500){
+  const b=document.getElementById('toast');
+  b.textContent=(type==='saved'?'✅ ':'❌ ')+msg;
+  b.className=`toast show ${type}`;
+  clearTimeout(b._timer);
+  b._timer=setTimeout(()=>b.classList.remove('show'),duration);
+}
+function hideBanner(){ document.getElementById('toast').classList.remove('show'); }
+
+// ============================================================
+// PDF ダウンロード
+// ・メーター入力欄は読み取り値、PDFには使用量（小数点1桁）
+// ・0・空欄はPDFフィールドを空欄に
+// ・R_Year は西暦
+// ============================================================
+async function downloadPDF(){
+  try{
+    if(typeof PDFLib==='undefined'){showBanner('pdf-libの読み込みに失敗しています','error');return;}
+    if(typeof fontkit==='undefined'){showBanner('fontkitの読み込みに失敗しています','error');return;}
+
+    showBanner('PDF生成中...','saved',10000);
+
+    const [pdfResp, fontResp] = await Promise.all([
+      fetch('Report_M.pdf', {cache: 'no-store'}),
+      fetch('ipaexg.ttf'),
+    ]);
+    if(!pdfResp.ok)  throw new Error('Report_M.pdf が見つかりません');
+    if(!fontResp.ok) throw new Error('ipaexg.ttf が見つかりません');
+    const [pdfBytes, fontBytes] = await Promise.all([
+      pdfResp.arrayBuffer(),
+      fontResp.arrayBuffer(),
+    ]);
+
+    const {PDFDocument, PDFName, PDFHexString, PDFString} = PDFLib;
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const form = pdfDoc.getForm(); // updateAppearances用
+
+    // Helvetica（数字フィールド用・内蔵フォント）
+    const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+    // 数字のみフィールドリスト（Helveticaを使用）
+    const numericFields = new Set([
+      'R_Year','R_Month','TOTAL',
+      'Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL',
+      ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+        `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+      ]))
+    ]);
+
+    // 中央寄せフィールド（日付・時間・部屋番号）
+    const centerFields = new Set([
+      'R_Year','R_Month',
+      ...['Rec','Res','Vis','Ins','Rep','Acc','Eve'].flatMap(p=>{
+        const counts={'Rec':7,'Res':2,'Vis':5,'Ins':8,'Rep':3,'Acc':2,'Eve':4};
+        return [...Array(counts[p]||0)].flatMap((_,i)=>[
+          `${p}_D${i+1}`,`${p}_R${i+1}`,`${p}_T${i+1}`,`${p}_P${i+1}`
+        ]);
+      }),
+      'KEY_Check',
+      ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+        `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+      ])),
+      'Elec_DS','Elec_DE','Water_DS','Water_DE'
+    ]);
+    pdfDoc.registerFontkit(fontkit);
+    const ipaFont = await pdfDoc.embedFont(fontBytes);
+
+    // ============================================================
+    // 全フィールドをAP削除→ipaFont登録→HexStringで値書き込み
+    // form.getFields()を使わず直接PDFオブジェクトを操作
+    // ============================================================
+
+    // AcroFormのDRにipaFontを登録
+    try {
+      const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+      if(acroFormRef){
+        const acroForm = pdfDoc.context.lookup(acroFormRef);
+        const dr = acroForm ? acroForm.lookup(PDFName.of('DR')) : null;
+        const fontDict = dr ? dr.lookup(PDFName.of('Font')) : null;
+        if(fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
+      }
+    } catch(e){}
+
+    // AP削除はfieldMap構築後に行う（後で実施）
+
+    // テキスト書き込みヘルパー
+    // AcroForm.Fieldsから再帰的にフィールドを取得してマップ化
+    const fieldMap = new Map();
+    const collectFields = (arr) => {
+      if(!arr) return;
+      for(let i=0; i<arr.size(); i++){
+        try {
+          const ref = arr.get(i);
+          const obj = pdfDoc.context.lookup(ref);
+          if(!obj) continue;
+          const t = obj.get(PDFName.of('T'));
+          if(t){
+            let name = '';
+            try { name = t.decodeText(); } catch(e1){
+              try { name = t.value; } catch(e2){ name = String(t); }
+            }
+            name = name.replace(/^[(]+|[)]+$/g,'').trim();
+
+            // DAを取得して括弧を除去
+            const daObj = obj.get(PDFName.of('DA'));
+            let daStr = '';
+            if(daObj){
+              try { daStr = daObj.decodeText(); } catch(e1){
+                try { daStr = daObj.value || ''; } catch(e2){
+                  daStr = String(daObj).replace(/^[(]+|[)]+$/g,'');
+                }
+              }
+              daStr = daStr.replace(/^[(]+|[)]+$/g,'').trim();
+            }
+
+            if(name) fieldMap.set(name, {obj, da: daStr});
+          }
+          const kids = obj.get(PDFName.of('Kids'));
+          if(kids) collectFields(pdfDoc.context.lookup(kids));
+        } catch(e){}
+      }
+    };
+    try {
+      const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+      const acroForm = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
+      const fieldsRef = acroForm ? acroForm.get(PDFName.of('Fields')) : null;
+      const fieldsArr = fieldsRef ? pdfDoc.context.lookup(fieldsRef) : null;
+      if(fieldsArr) collectFields(fieldsArr);
+    } catch(e){ console.warn('fieldMap構築:', e); }
+    // fieldMapの全フィールドのAPを削除（元の表示を消してVの値を表示させる）
+    fieldMap.forEach((annot, name) => {
+      try {
+        annot.delete(PDFName.of('AP'));
+        annot.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+      } catch(e){}
+    });
+
+    // form.getTextField経由でupdateAppearancesを呼ぶ
+    // /VをHexStringで直接セット → WinAnsiエラーなし
+    // その後updateAppearancesでipaFontのAPを生成 → 印刷OK
+    const f = (name, val) => {
+      try {
+        const str = String(val || '');
+        const entry = fieldMap.get(name);
+        if(!entry) return;
+        const annot = entry.obj;
+        const origDAStr = entry.da || '';
+
+        // Printフラグ確実ON
+        annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
+        // フォントサイズをDAから抽出（例：/MSPGothic 10.5 Tf → 10.5）
+        const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
+        const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
+        // フォント名を使用フォントに置き換えてDAを再設定
+        const fontName = numericFields.has(name) ? 'Helvetica' : 'IPAexGothic';
+        const newDA = `/${fontName} ${fontSize} Tf 0 g`;
+        annot.set(PDFName.of('DA'), PDFString.of(newDA));
+
+        // APを削除（updateAppearancesで再生成するため）
+        annot.delete(PDFName.of('AP'));
+
+        if(str !== ''){
+          // /VにHexStringで書き込み（WinAnsiチェックなし）
+          let hex = 'FEFF';
+          for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
+          annot.set(PDFName.of('V'), PDFHexString.of(hex));
+
+          // フィールドごとにフォントを切り替えてAPを生成
+          try {
+            const field = form.getTextField(name);
+            const useFont = numericFields.has(name) ? helveticaFont : ipaFont;
+            // 中央寄せ設定
+            if(centerFields.has(name)){
+              field.setAlignment(PDFLib.TextAlignment.Center);
+            }
+            field.updateAppearances(useFont);
+          } catch(e){
+            console.warn('AP生成スキップ:', name, e.message);
+          }
+        }
+      } catch(e) {
+        console.warn(`field ${name}:`, e);
+      }
+    };
+
+    // 年月
+    f('R_Year',  currentADYear);
+    f('R_Month', currentMonth);
+
+    // テーブル系フィールド
+    const allFields=[
+      ...['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].flatMap(p=>Array.from({length:7},(_,i)=>`${p}${i+1}`)),
+      ...['Res_D','Res_R','Res_T'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+      ...['Vis_D','Vis_T','Vis_V','Vis_N'].flatMap(p=>Array.from({length:5},(_,i)=>`${p}${i+1}`)),
+      ...['Ins_D','Ins_C','Ins_E'].flatMap(p=>Array.from({length:8},(_,i)=>`${p}${i+1}`)),
+      ...['Rep_D','Rep_C','Rep_E','Rep_N'].flatMap(p=>Array.from({length:3},(_,i)=>`${p}${i+1}`)),
+      ...['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+      ...['Eve_D','Eve_C','Eve_N'].flatMap(p=>Array.from({length:4},(_,i)=>`${p}${i+1}`)),
+      'KEY_Check','KEY_Note','CHANGE_Note',
+      ...FIXED_FIELDS,
+    ];
+    const dayPfx=['Rec_D','Res_D','Vis_D','Ins_D','Rep_D','Acc_D','Eve_D'];
+    allFields.forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      const isDayField=dayPfx.some(p=>id.startsWith(p));
+      f(id, isDayField ? (el.dataset.dayVal||'') : el.value);
+    });
+
+    // コメント行（Comment_1〜5）
+    for(let i=1;i<=COMMENT_LINES;i++){
+      const el=document.getElementById(`Comment_${i}`);
+      f(`Comment_${i}`, el?el.value:'');
+    }
+
+    // 鍵確認ラジオ → 〇テキスト
+    f('KEY_Yes',    circleState['KEY']==='Yes'?'〇':'');
+    f('KEY_No',     circleState['KEY']==='No' ?'〇':'');
+    f('CHANGE_Yes', circleState['CHANGE']==='Yes'?'〇':'');
+    f('CHANGE_No',  circleState['CHANGE']==='No' ?'〇':'');
+
+    // 検針期間
+    ['Elec','Water'].forEach(prefix=>{
+      const dtEl=document.getElementById(`${prefix}_DateT`);
+      const todayDate=dtEl?dtEl.value:'';
+      const pm=prevMonthAD(currentADYear,currentMonth);
+      const prevData=loadFromStorage(pm.year,pm.month);
+      const ds=prevData?(prevData[`${prefix}_DateT`]||''):'';
+      const de=prevDay(todayDate);
+      f(`${prefix}_DS`, ds);
+      f(`${prefix}_DE`, de);
+    });
+
+    // メーター使用量
+    const pm=prevMonthAD(currentADYear,currentMonth);
+    const ppm=prevMonthAD(pm.year,pm.month);
+    const ly=lastYearAD(currentADYear,currentMonth);
+    const lym=prevMonthAD(ly.year,ly.month);
+    const ppData=loadFromStorage(ppm.year,ppm.month);
+    const lymData=loadFromStorage(lym.year,lym.month);
+    ['Elec','Water'].forEach(prefix=>{
+      for(let i=1;i<=METER_COUNT;i++){
+        const tVal=document.getElementById(`${prefix}_T${i}`).value;
+        const pVal=document.getElementById(`${prefix}_P${i}`).value;
+        const lVal=document.getElementById(`${prefix}_L${i}`).value;
+        const ppVal =ppData ?(ppData[`${prefix}_T${i}`]||''):'';
+        const lymVal=lymData?(lymData[`${prefix}_T${i}`]||''):'';
+        f(`${prefix}_T${i}`, valOrEmpty(calcUsage(tVal,pVal)));
+        f(`${prefix}_P${i}`, valOrEmpty(calcUsage(pVal,ppVal)));
+        f(`${prefix}_L${i}`, valOrEmpty(calcUsage(lVal,lymVal)));
+      }
+    });
+
+    // 印鑑画像をSeal_1に埋め込む
+    if(sealImageData){
+      try{
+        const base64=sealImageData.split(',')[1];
+        const binary=atob(base64);
+        const bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        const isPng=sealImageType==='image/png';
+        const sealImg=isPng?await pdfDoc.embedPng(bytes.buffer):await pdfDoc.embedJpg(bytes.buffer);
+        const page=pdfDoc.getPages()[0];
+        const x=528.609,y=31.09,w=565.46-528.609,h=67.9404-31.09;
+        page.drawImage(sealImg,{x,y,width:w,height:h});
+      }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
+    }
+
+    // AcroForm・Annotsは削除しない（削除すると値も消えるため）
+
+    // ダウンロード
+    const savedBytes=await pdfDoc.save();
+    const blob=new Blob([savedBytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
+    a.click(); URL.revokeObjectURL(url);
+    showBanner('PDFをダウンロードしました','saved');
+
+  }catch(err){
+    console.error(err);
+    showBanner(`エラー: ${err.message}`,'error');
+  }
+}
+
+
+// 前月・来月ボタン
+function changeMonthBy(delta){
+  const sel=document.getElementById('sel-yearmonth');
+  const [ys,ms]=sel.value.split('_');
+  let y=parseInt(ys), m=parseInt(ms)+delta;
+  if(m<1){m=12;y--;}
+  if(m>12){m=1;y++;}
+  if(y<YEAR_START_AD||y>YEAR_END_AD) return;
+  sel.value=`${y}_${m}`;
+  document.getElementById('sel-year').value=y;
+  document.getElementById('sel-month').value=m;
+  onMonthChange();
+}
+
+// ============================================================
+// 過去データ入力モーダル
+// ============================================================
+let pastModalPrefix = ''; // 'Elec' or 'Water'
+
+function openPastModal(prefix){
+  pastModalPrefix = prefix;
+  const label = prefix === 'Elec' ? '電気' : '水道';
+
+  // 今月のメーター値チェック
+  const hasCurrentVal = [1,2,3,4].some(i=>{
+    const el = document.getElementById(`${prefix}_T${i}`);
+    return el && el.value.trim() !== '' && el.value !== '0';
+  });
+
+  const notice = document.getElementById('past-modal-notice');
+  const saveBtn = document.getElementById('past-modal-save');
+
+  if(!hasCurrentVal){
+    notice.textContent = `⚠️ 今月の${label}メーター値を入力してから「過去」ボタンを押してください。`;
+    notice.style.display = 'block';
+    saveBtn.style.display = 'none';
+  } else {
+    notice.style.display = 'none';
+    saveBtn.style.display = '';
+  }
+
+  document.getElementById('past-modal-title').textContent = `${label}メーター　過去データ入力`;
+  buildPastModalBody(prefix, hasCurrentVal);
+  document.getElementById('past-modal').classList.add('show');
+}
+
+function closePastModal(){
+  document.getElementById('past-modal').classList.remove('show');
+}
+
+function buildPastModalBody(prefix, hasCurrentVal){
+  const body = document.getElementById('past-modal-body');
+  const meterCount = 4;
+
+  // 今月の値を取得
+  const currentVals = [];
+  for(let i=1;i<=meterCount;i++){
+    const el = document.getElementById(`${prefix}_T${i}`);
+    currentVals.push(el ? parseFloat(el.value)||0 : 0);
+  }
+
+  // 過去12ヶ月分のラベルと既存データを取得
+  const months = [];
+  for(let m=1;m<=12;m++){
+    const pm = prevMonthAD(currentADYear, currentMonth);
+    let y = currentADYear, mo = currentMonth;
+    for(let k=0;k<m;k++){
+      const p = prevMonthAD(y, mo);
+      y = p.year; mo = p.month;
+    }
+    months.push({year:y, month:mo, label:`${y}年${mo}月`});
+  }
+
+  // テーブル生成
+  let html = `<div class="modal-meter-grid">`;
+  html += `<div class="mh">年月</div>`;
+  for(let i=1;i<=meterCount;i++) html += `<div class="mh">${i}番</div>`;
+
+  // 今月行（参照用・readonly）
+  html += `<div class="month-label">今月（参照）</div>`;
+  for(let i=1;i<=meterCount;i++){
+    html += `<input class="mi readonly" type="text" readonly value="${currentVals[i-1]||''}">`;
+  }
+
+  // 過去12ヶ月：使用量入力欄
+  for(let m=0;m<12;m++){
+    const {year,month,label} = months[m];
+    const data = loadFromStorage(year, month);
+    html += `<div class="month-label">${label}</div>`;
+    for(let i=1;i<=meterCount;i++){
+      const existingVal = data ? (data[`${prefix}_T${i}`]||'') : '';
+      const disabled = !hasCurrentVal ? 'disabled' : '';
+      html += `<input class="mi" type="number" step="0.1" min="0"
+        id="past_${prefix}_${m}_${i}" value="${existingVal}"
+        oninput="updatePastComputed('${prefix}')" ${disabled}>`;
+    }
+  }
+  html += `</div>`;
+
+  // 使い方の説明
+  html += `<div style="font-size:.72rem;color:var(--text2);margin-top:10px;">
+    ℹ️ 各月の「メーター読み取り値」を入力してください。保存すると各月のデータに自動反映されます。
+  </div>`;
+
+  body.innerHTML = html;
+}
+
+function updatePastComputed(prefix){
+  // 特に何もしない（値をそのまま保存する方式）
+}
+
+function savePastData(){
+  const prefix = pastModalPrefix;
+  const meterCount = 4;
+
+  // 過去12ヶ月分のデータを保存
+  for(let m=0;m<12;m++){
+    let y = currentADYear, mo = currentMonth;
+    for(let k=0;k<=m;k++){
+      const p = prevMonthAD(y, mo);
+      y = p.year; mo = p.month;
+    }
+
+    // 既存データを取得（なければ空オブジェクト）
+    const existing = loadFromStorage(y, mo) || {_savedAt: new Date().toISOString()};
+
+    let hasAnyVal = false;
+    for(let i=1;i<=meterCount;i++){
+      const el = document.getElementById(`past_${prefix}_${m}_${i}`);
+      if(el && el.value.trim() !== ''){
+        existing[`${prefix}_T${i}`] = el.value;
+        hasAnyVal = true;
+      }
+    }
+
+    if(hasAnyVal){
+      localStorage.setItem(storageKey(y, mo), JSON.stringify(existing));
+    }
+  }
+
+  closePastModal();
+  // 現在月を再読み込み（前月値・前年値を更新）
+  loadCurrentMonth();
+  showBanner('過去データを保存しました','saved');
+}
+
+// モーダル外クリックで閉じる
+document.getElementById('past-modal').addEventListener('click', function(e){
+  if(e.target === this) closePastModal();
+});
+
+// 起動
+init();
+</script>
+</body>
+</html>
