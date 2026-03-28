@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
+<!-- Programmed by Claude (Anthropic) - 2026 -->
+<!-- Directed by A.I. -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -50,6 +52,8 @@ select:focus{border-color:var(--accent);}
 .section-header{padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid var(--border);background:var(--surface2);}
 .section-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--accent);color:#fff;}
 .section-title{font-size:.93rem;font-weight:700;color:var(--accent);flex:1;}
+.btn-past{border:1.5px solid currentColor;border-radius:6px;padding:4px 10px;font-size:.75rem;font-weight:700;cursor:pointer;background:transparent;color:inherit;font-family:inherit;opacity:.8;transition:opacity .15s;margin-left:auto;}
+.btn-past:hover{opacity:1;}
 .section-body{padding:14px 18px;}
 
 /* 汎用テーブル */
@@ -163,6 +167,32 @@ textarea.fi{resize:vertical;min-height:36px;}
 
 /* seal */
 .seal-area{display:flex;gap:12px;padding:14px 18px;}
+
+/* 過去データ入力モーダル */
+.modal-overlay{
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;
+}
+.modal-overlay.show{display:flex;}
+.modal-box{
+  background:#fff;border-radius:12px;padding:20px;width:90%;max-width:560px;
+  max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);
+}
+.modal-title{font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.modal-sub{font-size:.78rem;color:var(--text2);margin-bottom:16px;}
+.modal-meter-grid{display:grid;grid-template-columns:1fr repeat(4,1fr);gap:4px;align-items:center;}
+.modal-meter-grid .mh{font-size:.7rem;font-weight:700;color:var(--text2);text-align:center;padding:4px 2px;}
+.modal-meter-grid .ml{font-size:.8rem;font-weight:700;color:var(--text2);padding:4px 2px;}
+.modal-meter-grid .mi{border:1.5px solid var(--border);border-radius:6px;padding:6px 5px;font-size:.88rem;text-align:right;width:100%;box-sizing:border-box;-moz-appearance:textfield;}
+.modal-meter-grid .mi::-webkit-outer-spin-button,.modal-meter-grid .mi::-webkit-inner-spin-button{-webkit-appearance:none;}
+.modal-meter-grid .mi:focus{border-color:var(--accent);outline:none;}
+.modal-meter-grid .mi.readonly{background:var(--surface2);color:var(--text2);}
+.modal-meter-grid .mi.computed{background:#edfaf2;color:var(--success);font-weight:700;}
+.modal-meter-grid .month-label{font-size:.8rem;font-weight:700;color:var(--accent);}
+.modal-footer{display:flex;gap:10px;margin-top:16px;justify-content:flex-end;}
+.btn-modal-save{background:var(--success);color:#fff;border:none;border-radius:7px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-modal-cancel{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);border-radius:7px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.modal-notice{background:#fff9e6;border:1px solid #f5d26b;border-radius:6px;padding:8px 12px;font-size:.78rem;color:#856404;margin-bottom:12px;}
 .seal-box{width:60px;height:60px;border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text2);text-align:center;line-height:1.3;}
 
 /* コメント行入力 */
@@ -333,7 +363,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.45</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.05</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -341,6 +371,20 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   </div>
 </header>
 <div id="toast" class="toast"></div>
+<!-- 過去データ入力モーダル -->
+<div class="modal-overlay" id="past-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="past-modal-title">過去データ入力</div>
+    <div class="modal-sub">今月のメーター値から逆算して過去１年分を自動計算します</div>
+    <div class="modal-notice" id="past-modal-notice" style="display:none;"></div>
+    <div id="past-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="closePastModal()">キャンセル</button>
+      <button class="btn-modal-save" id="past-modal-save" onclick="savePastData()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
 <div class="container">
 
 <!-- ① 月選択 -->
@@ -494,6 +538,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <div class="section-header sh-elec">
     <div class="section-icon">⚡</div>
     <div class="section-title">電気メーター　読み取り値</div>
+    <button class="btn-past" onclick="openPastModal('Elec')">📅 過去</button>
   </div>
   <div class="meter-grid">
     <div class="meter-date-row">
@@ -517,6 +562,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <div class="section-header sh-water">
     <div class="section-icon">💧</div>
     <div class="section-title">水道メーター　読み取り値</div>
+    <button class="btn-past" onclick="openPastModal('Water')">📅 過去</button>
   </div>
   <div class="meter-grid">
     <div class="meter-date-row">
@@ -1103,14 +1149,18 @@ function updateCommentCounter(i){
 // ============================================================
 // メーター行生成
 // ============================================================
+const ELEC_LABELS  = ['電灯','電灯','動力','動力'];
+const WATER_LABELS = ['総括','共用','共用','共用'];
+
 function buildMeterRows(containerId, prefix, cls){
   const container=document.getElementById(containerId);
   container.innerHTML='';
+  const labels = prefix==='Elec' ? ELEC_LABELS : WATER_LABELS;
   for(let i=1;i<=METER_COUNT;i++){
     const block=document.createElement('div'); block.className='meter-block';
     block.innerHTML=`
       <div class="meter-row">
-        <div class="meter-label">${i}番</div>
+        <div class="meter-label">${labels[i-1]}</div>
         <input class="meter-input" type="text" inputmode="decimal"
           id="${prefix}_T${i}" placeholder="読み取り値"
           oninput="onTodayInput('${prefix}',${i})">
@@ -1848,6 +1898,196 @@ function changeMonthBy(delta){
   document.getElementById('sel-month').value=m;
   onMonthChange();
 }
+
+// ============================================================
+// 過去データ入力モーダル
+// ============================================================
+let pastModalPrefix = ''; // 'Elec' or 'Water'
+
+function openPastModal(prefix){
+  pastModalPrefix = prefix;
+  const label = prefix === 'Elec' ? '電気' : '水道';
+
+  // 今月のメーター値チェック
+  const hasCurrentVal = [1,2,3,4].some(i=>{
+    const el = document.getElementById(`${prefix}_T${i}`);
+    return el && el.value.trim() !== '' && el.value !== '0';
+  });
+
+  const notice = document.getElementById('past-modal-notice');
+  const saveBtn = document.getElementById('past-modal-save');
+
+  if(!hasCurrentVal){
+    notice.textContent = `⚠️ 今月の${label}メーター値を入力してから「過去」ボタンを押してください。`;
+    notice.style.display = 'block';
+    saveBtn.style.display = 'none';
+  } else {
+    notice.style.display = 'none';
+    saveBtn.style.display = '';
+  }
+
+  document.getElementById('past-modal-title').textContent = `${label}メーター　過去データ入力`;
+  buildPastModalBody(prefix, hasCurrentVal);
+  document.getElementById('past-modal').classList.add('show');
+}
+
+function closePastModal(){
+  document.getElementById('past-modal').classList.remove('show');
+}
+
+function buildPastModalBody(prefix, hasCurrentVal){
+  const body = document.getElementById('past-modal-body');
+  const N = 4; // メーター本数
+
+  // 今月のメーター値を取得
+  const currentVals = [];
+  for(let i=1;i<=N;i++){
+    const el = document.getElementById(`${prefix}_T${i}`);
+    currentVals.push(el ? parseFloat(el.value)||null : null);
+  }
+
+  // 過去12ヶ月分の年月リスト（0=今月使用量、1=先月使用量、...）
+  const months = [];
+  months.push({year:currentADYear, month:currentMonth,
+    label:`${currentADYear}年${currentMonth}月（今月）`, isCurrent:true});
+  for(let m=1;m<=12;m++){
+    let y=currentADYear, mo=currentMonth;
+    for(let k=0;k<m;k++){ const p=prevMonthAD(y,mo); y=p.year; mo=p.month; }
+    months.push({year:y, month:mo, label:`${y}年${mo}月`, isCurrent:false});
+  }
+
+  // テーブル生成
+  let html = `<div class="modal-meter-grid">`;
+  html += `<div class="mh">年月</div>`;
+  const mLabels = prefix==='Elec' ? ELEC_LABELS : WATER_LABELS;
+  for(let i=1;i<=N;i++) html += `<div class="mh">${mLabels[i-1]}　使用量</div>`;
+
+  // 今月値（参照用readonly）
+  html += `<div class="month-label" style="color:var(--text2);font-size:.75rem;">今月値<br>（参照）</div>`;
+  for(let i=1;i<=N;i++){
+    const hasVal = currentVals[i-1] !== null && currentVals[i-1] !== 0;
+    const refStyle = hasVal ? '' : 'background:#f5f5f5;color:#bbb;';
+    html += `<input class="mi readonly" type="text" readonly
+      value="${hasVal ? currentVals[i-1] : '未入力'}"
+      style="${refStyle}">`;
+  }
+
+  // 今月〜12ヶ月前の使用量入力欄
+  for(let m=0;m<13;m++){
+    const {year,month,label,isCurrent} = months[m];
+    const data = loadFromStorage(year, month);
+    // 既存の使用量を計算（保存済みのT値から前月T値を引く）
+    html += `<div class="month-label">${label}</div>`;
+    for(let i=1;i<=N;i++){
+      // 既存の使用量を取得（保存済みデータから）
+      let savedUsage = '';
+      if(data && data[`${prefix}_T${i}`]){
+        const thisVal = parseFloat(data[`${prefix}_T${i}`]);
+        // 前月データから引き算して使用量を計算
+        let prevY=year, prevMo=month;
+        const pp = prevMonthAD(prevY, prevMo);
+        const prevData = loadFromStorage(pp.year, pp.month);
+        if(prevData && prevData[`${prefix}_T${i}`]){
+          const prevVal = parseFloat(prevData[`${prefix}_T${i}`]);
+          if(!isNaN(thisVal) && !isNaN(prevVal)) savedUsage = (thisVal-prevVal).toFixed(1);
+        }
+      }
+      // 今月値がない列は入力不可
+      const colHasVal = currentVals[i-1] !== null && currentVals[i-1] !== 0;
+      const disabled = (!hasCurrentVal || !colHasVal) ? 'disabled' : '';
+      const disabledStyle = disabled ? 'background:#f5f5f5;color:#bbb;' : '';
+      html += `<input class="mi" type="number" step="0.1" min="0"
+        id="past_${prefix}_${m}_${i}"
+        value="${savedUsage}"
+        oninput="updatePastComputed('${prefix}')"
+        placeholder="${disabled ? '-' : '使用量'}"
+        style="${disabledStyle}"
+        ${disabled}>`;
+    }
+  }
+  html += `</div>`;
+  html += `<div style="font-size:.72rem;color:var(--text2);margin-top:10px;">
+    ℹ️ 各月の使用量を入力してください。今月メーター値から逆算して各月のメーター値を自動計算・保存します。
+  </div>`;
+
+  body.innerHTML = html;
+  updatePastComputed(prefix);
+}
+
+function updatePastComputed(prefix){
+  // 逆算してcomputed値を表示（将来の拡張用・現在は入力値をそのまま使用）
+}
+
+function savePastData(){
+  const prefix = pastModalPrefix;
+  const N = 4;
+
+  // 今月のメーター値を取得
+  const currentVals = [];
+  for(let i=1;i<=N;i++){
+    const el = document.getElementById(`${prefix}_T${i}`);
+    currentVals.push(el ? parseFloat(el.value)||0 : 0);
+  }
+
+  // 今月データを先にlocalStorageに保存（loadCurrentMonth()で消えないように）
+  saveDataSilent();
+
+  // 各月の使用量から逆算してメーター値を計算・保存
+  // prevMeterVals[i] = 直前に計算したメーター値（最初は今月値）
+  const prevMeterVals = [...currentVals];
+
+  for(let m=0;m<13;m++){
+    let y=currentADYear, mo=currentMonth;
+    for(let k=0;k<m;k++){ const p=prevMonthAD(y,mo); y=p.year; mo=p.month; }
+
+    // 使用量を取得
+    const usages = [];
+    for(let i=1;i<=N;i++){
+      const el = document.getElementById(`past_${prefix}_${m}_${i}`);
+      usages.push(el && el.value.trim()!=='' ? parseFloat(el.value) : null);
+    }
+
+    // このm月のメーター値 = 直前月のメーター値（今月値から逆算不要・そのまま保存）
+    // m=0: 今月の使用量 → 今月のデータに使用量情報として保存
+    // m=1: 先月の使用量 → 先月値 = 今月値 - 今月使用量
+    // m=2: 先々月の使用量 → 先々月値 = 先月値 - 先月使用量
+    if(m === 0){
+      // 今月の使用量から先月メーター値を計算（今月データは変更しない）
+      for(let i=1;i<=N;i++){
+        if(usages[i-1]!==null){
+          prevMeterVals[i-1] = prevMeterVals[i-1] - usages[i-1];
+        }
+      }
+    } else {
+      // m>=1: この月のメーター値として保存
+      const existing = loadFromStorage(y, mo) || {_savedAt: new Date().toISOString()};
+      let hasVal = false;
+      for(let i=1;i<=N;i++){
+        if(!isNaN(prevMeterVals[i-1])){
+          existing[`${prefix}_T${i}`] = prevMeterVals[i-1].toFixed(1);
+          hasVal = true;
+        }
+      }
+      if(hasVal) localStorage.setItem(storageKey(y, mo), JSON.stringify(existing));
+
+      // 次の月のメーター値を計算
+      for(let i=1;i<=N;i++){
+        if(usages[i-1]!==null){
+          prevMeterVals[i-1] = prevMeterVals[i-1] - usages[i-1];
+        }
+      }
+    }
+  }
+
+  closePastModal();
+  loadCurrentMonth();
+  showBanner('過去データを保存しました','saved');
+}
+
+// モーダル外クリックで閉じる
+document.getElementById('past-modal').addEventListener('click', function(e){
+  if(e.target === this) closePastModal();
+});
 
 // 起動
 init();
