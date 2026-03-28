@@ -188,6 +188,9 @@ textarea.fi{resize:vertical;min-height:36px;}
 .sh-eve .section-icon{background:#f39c12;}
 .sh-eve .section-title{color:#f39c12;}
 .sh-key .section-icon{background:#7f8c8d;}
+.sh-key.required-alert .section-header{background:#fff0f0;}
+.sh-key.required-alert .section-icon{background:#c0392b;}
+.sh-key.required-alert .section-title{color:#c0392b;}
 .sh-key .section-title{color:#7f8c8d;}
 .sh-elec .section-header{background:var(--elec-bg);}
 .sh-elec .section-icon{background:var(--elec);}
@@ -329,7 +332,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.42</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.43</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -461,7 +464,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <div class="section-body" style="display:flex;flex-direction:column;gap:14px;">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;">確認日</span>
-      <input class="fi date-input" type="date" id="KEY_Check" style="width:175px;">
+      <input class="fi date-input" type="date" id="KEY_Check" style="width:175px;" onchange="checkRequiredFields()">
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -936,6 +939,20 @@ function onDatePickDay(el, containerId, rowIdx, maxCount){
   }
 }
 
+// 必須項目チェック（未入力時にセクションヘッダーを赤くする）
+function checkRequiredFields(){
+  // ① 鍵確認日
+  const keyCheck = document.getElementById('KEY_Check');
+  const keyHeader = document.querySelector('.sh-key');
+  if(keyHeader){
+    if(keyCheck && !keyCheck.value){
+      keyHeader.classList.add('required-alert');
+    } else {
+      keyHeader.classList.remove('required-alert');
+    }
+  }
+}
+
 // 駐車場・バイク・自転車：利用台数 > 総数 で赤表示
 function checkCapacity(nowId, allId){
   const nowEl=document.getElementById(nowId);
@@ -1276,6 +1293,7 @@ function loadCurrentMonth(){
   restoreDynamicRows('acc-rows', ['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'], 2);
   restoreDynamicRows('rep-rows', ['Rep_D','Rep_C','Rep_E','Rep_N'], 3);
   recheckCapacities();
+  checkRequiredFields();
 
   // 印鑑復元（今月データがあればそれを、なければ前月から引継ぎ）
   const sealSrc = current?._sealImage || prevData?._sealImage || null;
