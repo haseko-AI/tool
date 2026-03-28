@@ -188,18 +188,18 @@ textarea.fi{resize:vertical;min-height:36px;}
 .sh-eve .section-icon{background:#f39c12;}
 .sh-eve .section-title{color:#f39c12;}
 .sh-key .section-icon{background:#7f8c8d;}
-.sh-key.required-alert .section-header{background:#fff0f0 !important;}
+.section-header.sh-key.required-alert{background:#fff0f0 !important;}
 .sh-key .section-title{color:#7f8c8d;}
 .sh-elec .section-header{background:var(--elec-bg);}
-.sh-elec.required-alert .section-header{background:#fff0f0 !important;}
+.section-header.sh-elec.required-alert{background:#fff0f0 !important;}
 .sh-elec .section-icon{background:var(--elec);}
 .sh-elec .section-title{color:var(--elec);}
 .sh-water .section-header{background:var(--water-bg);}
-.sh-water.required-alert .section-header{background:#fff0f0 !important;}
+.section-header.sh-water.required-alert{background:#fff0f0 !important;}
 .sh-water .section-icon{background:var(--water);}
 .sh-water .section-title{color:var(--water);}
 .sh-fixed .section-icon{background:#34495e;}
-.sh-fixed.required-alert .section-header{background:#fff0f0 !important;}
+.section-header.sh-fixed.required-alert{background:#fff0f0 !important;}
 .sh-fixed .section-title{color:#34495e;}
 .sh-comment .section-icon{background:#95a5a6;}
 .sh-comment .section-title{color:#555;}
@@ -333,7 +333,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.44</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v5.45</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
