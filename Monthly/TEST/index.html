@@ -361,7 +361,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.01</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.02</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -1147,14 +1147,18 @@ function updateCommentCounter(i){
 // ============================================================
 // メーター行生成
 // ============================================================
+const ELEC_LABELS  = ['①電灯','②電灯','❸動力','❹動力'];
+const WATER_LABELS = ['❶総括','②共用','③共用','④共用'];
+
 function buildMeterRows(containerId, prefix, cls){
   const container=document.getElementById(containerId);
   container.innerHTML='';
+  const labels = prefix==='Elec' ? ELEC_LABELS : WATER_LABELS;
   for(let i=1;i<=METER_COUNT;i++){
     const block=document.createElement('div'); block.className='meter-block';
     block.innerHTML=`
       <div class="meter-row">
-        <div class="meter-label">${i}番</div>
+        <div class="meter-label">${labels[i-1]}</div>
         <input class="meter-input" type="text" inputmode="decimal"
           id="${prefix}_T${i}" placeholder="読み取り値"
           oninput="onTodayInput('${prefix}',${i})">
@@ -1953,7 +1957,8 @@ function buildPastModalBody(prefix, hasCurrentVal){
   // テーブル生成
   let html = `<div class="modal-meter-grid">`;
   html += `<div class="mh">年月</div>`;
-  for(let i=1;i<=N;i++) html += `<div class="mh">${i}番　使用量</div>`;
+  const mLabels = prefix==='Elec' ? ELEC_LABELS : WATER_LABELS;
+  for(let i=1;i<=N;i++) html += `<div class="mh">${mLabels[i-1]}　使用量</div>`;
 
   // 今月値（参照用readonly）
   html += `<div class="month-label" style="color:var(--text2);font-size:.75rem;">今月メーター値<br>（参照）</div>`;
