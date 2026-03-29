@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.34</title>
+    <title>カレンダー帳票作成8.35</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2036,22 +2036,6 @@
         <script>
         const weekdayNamesEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        async function loadImageAsBase64(url) {
-            try {
-                const response = await fetch(url);
-                const blob = await response.blob();
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-            } catch (e) {
-                console.warn(`画像読み込み失敗: ${url}`, e);
-                return null;
-            }
-        }
-
         // SIMAGE フィールド座標マップ
         const simageCoords = {
             'SIMAGE_011': [54.5, 680.0, 170.1, 735.9],
@@ -2195,6 +2179,12 @@
         }
 
         async function outputToPDF() {
+            // 現在の月のデータを確実に読み込む
+            loadCurrentMonthData();
+
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+
             try {
                 const btn = document.querySelector('.pdf-output-btn');
                 if (btn) { btn.disabled = true; btn.textContent = '⏳ 処理中...'; }
