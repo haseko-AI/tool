@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.35</title>
+    <title>カレンダー帳票作成8.36</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2179,6 +2179,11 @@
         }
 
         async function outputToPDF() {
+            try {
+                // ↓ここに追加
+                loadCurrentMonthData();
+                
+                const btn = document.querySelector('.pdf-output-btn');
             // 現在の月のデータを確実に読み込む
             loadCurrentMonthData();
 
