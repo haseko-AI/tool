@@ -5,7 +5,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.09</title>
+    <title>カレンダー帳票作成</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -904,7 +904,7 @@
         <div id="calendar" class="calendar"></div>
         
         <div class="print-instruction" style="text-align: center; margin-bottom: 10px; color: #666; font-size: 14px;">
-            💡 印刷時は「A3横（landscape）」を選択してください
+            💡 印刷時は「A3横（landscape）」を選択してください8.09
         </div>
         <button class="print-btn" onclick="openPreview()">🖨️ 印刷プレビュー</button>
             <!-- ↓↓↓ ここに追加 ↓↓↓ -->
@@ -2135,7 +2135,9 @@
                     }
                 }
 
-                const pdfBytesOut = await pdfDoc.save();
+                // 全フィールドのアピアランス更新を無効化
+                form.updateFieldAppearances(japaneseFont);
+                const pdfBytesOut = await pdfDoc.save({ updateFieldAppearances: false });
                 const blob = new Blob([pdfBytesOut], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
