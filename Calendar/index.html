@@ -5,7 +5,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.28</title>
+    <title>カレンダー帳票作成8.29</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2186,7 +2186,7 @@
 
                 page.drawImage(pngImage, {
                     x: x1,
-                    y: y1,
+                    y: y1 - (drawHeight - origHeight),  // ← 高さが増えた分だけ下にずらす
                     width: drawWidth,
                     height: drawHeight,
                 });
