@@ -5,7 +5,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.10</title>
+    <title>カレンダー帳票作成8.12</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2101,7 +2101,7 @@
                     }
                 }
 
-                setTextFieldJa('MONTH', monthNames[month]);
+                setTextField('MONTH', String(month + 1));
                 setTextField('BASE_Year', String(year));
                 setTextFieldJa('AM_Name', mansionName);
                 setTextField('VER_No', '8.01');
