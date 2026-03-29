@@ -5,7 +5,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.21</title>
+    <title>カレンダー帳票作成8.22</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -1410,9 +1410,11 @@
             const dayNumberClass = isSundayOrHoliday ? 'day-number sunday' : 'day-number';
             const dayNameClass = isSundayOrHoliday ? 'day-name sunday' : 'day-name';
 
-            // 日曜日または祝日なら sunday クラスを追加
+            // 祝日のみ日付背景画像を描画
             if (isSundayOrHoliday) {
-                cell.classList.add('sunday');
+                const dayNumStr = String(day).padStart(2, '0');
+                const dayImageFile = `days/D${dayNumStr}h.png`;
+                await embedDayImage(pdfDoc, day, dayImageFile);
             }
 
             // 曜日別デフォルトを取得
@@ -2185,10 +2187,21 @@
                 const page = pdfDoc.getPages()[0];
                 const [x1, y1, x2, y2] = coords;
                 page.drawImage(pngImage, {
+
+                const [x1, y1, x2, y2] = coords;
+                const origWidth = x2 - x1;
+                const origHeight = y2 - y1;
+
+                // 幅を115%に戻す（現在115%になっているので元のサイズに）
+                const drawWidth = origWidth / 1.15;
+                // 高さを2倍に戻す（現在半分になっているので元のサイズに）
+                const drawHeight = origHeight * 2;
+
+                page.drawImage(pngImage, {
                     x: x1,
                     y: y1,
-                    width: x2 - x1,
-                    height: y2 - y1,
+                    width: drawWidth,
+                    height: drawHeight,
                 });
             } catch (e) {
                 console.warn(`日付画像埋め込み失敗: day=${day}`, e);
