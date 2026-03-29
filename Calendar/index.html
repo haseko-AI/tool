@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.40</title>
+    <title>カレンダー帳票作成8.41</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2195,7 +2195,8 @@
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const firstDay = new Date(year, month, 1).getDay();
 
-                const pdfBytes = await fetch('calendar_v8.pdf').then(res => res.arrayBuffer());
+                // const pdfBytes = await fetch('calendar_v8.pdf').then(res => res.arrayBuffer());
+                const pdfBytes = await fetch('calendar_v8.pdf?v=' + Date.now()).then(res => res.arrayBuffer());
                 const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, {
                     ignoreEncryption: true,
                     updateMetadata: false,
