@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.39B</title>
+    <title>カレンダー帳票作成8.40</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2188,6 +2188,9 @@
 
                 const year = parseInt(document.getElementById('year').value);
                 const month = parseInt(document.getElementById('month').value);
+
+                console.log('year:', year, 'month:', month, 'MONTH値:', String(month + 1));
+
                 const mansionName = document.getElementById('mansion-name').value || '';
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const firstDay = new Date(year, month, 1).getDay();
@@ -2209,7 +2212,6 @@
                 }
 
 console.log('month値:', month, '→', month + 1);
-setTextField('MONTH', String(month + 1));
                 
                 setTextField('MONTH', String(month + 1));
                 setTextField('BASE_Year', String(year));
