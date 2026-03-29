@@ -904,7 +904,7 @@
         <div id="calendar" class="calendar"></div>
         
         <div class="print-instruction" style="text-align: center; margin-bottom: 10px; color: #666; font-size: 14px;">
-            💡 印刷時は「A3横（landscape）」を選択してください8.08
+            💡 印刷時は「A3横（landscape）」を選択してください8.09
         </div>
         <button class="print-btn" onclick="openPreview()">🖨️ 印刷プレビュー</button>
             <!-- ↓↓↓ ここに追加 ↓↓↓ -->
@@ -2121,16 +2121,16 @@
                         const isHoliday = holidayInfo && holidayInfo.isHoliday;
 
                         setTextField(`WEEK_${dayStr}`, weekdayNamesEn[dayOfWeek]);
-                        setTextField(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
+                        setTextFieldJa(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);  // ← Ja
                         const comment = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
-                        setTextField(`MEMO_${dayStr3}`, comment);
+                        setTextFieldJa(`MEMO_${dayStr3}`, comment);  // ← Ja
 
                         if (day >= 29) setTextField(`WHITE_${day}`, '');
 
                     } else {
                         if (day >= 29) setTextField(`WHITE_${day}`, '■');
                         setTextField(`WEEK_${dayStr}`, '');
-                        setTextField(`YOUBI_${dayStr}`, '');
+                        setTextFieldJa(`YOUBI_${dayStr}`, '');  // ← Ja
                         setTextField(`MEMO_${dayStr3}`, '');
                     }
                 }
