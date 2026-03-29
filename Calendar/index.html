@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.37</title>
+    <title>カレンダー帳票作成8.38</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2186,8 +2186,6 @@
                 const btn = document.querySelector('.pdf-output-btn');
                 if (btn) { btn.disabled = true; btn.textContent = '⏳ 処理中...'; }
 
-                const year = parseInt(document.getElementById('year').value);
-                const month = parseInt(document.getElementById('month').value);
                 const year = parseInt(document.getElementById('year').value);
                 const month = parseInt(document.getElementById('month').value);
                 const mansionName = document.getElementById('mansion-name').value || '';
