@@ -5,7 +5,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.27</title>
+    <title>カレンダー帳票作成8.28</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2181,8 +2181,8 @@
                 const [x1, y1, x2, y2] = coords;
                 const origWidth = x2 - x1;
                 const origHeight = y2 - y1;
-                const drawWidth = origWidth * 0.95;   // 幅を少し縮小
-                const drawHeight = origHeight * 2.4;  // 高さをさらに拡大
+                const drawWidth = origWidth * 0.80;   // 幅を縮小
+                const drawHeight = origHeight * 1.6;  // 高さも縮小
 
                 page.drawImage(pngImage, {
                     x: x1,
