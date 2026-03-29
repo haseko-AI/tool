@@ -2,10 +2,9 @@
 <html lang="ja">
 <head>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8. 33</title>
+    <title>カレンダー帳票作成8.34</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2213,12 +2212,6 @@
                 });
                 const form = pdfDoc.getForm();
 
-                // fontkit を使って日本語フォントを埋め込む
-                pdfDoc.registerFontkit(fontkit);
-                const fontUrl = 'IPAGothic-subset.ttf';
-                const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
-                const japaneseFont = await pdfDoc.embedFont(fontBytes);
-
                 function setTextField(fieldName, value) {
                     try {
                         const field = form.getTextField(fieldName);
@@ -2228,19 +2221,9 @@
                     }
                 }
 
-                function setTextFieldJa(fieldName, value) {
-                    try {
-                        const field = form.getTextField(fieldName);
-                        field.updateAppearances(japaneseFont);
-                        field.setText(value);
-                    } catch (e) {
-                        console.warn(`フィールド未検出: ${fieldName}`);
-                    }
-                }
-
                 setTextField('MONTH', String(month + 1));
                 setTextField('BASE_Year', String(year));
-                setTextFieldJa('AM_Name', mansionName);
+                setTextField('AM_Name', mansionName);
                 setTextField('VER_No', '8.01');
 
                 const color = monthColors[month];
@@ -2265,9 +2248,9 @@
                         }
 
                         setTextField(`WEEK_${dayStr}`, weekdayNamesEn[dayOfWeek]);
-                        setTextFieldJa(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
+                        setTextField(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
                         const comment = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
-                        setTextFieldJa(`MEMO_${dayStr3}`, comment);
+                        setTextField(`MEMO_${dayStr3}`, comment);
 
                         if (day >= 29) setTextField(`WHITE_${day}`, '');
 
@@ -2285,13 +2268,12 @@
                     } else {
                         if (day >= 29) setTextField(`WHITE_${day}`, '■');
                         setTextField(`WEEK_${dayStr}`, '');
-                        setTextFieldJa(`YOUBI_${dayStr}`, '');  // ← Ja
+                        setTextField(`YOUBI_${dayStr}`, '');  // ← Ja
                         setTextField(`MEMO_${dayStr3}`, '');
                     }
                 }
 
                 // 全フィールドのアピアランス更新を無効化
-                form.updateFieldAppearances(japaneseFont);
                 const pdfBytesOut = await pdfDoc.save({ updateFieldAppearances: false });
                 const blob = new Blob([pdfBytesOut], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
