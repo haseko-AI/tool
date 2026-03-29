@@ -5,7 +5,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.17</title>
+    <title>カレンダー帳票作成8.18</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2128,17 +2128,16 @@
                         if (day >= 29) setTextField(`WHITE_${day}`, '');
 
                         // ↓↓↓ ここから追加 ↓↓↓
-                        // 画像①（SIMAGE_xx1）
+                        // 画像①
                         const image1 = calendarData[day]?.image1?.icon;
                         if (image1) {
-                            await embedImageToField(pdfDoc, form, `SIMAGE_${dayStr}1`, image1);
+                            await embedImageToField(pdfDoc, `SIMAGE_${dayStr}1`, image1);
                         }
-                        // 画像②（SIMAGE_xx3）
+                        // 画像②
                         const image2 = calendarData[day]?.image2?.icon;
                         if (image2) {
-                            await embedImageToField(pdfDoc, form, `SIMAGE_${dayStr}3`, image2);
-                        }
-                        // ↑↑↑ ここまで追加 ↑↑↑
+                            await embedImageToField(pdfDoc, `SIMAGE_${dayStr}3`, image2);
+                        }                        // ↑↑↑ ここまで追加 ↑↑↑
 
                     } else {
                         if (day >= 29) setTextField(`WHITE_${day}`, '■');
@@ -2172,18 +2171,97 @@
             }
         }
 
-        async function embedImageToField(pdfDoc, form, fieldName, imagePath) {
+        // SIMAGE フィールド座標マップ
+        const simageCoords = {
+            'SIMAGE_011': [54.5, 680.0, 170.1, 735.9],
+            'SIMAGE_013': [284.3, 680.0, 399.9, 735.9],
+            'SIMAGE_021': [54.5, 614.8, 170.1, 670.7],
+            'SIMAGE_023': [284.3, 614.8, 399.9, 670.7],
+            'SIMAGE_031': [54.5, 549.6, 170.1, 605.5],
+            'SIMAGE_033': [284.3, 549.6, 399.9, 605.5],
+            'SIMAGE_041': [54.5, 484.4, 170.1, 540.3],
+            'SIMAGE_043': [284.3, 484.4, 399.9, 540.3],
+            'SIMAGE_051': [54.5, 419.2, 170.1, 475.1],
+            'SIMAGE_053': [284.3, 419.2, 399.9, 475.1],
+            'SIMAGE_061': [54.5, 354.0, 170.1, 409.9],
+            'SIMAGE_063': [284.3, 354.0, 399.9, 409.9],
+            'SIMAGE_071': [54.5, 288.8, 170.1, 344.7],
+            'SIMAGE_073': [284.3, 288.8, 399.9, 344.7],
+            'SIMAGE_081': [54.5, 223.6, 170.1, 279.5],
+            'SIMAGE_083': [284.3, 223.6, 399.9, 279.5],
+            'SIMAGE_091': [54.5, 158.4, 170.1, 214.3],
+            'SIMAGE_093': [284.3, 158.4, 399.9, 214.3],
+            'SIMAGE_101': [54.5, 93.2, 170.1, 149.1],
+            'SIMAGE_103': [284.3, 93.2, 399.9, 149.1],
+            'SIMAGE_111': [438.7, 680.0, 554.3, 735.9],
+            'SIMAGE_113': [668.5, 680.0, 784.1, 735.9],
+            'SIMAGE_121': [438.7, 614.8, 554.3, 670.7],
+            'SIMAGE_123': [668.5, 614.8, 784.1, 670.7],
+            'SIMAGE_131': [438.7, 549.6, 554.3, 605.5],
+            'SIMAGE_133': [668.5, 549.6, 784.1, 605.5],
+            'SIMAGE_141': [438.7, 484.4, 554.3, 540.3],
+            'SIMAGE_143': [668.5, 484.4, 784.1, 540.3],
+            'SIMAGE_151': [438.7, 419.2, 554.3, 475.1],
+            'SIMAGE_153': [668.5, 419.2, 784.1, 475.1],
+            'SIMAGE_161': [438.7, 354.0, 554.3, 409.9],
+            'SIMAGE_163': [668.5, 354.0, 784.1, 409.9],
+            'SIMAGE_171': [438.7, 288.8, 554.3, 344.7],
+            'SIMAGE_173': [668.5, 288.8, 784.1, 344.7],
+            'SIMAGE_181': [438.7, 223.6, 554.3, 279.5],
+            'SIMAGE_183': [668.5, 223.6, 784.1, 279.5],
+            'SIMAGE_191': [438.7, 158.4, 554.3, 214.3],
+            'SIMAGE_193': [668.5, 158.4, 784.1, 214.3],
+            'SIMAGE_201': [438.7, 93.2, 554.3, 149.1],
+            'SIMAGE_203': [668.5, 93.2, 784.1, 149.1],
+            'SIMAGE_211': [822.9, 680.0, 938.5, 735.9],
+            'SIMAGE_213': [1052.7, 680.0, 1168.3, 735.9],
+            'SIMAGE_221': [822.9, 614.8, 938.5, 670.7],
+            'SIMAGE_223': [1052.7, 614.8, 1168.3, 670.7],
+            'SIMAGE_231': [822.9, 549.6, 938.5, 605.5],
+            'SIMAGE_233': [1052.7, 549.6, 1168.3, 605.5],
+            'SIMAGE_241': [822.9, 484.4, 938.5, 540.3],
+            'SIMAGE_243': [1052.7, 484.4, 1168.3, 540.3],
+            'SIMAGE_251': [822.9, 419.2, 938.5, 475.1],
+            'SIMAGE_253': [1052.7, 419.2, 1168.3, 475.1],
+            'SIMAGE_261': [822.9, 354.0, 938.5, 409.9],
+            'SIMAGE_263': [1052.7, 354.0, 1168.3, 409.9],
+            'SIMAGE_271': [822.9, 288.8, 938.5, 344.7],
+            'SIMAGE_273': [1052.7, 288.8, 1168.3, 344.7],
+            'SIMAGE_281': [822.9, 223.6, 938.5, 279.5],
+            'SIMAGE_283': [1052.7, 223.6, 1168.3, 279.5],
+            'SIMAGE_291': [822.9, 158.4, 938.5, 214.3],
+            'SIMAGE_293': [1052.7, 158.4, 1168.3, 214.3],
+            'SIMAGE_301': [822.9, 93.2, 938.5, 149.1],
+            'SIMAGE_303': [1052.7, 93.2, 1168.3, 149.1],
+            'SIMAGE_311': [822.9, 28.0, 938.5, 83.9],
+            'SIMAGE_313': [1052.7, 28.0, 1168.3, 83.9],
+        };
+
+        async function embedImageToField(pdfDoc, fieldName, imagePath) {
             try {
+                const coords = simageCoords[fieldName];
+                if (!coords) {
+                    console.warn(`座標未登録: ${fieldName}`);
+                    return;
+                }
+
                 // GIF→PNGパスに変換
                 const pngPath = imagePath.replace('.gif', '.png');
-                
-                // 画像をfetch
                 const imgBytes = await fetch(pngPath).then(res => res.arrayBuffer());
                 const pngImage = await pdfDoc.embedPng(imgBytes);
-                
-                // ボタンフィールドを取得
-                const field = form.getButton(fieldName);
-                field.setImage(pngImage, PDFLib.ImageAlignment.Center);
+
+                // ページに直接描画
+                const page = pdfDoc.getPages()[0];
+                const [x1, y1, x2, y2] = coords;
+                const width = x2 - x1;
+                const height = y2 - y1;
+
+                page.drawImage(pngImage, {
+                    x: x1,
+                    y: y1,
+                    width: width,
+                    height: height,
+                });
             } catch (e) {
                 console.warn(`画像埋め込み失敗: ${fieldName}`, e);
             }
