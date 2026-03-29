@@ -5,7 +5,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.20</title>
+    <title>カレンダー帳票作成8.21</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2256,15 +2256,22 @@
                     if (day <= daysInMonth) {
                         const holidayInfo = getHolidayInfo(year, month, day);
                         const isHoliday = holidayInfo && holidayInfo.isHoliday;
+                        const isSundayOrHoliday = dayOfWeek === 0 || isHoliday;
+
+                        // 日付背景画像（テキストの下に描画）
+                        const dayNumStr = String(day).padStart(2, '0');
+                        const dayImageFile = isSundayOrHoliday 
+                            ? `days/D${dayNumStr}h.png` 
+                            : `days/D${dayNumStr}w.png`;
+                        await embedDayImage(pdfDoc, day, dayImageFile);
 
                         setTextField(`WEEK_${dayStr}`, weekdayNamesEn[dayOfWeek]);
-                        setTextFieldJa(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);  // ← Ja
+                        setTextFieldJa(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
                         const comment = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
-                        setTextFieldJa(`MEMO_${dayStr3}`, comment);  // ← Ja
+                        setTextFieldJa(`MEMO_${dayStr3}`, comment);
 
                         if (day >= 29) setTextField(`WHITE_${day}`, '');
 
-                        // ↓↓↓ ここから追加 ↓↓↓
                         // 画像①
                         const image1 = calendarData[day]?.image1?.icon;
                         if (image1) {
@@ -2274,7 +2281,7 @@
                         const image2 = calendarData[day]?.image2?.icon;
                         if (image2) {
                             await embedImageToField(pdfDoc, `SIMAGE_${dayStr}3`, image2);
-                        }                        // ↑↑↑ ここまで追加 ↑↑↑
+                        }
 
                     } else {
                         if (day >= 29) setTextField(`WHITE_${day}`, '■');
@@ -2307,15 +2314,6 @@
                 if (btn) { btn.disabled = false; btn.textContent = '📄 PDF出力'; }
             }
         }
-
-        // 日付画像（DAYNOの背景画像）
-        const dayNumStr = String(day).padStart(2, '0');
-        const isSundayOrHoliday = dayOfWeek === 0 || isHoliday;
-        const dayImageFile = isSundayOrHoliday 
-            ? `days/D${dayNumStr}h.png` 
-            : `days/D${dayNumStr}w.png`;
-
-        await embedDayImage(pdfDoc, day, dayImageFile);
 
         </script>
     </body>
