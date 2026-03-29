@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.42</title>
+    <title>カレンダー帳票作成8.43</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2267,7 +2267,7 @@ console.log('month値:', month, '→', month + 1);
                 }
 
                 // 全フィールドのアピアランス更新を無効化
-                const pdfBytesOut = await pdfDoc.save({ updateFieldAppearances: false });
+                const pdfBytesOut = await pdfDoc.save({ updateFieldAppearances: true });
                 const blob = new Blob([pdfBytesOut], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
