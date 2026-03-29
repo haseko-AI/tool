@@ -5,7 +5,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.18</title>
+    <title>カレンダー帳票作成8.19</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2171,6 +2171,15 @@
             }
         }
 
+        // 日付画像（DAYNOの背景画像）
+        const dayNumStr = String(day).padStart(2, '0');
+        const isSundayOrHoliday = dayOfWeek === 0 || isHoliday;
+        const dayImageFile = isSundayOrHoliday 
+            ? `days/D${dayNumStr}h.png` 
+            : `days/D${dayNumStr}w.png`;
+
+        await embedDayImage(pdfDoc, day, dayImageFile);
+
         // SIMAGE フィールド座標マップ
         const simageCoords = {
             'SIMAGE_011': [54.5, 680.0, 170.1, 735.9],
@@ -2264,6 +2273,47 @@
                 });
             } catch (e) {
                 console.warn(`画像埋め込み失敗: ${fieldName}`, e);
+            }
+        }
+
+        // DAYNO座標マップ
+        const daynoCoordsMap = {
+            1:[12.0,708.6,59.4,741.1], 2:[12.0,643.4,59.4,675.9],
+            3:[12.0,578.2,59.4,610.7], 4:[12.0,513.0,59.4,545.5],
+            5:[12.0,447.8,59.4,480.3], 6:[12.0,382.6,59.4,415.1],
+            7:[12.0,317.4,59.4,349.9], 8:[12.0,252.2,59.4,284.7],
+            9:[12.0,186.9,59.4,219.4], 10:[12.0,121.7,59.4,154.2],
+            11:[395.9,708.6,443.3,741.1], 12:[395.9,643.4,443.3,675.9],
+            13:[395.9,578.2,443.3,610.7], 14:[395.9,513.0,443.3,545.5],
+            15:[395.9,447.8,443.3,480.3], 16:[395.9,382.6,443.3,415.1],
+            17:[395.9,317.4,443.3,349.9], 18:[395.9,252.2,443.3,284.7],
+            19:[395.9,186.9,443.3,219.4], 20:[396.9,121.7,444.3,154.2],
+            21:[787.1,708.6,834.5,741.1], 22:[787.1,643.4,834.5,675.9],
+            23:[787.1,578.2,834.5,610.7], 24:[787.1,513.0,834.5,545.5],
+            25:[787.1,447.8,834.5,480.3], 26:[787.1,382.6,834.5,415.1],
+            27:[787.1,317.4,834.5,349.9], 28:[787.1,252.2,834.5,284.7],
+            29:[787.1,186.9,834.5,219.4], 30:[787.1,121.7,834.5,154.2],
+            31:[787.1,56.5,834.5,89.0],
+        };
+
+        async function embedDayImage(pdfDoc, day, imagePath) {
+            try {
+                const coords = daynoCoordsMap[day];
+                if (!coords) return;
+
+                const imgBytes = await fetch(imagePath).then(res => res.arrayBuffer());
+                const pngImage = await pdfDoc.embedPng(imgBytes);
+
+                const page = pdfDoc.getPages()[0];
+                const [x1, y1, x2, y2] = coords;
+                page.drawImage(pngImage, {
+                    x: x1,
+                    y: y1,
+                    width: x2 - x1,
+                    height: y2 - y1,
+                });
+            } catch (e) {
+                console.warn(`日付画像埋め込み失敗: day=${day}`, e);
             }
         }
 
