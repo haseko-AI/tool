@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.49</title>
+    <title>カレンダー帳票作成8.50</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2269,8 +2269,8 @@ console.log('month値:', month, '→', month + 1);
                             await embedDayImage(pdfDoc, day, `days/D${dayNumStr}h.png`);
                         }
 
-                        setTextField(`WEEK_${dayStr}`, weekdayNamesEn[dayOfWeek]);
-                        setTextField(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
+                        // setTextField(`WEEK_${dayStr}`, weekdayNamesEn[dayOfWeek]);
+                        // setTextField(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
                         const comment = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
                         setTextField(`MEMO_${dayStr3}`, comment);
 
