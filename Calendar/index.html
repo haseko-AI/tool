@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.48</title>
+    <title>カレンダー帳票作成8.49</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2241,10 +2241,8 @@
 console.log('month値:', month, '→', month + 1);
                 
                 // MONTHだけアピアランスも更新
-                const helvetica = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
                 const monthField = form.getTextField('MONTH');
                 monthField.setText(String(month + 1));
-                monthField.updateAppearances(helvetica);
                 monthField.enableReadOnly();
                 setTextField('BASE_Year', String(year));
                 setTextField('AM_Name', mansionName);
