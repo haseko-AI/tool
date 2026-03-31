@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.51</title>
+    <title>カレンダー帳票作成8.52</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2238,7 +2238,19 @@
                     }
                 }
 
-console.log('month値:', month, '→', month + 1);
+                // 月の色を取得（rgb(r,g,b)形式から数値に変換）
+                const colorStr = monthColors[month];
+                const colorMatch = colorStr.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+                const r = parseInt(colorMatch[1]) / 255;
+                const g = parseInt(colorMatch[2]) / 255;
+                const b = parseInt(colorMatch[3]) / 255;
+
+                const page = pdfDoc.getPages()[0];
+
+                // 色帯を描画（COLOR_MAIN_1: 右上、COLOR_MAIN_2: 左上、COLOR_MAIN_3: 下）
+                page.drawRectangle({ x: 790.0, y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
+                page.drawRectangle({ x: 16.5,  y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
+                page.drawRectangle({ x: 16.5,  y: 15.6,  width: 1157.4, height: 13.3, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
                 
                 // MONTHだけアピアランスも更新
                 const monthField = form.getTextField('MONTH');
