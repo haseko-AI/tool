@@ -954,7 +954,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.66</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.67</div>
     <div class="container">
         <h1 id="calendar-title">📅 カレンダー帳票作成</h1>
         
@@ -2506,6 +2506,26 @@
                         setTextField(`WEEK_${dayStr}`, '');
                         setTextField(`YOUBI_${dayStr}`, '');  // ← Ja
                         setTextField(`MEMO_${dayStr3}`, '');
+                    }
+                }
+
+                // 29〜31日が存在しない月は白でマスク
+                const maskCoords = {
+                    29: [787.0, 159.1, 1177.7, 225.1],
+                    30: [787.0,  93.9, 1177.7, 160.0],
+                    31: [787.0,  28.9, 1177.7,  94.6],
+                };
+                for (let d = 29; d <= 31; d++) {
+                    if (d > daysInMonth) {
+                        const [x1, y1, x2, y2] = maskCoords[d];
+                        page.drawRectangle({
+                            x: x1,
+                            y: y1,
+                            width: x2 - x1,
+                            height: y2 - y1,
+                            color: PDFLib.rgb(1, 1, 1),
+                            borderWidth: 0,
+                        });
                     }
                 }
 
