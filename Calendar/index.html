@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.65</title>
+    <title>カレンダー帳票作成</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -504,83 +504,6 @@
                 max-width: 100%;
             }
 
-            .year-month-selector {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                flex-direction: row;  /* ← 追加 */
-            }
-
-            .nav-btn {
-                padding: 10px 16px;
-                background: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 20px;
-                cursor: pointer;
-            }
-
-            #year-month-display {
-                font-size: 22px;
-                font-weight: bold;
-                min-width: 150px;
-                text-align: center;
-            }
-
-            .nav-btn:hover {
-                background: #45a049;
-            }
-
-            .year-month-dropdown-wrapper {
-                position: relative;
-            }
-
-            .year-month-display-btn {
-                padding: 8px 16px;
-                background: white;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                font-size: 22px;
-                font-weight: bold;
-                cursor: pointer;
-                min-width: 160px;
-            }
-
-            .year-month-display-btn:hover {
-                background: #f5f5f5;
-            }
-
-            .year-month-dropdown {
-                position: absolute;  /* ← 重要 */
-                top: 100%;
-                left: 0;
-                z-index: 9999;       /* ← 大きくする */
-                background: white;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                max-height: 300px;
-                overflow-y: auto;
-                min-width: 160px;
-            }
-
-            .year-month-option {
-                padding: 8px 16px;
-                cursor: pointer;
-                font-size: 16px;
-            }
-
-            .year-month-option:hover {
-                background: #f0f0f0;
-            }
-
-            .year-month-option.current {
-                background: #e8f5e9;
-                font-weight: bold;
-                color: #4CAF50;
-            }
-
             .device-selector,
             .controls,
             .print-btn,
@@ -770,6 +693,84 @@
             .image-grid {
                 grid-template-columns: repeat(3, 1fr);
             }
+        }
+
+        /* 年月セレクター */
+        .year-month-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-direction: row;
+        }
+
+        .nav-btn {
+            padding: 10px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: #45a049;
+        }
+
+        #year-month-display {
+            font-size: 22px;
+            font-weight: bold;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .year-month-dropdown-wrapper {
+            position: relative;
+        }
+
+        .year-month-display-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            min-width: 160px;
+        }
+
+        .year-month-display-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .year-month-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 9999;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-height: 300px;
+            overflow-y: auto;
+            min-width: 160px;
+        }
+
+        .year-month-option {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .year-month-option:hover {
+            background: #f0f0f0;
+        }
+
+        .year-month-option.current {
+            background: #e8f5e9;
+            font-weight: bold;
+            color: #4CAF50;
         }
 
         /* ↓↓↓ ここに追加 ↓↓↓ */
@@ -1047,6 +1048,9 @@
                         <button class="apply-defaults-btn" onclick="applyDefaultsToCurrentMonth()">この月に適用</button>
                 </div>
             </div>
+    </div>
+    <div style="text-align: center; padding: 10px; color: #aaa; font-size: 12px;">
+        Ver 8.65
     </div>
     
     <div id="imageModal" class="modal">
