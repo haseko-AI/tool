@@ -297,6 +297,37 @@
         .data-download-btn:hover {
             background: #455A64;
         }
+
+        .email-send-area {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f4f8;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .email-input-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .send-email-btn {
+            padding: 8px 16px;
+            background: #1976D2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .send-email-btn:hover {
+            background: #1565C0;
+        }
         
         .print-btn:hover {
             background: #0b7dda;
@@ -988,7 +1019,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.72-</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.73</div>
     <div class="container">
         <h1 id="calendar-title">月間カレンダー</h1>
         
@@ -1086,6 +1117,14 @@
             </div>
             <div style="text-align: center; margin-top: 10px;">
                 <button class="data-download-btn" onclick="downloadData()">💾 データダウンロード</button>
+            </div>
+            <div class="email-send-area">
+                <div class="email-input-row">
+                    <input type="email" id="send-email" placeholder="送信先メールアドレス" 
+                        style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 260px;"
+                        onchange="saveEmailAddress(this.value)">
+                    <button class="send-email-btn" onclick="sendPDFByEmail()">📧 PDFをメール送信</button>
+                </div>
             </div>
     </div>
 
@@ -1235,6 +1274,158 @@
                 document.getElementById('year-month-dropdown').style.display = 'none';
             }
         });
+
+        // メールアドレス保存・読み込み
+        function saveEmailAddress(value) {
+            localStorage.setItem('sendEmail', value);
+        }
+
+        function loadEmailAddress() {
+            const email = localStorage.getItem('sendEmail') || '';
+            document.getElementById('send-email').value = email;
+        }
+
+        // PDFをメール送信
+        async function sendPDFByEmail() {
+            const email = document.getElementById('send-email').value.trim();
+            if (!email) {
+                await showConfirmDialog('❌ エラー', '送信先メールアドレスを入力してください。', false);
+                return;
+            }
+
+            const btn = document.querySelector('.send-email-btn');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ 送信中...'; }
+
+            try {
+                // PDFを生成してBase64に変換
+                const pdfBase64 = await generatePDFBase64();
+                if (!pdfBase64) throw new Error('PDF生成に失敗しました');
+
+                const year = parseInt(document.getElementById('year').value);
+                const month = parseInt(document.getElementById('month').value);
+                const mansionName = document.getElementById('mansion-name').value || 'カレンダー';
+                const fileName = `calendar_${year}_${String(month + 1).padStart(2, '0')}.pdf`;
+
+                // PHPに送信
+                const formData = new FormData();
+                formData.append('to', email);
+                formData.append('subject', `【${mansionName}】${year}年${monthNames[month]}カレンダー`);
+                formData.append('body', `${mansionName}\n${year}年${monthNames[month]}のカレンダーをお送りします。`);
+                formData.append('filename', fileName);
+                formData.append('pdf_base64', pdfBase64);
+
+                const response = await fetch('https://aidirector.shop/sendmail.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await showConfirmDialog('✅ 送信完了', `${email} にPDFを送信しました！`, false);
+                } else {
+                    throw new Error(result.message || '送信に失敗しました');
+                }
+
+            } catch (e) {
+                console.error('メール送信エラー:', e);
+                await showConfirmDialog('❌ エラー', `送信に失敗しました。\n${e.message}`, false);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '📧 PDFをメール送信'; }
+            }
+        }
+
+        // PDFをBase64で生成（outputToPDFと同じ処理）
+        async function generatePDFBase64() {
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+            const mansionName = document.getElementById('mansion-name').value || '';
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay();
+
+            const pdfBytes = await fetch('calendar_v8.pdf?v=' + Date.now()).then(res => res.arrayBuffer());
+            const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, {
+                ignoreEncryption: true,
+                updateMetadata: false,
+            });
+            const form = pdfDoc.getForm();
+
+            function setTextField(fieldName, value) {
+                try {
+                    const field = form.getTextField(fieldName);
+                    field.setText(value);
+                } catch (e) {}
+            }
+
+            // 基本情報
+            const helvetica = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+            const monthField = form.getTextField('MONTH');
+            monthField.setText(String(month + 1));
+            monthField.enableReadOnly();
+
+            setTextField('BASE_Year', String(year));
+            setTextField('AM_Name', mansionName);
+            setTextField('VER_No', '8.72');
+
+            // 月カラー
+            const colorStr = monthColors[month];
+            const colorMatch = colorStr.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            const r = parseInt(colorMatch[1]) / 255;
+            const g = parseInt(colorMatch[2]) / 255;
+            const b = parseInt(colorMatch[3]) / 255;
+
+            const page = pdfDoc.getPages()[0];
+            page.drawRectangle({ x: 790.0, y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
+            page.drawRectangle({ x: 16.5,  y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
+            page.drawRectangle({ x: 16.5,  y: 15.6,  width: 1157.4, height: 13.3, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
+
+            const daString = `/HeBo 70 Tf ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg`;
+            monthField.acroField.dict.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
+
+            for (let day = 1; day <= 31; day++) {
+                const dayOfWeek = (firstDay + day - 1) % 7;
+                const dayStr = String(day).padStart(2, '0');
+                const dayStr3 = String(day).padStart(3, '0');
+
+                if (day <= daysInMonth) {
+                    const holidayInfo = getHolidayInfo(year, month, day);
+                    const isHoliday = holidayInfo && holidayInfo.isHoliday;
+                    const isSundayOrHoliday = dayOfWeek === 0 || isHoliday;
+
+                    if (isSundayOrHoliday) {
+                        const dayNumStr = String(day).padStart(2, '0');
+                        await embedDayImage(pdfDoc, day, `days/D${dayNumStr}h.png`);
+                    }
+
+                    setTextField(`WEEK_${dayStr}`, weekdayNamesEn[dayOfWeek]);
+                    setTextField(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
+                    const comment = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
+                    setTextField(`MEMO_${dayStr3}`, comment);
+                    if (day >= 29) setTextField(`WHITE_${day}`, '');
+
+                    const image1 = calendarData[day]?.image1?.icon;
+                    if (image1) await embedImageToField(pdfDoc, `SIMAGE_${dayStr}1`, image1);
+                    const image2 = calendarData[day]?.image2?.icon;
+                    if (image2) await embedImageToField(pdfDoc, `SIMAGE_${dayStr}3`, image2);
+
+                } else {
+                    if (day >= 29) {
+                        const [x1, y1, x2, y2] = maskCoords[day];
+                        page.drawRectangle({ x: x1, y: y1, width: x2-x1, height: y2-y1, color: PDFLib.rgb(1,1,1), borderWidth: 0 });
+                    }
+                    setTextField(`WEEK_${dayStr}`, '');
+                    setTextField(`YOUBI_${dayStr}`, '');
+                    setTextField(`MEMO_${dayStr3}`, '');
+                }
+            }
+
+            form.updateFieldAppearances();
+            const pdfBytesOut = await pdfDoc.save({ updateFieldAppearances: false });
+
+            // Base64に変換
+            const binary = Array.from(new Uint8Array(pdfBytesOut))
+                .map(b => String.fromCharCode(b)).join('');
+            return btoa(binary);
+        }
 
         // データダウンロード
         function downloadData() {
@@ -1473,6 +1664,7 @@
 
             // マンション名を読み込み
             loadMansionName();
+            loadEmailAddress();
 
             // 表示を更新
             const y = parseInt(document.getElementById('year').value);
@@ -2317,6 +2509,13 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
         <script>
         const weekdayNamesEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        // 29〜31日マスク座標（グローバル）
+        const maskCoords = {
+            29: [787.0, 159.1, 1177.7, 225.1],
+            30: [787.0,  93.9, 1177.7, 160.0],
+            31: [787.0,  28.9, 1177.7,  94.6],
+        };
 
         // ==========================================
         // SIMAGE座標マップ
