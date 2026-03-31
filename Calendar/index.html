@@ -504,6 +504,33 @@
                 max-width: 100%;
             }
 
+            .year-month-selector {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .nav-btn {
+                padding: 8px 12px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 16px;
+                cursor: pointer;
+            }
+
+            .nav-btn:hover {
+                background: #45a049;
+            }
+
+            #year-month-display {
+                font-size: 18px;
+                font-weight: bold;
+                min-width: 120px;
+                text-align: center;
+            }
+
             .device-selector,
             .controls,
             .print-btn,
@@ -879,27 +906,21 @@
         </div>
         
         <div class="controls">
-            <select id="year"></select>
-            <select id="month">
-                <option value="0">1月</option>
-                <option value="1">2月</option>
-                <option value="2">3月</option>
-                <option value="3">4月</option>
-                <option value="4">5月</option>
-                <option value="5">6月</option>
-                <option value="6">7月</option>
-                <option value="7">8月</option>
-                <option value="8">9月</option>
-                <option value="9">10月</option>
-                <option value="10">11月</option>
-                <option value="11">12月</option>
-            </select>
+            <div class="year-month-selector">
+                <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
+                <span id="year-month-display">2026年4月</span>
+                <button class="nav-btn" onclick="changeMonth(1)">▶</button>
+            </div>
             <input type="text" id="mansion-name" placeholder="マンション名を入力" 
                 style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 200px;"
                 onchange="saveMansionName(this.value)">
             <button class="pdf-output-btn" onclick="outputToPDF()">📄 PDF出力</button>
         </div>
-        
+
+        <!-- 非表示にした年月セレクト（内部処理用） -->
+        <select id="year" style="display:none;"></select>
+        <select id="month" style="display:none;"></select>
+
         <div id="calendar" class="calendar"></div>
         
         <div class="print-instruction" style="text-align: center; margin-bottom: 10px; color: #666; font-size: 14px;">
@@ -1052,6 +1073,33 @@
             5: null, // 金
             6: null  // 土
         };
+
+        function changeMonth(delta) {
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+            
+            let newMonth = month + delta;
+            let newYear = year;
+            
+            if (newMonth > 11) {
+                newMonth = 0;
+                newYear++;
+            } else if (newMonth < 0) {
+                newMonth = 11;
+                newYear--;
+            }
+            
+            document.getElementById('year').value = newYear;
+            document.getElementById('month').value = newMonth;
+            
+            // 表示を更新
+            document.getElementById('year-month-display').textContent = 
+                `${newYear}年${monthNames[newMonth]}`;
+            
+            // カレンダーを再描画
+            saveCurrentMonthData();
+            initCalendar(false);
+        }
 
         // セレクトボックスに画像リストを追加
         function populateWeekdaySelects() {
@@ -1212,6 +1260,12 @@
             
             // 月を選択
             document.getElementById('month').value = nextMonth;
+
+            // 表示を更新
+            const y = parseInt(document.getElementById('year').value);
+            const m = parseInt(document.getElementById('month').value);
+            document.getElementById('year-month-display').textContent = 
+                `${y}年${monthNames[m]}`;
         }
 
         // 祝日データを読み込む
