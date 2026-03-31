@@ -988,26 +988,27 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.71</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.72</div>
     <div class="container">
-        <h1 id="calendar-title">📅 カレンダー帳票作成</h1>
+        <h1 id="calendar-title">月間カレンダー</h1>
         
         <div class="controls">
 
             <div class="year-month-selector">
-                <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
+                <button class="nav-btn" onclick="changeMonth(-1)">⟨</button>
                 <div class="year-month-dropdown-wrapper">
                     <button class="year-month-display-btn" onclick="toggleYearMonthDropdown()">
                         <span id="year-month-display">2026年4月</span> ▼
                     </button>
                     <div id="year-month-dropdown" class="year-month-dropdown" style="display:none;"></div>
                 </div>
-                <button class="nav-btn" onclick="changeMonth(1)">▶</button>
+                <button class="nav-btn" onclick="changeMonth(1)">⟩</button>
             </div>
 
             <input type="text" id="mansion-name" placeholder="マンション名を入力" 
-                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 200px;"
+                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 18px; width: 220px;"
                 onchange="saveMansionName(this.value)">
+            <button class="pdf-output-btn" onclick="outputToPDF()">📄 PDF出力</button>
         </div>
 
         <!-- 非表示にした年月セレクト（内部処理用） -->
@@ -2544,7 +2545,7 @@
                 monthField.enableReadOnly();
                 setTextField('BASE_Year', String(year));
                 setTextField('AM_Name', mansionName);
-                setTextField('VER_No', '8.01');
+                setTextField('VER_No', '8.72');
 
                 const color = monthColors[month];
 
