@@ -954,7 +954,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.67</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.67-</div>
     <div class="container">
         <h1 id="calendar-title">📅 カレンダー帳票作成</h1>
         
@@ -1163,7 +1163,7 @@
                 const currentYear = parseInt(document.getElementById('year').value);
                 const currentMonth = parseInt(document.getElementById('month').value);
                 
-                for (let y = currentYear - 1; y <= currentYear + 2; y++) {
+                for (let y = currentYear - 3; y <= currentYear + 5; y++) {
                     for (let m = 0; m <= 11; m++) {
                         const option = document.createElement('div');
                         option.className = 'year-month-option';
@@ -1375,9 +1375,9 @@
                 nextYear++;
             }
             
-            // 年のセレクトボックスを作成（前1年〜後5年）
+            // 年のセレクトボックスを作成（前3年〜後5年）
             const yearSelect = document.getElementById('year');
-            for (let y = currentYear - 1; y <= currentYear + 5; y++) {
+            for (let y = currentYear - 3; y <= currentYear + 5; y++) {
                 const option = document.createElement('option');
                 option.value = y;
                 option.textContent = y + '年';
