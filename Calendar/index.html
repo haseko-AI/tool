@@ -1019,7 +1019,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.74</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.75</div>
     <div class="container">
         <h1 id="calendar-title">月間カレンダー</h1>
         
@@ -1310,7 +1310,7 @@
                 const formData = new FormData();
                 formData.append('to', email);
                 formData.append('subject', `【${mansionName}】${year}年${monthNames[month]}カレンダー`);
-                formData.append('body', `${mansionName}\n${year}年${monthNames[month]}のカレンダーをお送りします。`);
+                formData.append('body', `${mansionName}\n${year}年${monthNames[month]}のカレンダーをお送りします。\n\n─────────────────────────\nこのメールは送信専用アドレスから自動送信されています。\nご返信いただいてもお答えできませんのでご了承ください。\nなお、送信履歴はサーバーには保存されません。\n\nPowered by Claude with AI director\n─────────────────────────`);
                 formData.append('filename', fileName);
                 formData.append('pdf_base64', pdfBase64);
 
