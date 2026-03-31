@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.61</title>
+    <title>カレンダー帳票作成8.62</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -511,24 +511,73 @@
             }
 
             .nav-btn {
-                padding: 8px 12px;
+                padding: 10px 16px;
                 background: #4CAF50;
                 color: white;
                 border: none;
                 border-radius: 4px;
-                font-size: 16px;
+                font-size: 20px;
                 cursor: pointer;
+            }
+
+            #year-month-display {
+                font-size: 22px;
+                font-weight: bold;
+                min-width: 150px;
+                text-align: center;
             }
 
             .nav-btn:hover {
                 background: #45a049;
             }
 
-            #year-month-display {
-                font-size: 18px;
+            .year-month-dropdown-wrapper {
+                position: relative;
+            }
+
+            .year-month-display-btn {
+                padding: 8px 16px;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 22px;
                 font-weight: bold;
-                min-width: 120px;
-                text-align: center;
+                cursor: pointer;
+                min-width: 160px;
+            }
+
+            .year-month-display-btn:hover {
+                background: #f5f5f5;
+            }
+
+            .year-month-dropdown {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1000;
+                max-height: 300px;
+                overflow-y: auto;
+                min-width: 160px;
+            }
+
+            .year-month-option {
+                padding: 8px 16px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+
+            .year-month-option:hover {
+                background: #f0f0f0;
+            }
+
+            .year-month-option.current {
+                background: #e8f5e9;
+                font-weight: bold;
+                color: #4CAF50;
             }
 
             .device-selector,
@@ -906,11 +955,18 @@
         </div>
         
         <div class="controls">
+
             <div class="year-month-selector">
                 <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
-                <span id="year-month-display">2026年4月</span>
+                <div class="year-month-dropdown-wrapper">
+                    <button class="year-month-display-btn" onclick="toggleYearMonthDropdown()">
+                        <span id="year-month-display">2026年4月</span> ▼
+                    </button>
+                    <div id="year-month-dropdown" class="year-month-dropdown" style="display:none;"></div>
+                </div>
                 <button class="nav-btn" onclick="changeMonth(1)">▶</button>
             </div>
+
             <input type="text" id="mansion-name" placeholder="マンション名を入力" 
                 style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 200px;"
                 onchange="saveMansionName(this.value)">
@@ -1086,6 +1142,54 @@
             5: null, // 金
             6: null  // 土
         };
+
+        function toggleYearMonthDropdown() {
+            const dropdown = document.getElementById('year-month-dropdown');
+            if (dropdown.style.display === 'none') {
+                // ドロップダウンを生成
+                dropdown.innerHTML = '';
+                const currentYear = parseInt(document.getElementById('year').value);
+                const currentMonth = parseInt(document.getElementById('month').value);
+                
+                for (let y = currentYear - 1; y <= currentYear + 2; y++) {
+                    for (let m = 0; m <= 11; m++) {
+                        const option = document.createElement('div');
+                        option.className = 'year-month-option';
+                        if (y === currentYear && m === currentMonth) {
+                            option.className += ' current';
+                        }
+                        option.textContent = `${y}年${monthNames[m]}`;
+                        option.onclick = () => selectYearMonth(y, m);
+                        dropdown.appendChild(option);
+                    }
+                }
+                
+                dropdown.style.display = 'block';
+                // 現在の月までスクロール
+                const current = dropdown.querySelector('.current');
+                if (current) current.scrollIntoView({ block: 'center' });
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        function selectYearMonth(year, month) {
+            document.getElementById('year').value = year;
+            document.getElementById('month').value = month;
+            document.getElementById('year-month-display').textContent = 
+                `${year}年${monthNames[month]}`;
+            document.getElementById('year-month-dropdown').style.display = 'none';
+            saveCurrentMonthData();
+            initCalendar(false);
+        }
+
+        // ドロップダウン外クリックで閉じる
+        document.addEventListener('click', function(e) {
+            const wrapper = document.querySelector('.year-month-dropdown-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                document.getElementById('year-month-dropdown').style.display = 'none';
+            }
+        });
 
         function changeMonth(delta) {
             const year = parseInt(document.getElementById('year').value);
