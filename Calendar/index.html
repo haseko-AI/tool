@@ -1357,14 +1357,9 @@
             }
 
             // 基本情報
-            const helvetica = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-            const monthField = form.getTextField('MONTH');
-            monthField.setText(String(month + 1));
-            monthField.enableReadOnly();
-
             setTextField('BASE_Year', String(year));
             setTextField('AM_Name', mansionName);
-            setTextField('VER_No', '8.72');
+            setTextField('VER_No', '8.75');
 
             // 月カラー
             const colorStr = monthColors[month];
@@ -1378,8 +1373,12 @@
             page.drawRectangle({ x: 16.5,  y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
             page.drawRectangle({ x: 16.5,  y: 15.6,  width: 1157.4, height: 13.3, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
 
+            // MONTHフィールドの色・テキスト・読み取り専用を設定
             const daString = `/HeBo 70 Tf ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg`;
+            const monthField = form.getTextField('MONTH');
             monthField.acroField.dict.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
+            monthField.setText(String(month + 1));
+            monthField.enableReadOnly();
 
             for (let day = 1; day <= 31; day++) {
                 const dayOfWeek = (firstDay + day - 1) % 7;
@@ -2732,18 +2731,16 @@
                 page.drawRectangle({ x: 16.5,  y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
                 page.drawRectangle({ x: 16.5,  y: 15.6,  width: 1157.4, height: 13.3, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
 
-                // MONTHフィールドのテキスト色を月カラーに変更
+                // MONTHフィールドの色・テキスト・読み取り専用を設定
                 const daString = `/HeBo 70 Tf ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg`;
-                const monthTextField = form.getTextField('MONTH');
-                monthTextField.acroField.dict.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
-
-                // MONTHだけアピアランスも更新
                 const monthField = form.getTextField('MONTH');
+                monthField.acroField.dict.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
                 monthField.setText(String(month + 1));
                 monthField.enableReadOnly();
+
                 setTextField('BASE_Year', String(year));
                 setTextField('AM_Name', mansionName);
-                setTextField('VER_No', '8.72');
+                setTextField('VER_No', '8.75');
 
                 const color = monthColors[month];
 
