@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.64</title>
+    <title>カレンダー帳票作成8.65</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -508,6 +508,7 @@
                 display: flex;
                 align-items: center;
                 gap: 10px;
+                flex-direction: row;  /* ← 追加 */
             }
 
             .nav-btn {
@@ -551,14 +552,14 @@
             }
 
             .year-month-dropdown {
-                position: absolute;
+                position: absolute;  /* ← 重要 */
                 top: 100%;
                 left: 0;
+                z-index: 9999;       /* ← 大きくする */
                 background: white;
                 border: 1px solid #ddd;
                 border-radius: 4px;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 1000;
                 max-height: 300px;
                 overflow-y: auto;
                 min-width: 160px;
