@@ -373,7 +373,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.06-</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.07</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -681,6 +681,27 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <div class="action-row">
     <button class="btn btn-save"    onclick="saveData()">💾 このデータを保存</button>
     <button class="btn btn-primary" onclick="downloadPDF()">📄 PDFダウンロード</button>
+  </div>
+
+  <!-- 送信エリア -->
+  <div class="send-area">
+    <div class="send-row">
+      <span class="send-label">送信先</span>
+      <input class="send-input" type="email" id="send-to" placeholder="送信先メールアドレス">
+    </div>
+    <div class="send-row">
+      <span class="send-label">CC</span>
+      <input class="send-input" type="email" id="send-cc" placeholder="CC（自分用・任意）">
+    </div>
+    <div class="send-row">
+      <span class="send-label">BCC</span>
+      <input class="send-input" type="email" id="send-bcc" placeholder="BCC（自分用・任意）">
+    </div>
+    <div class="send-row" style="justify-content:flex-end;">
+      <button class="btn-send" id="btn-send" onclick="sendPDF()">
+        <span>📨</span> PDFを送信
+      </button>
+    </div>
   </div>
   <div class="action-row">
     <button class="btn btn-outline" onclick="exportJSON()">⬇️ データを書き出し</button>
