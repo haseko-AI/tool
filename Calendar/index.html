@@ -1019,7 +1019,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.76</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.76-</div>
     <div class="container">
         <h1 id="calendar-title">月間カレンダー</h1>
         
@@ -1417,9 +1417,14 @@
                 }
             }
 
-            const pdfBytesOut = await pdfDoc.save({ updateFieldAppearances: false });
+            // NeedAppearancesをTrueに設定（フィールドの再描画を指示）
+            const acroFormRef1 = pdfDoc.catalog.get(PDFLib.PDFName.of('AcroForm'));
+            if (acroFormRef1) {
+                const acroFormObj1 = pdfDoc.context.lookup(acroFormRef1);
+                if (acroFormObj1) acroFormObj1.set(PDFLib.PDFName.of('NeedAppearances'), PDFLib.PDFBool.True);
+            }
 
-            // Base64に変換
+            const pdfBytesOut = await pdfDoc.save({ updateFieldAppearances: false });
             const binary = Array.from(new Uint8Array(pdfBytesOut))
                 .map(b => String.fromCharCode(b)).join('');
             return btoa(binary);
@@ -2804,6 +2809,13 @@
                             borderWidth: 0,
                         });
                     }
+                }
+
+                // NeedAppearancesをTrueに設定（フィールドの再描画を指示）
+                const acroFormRef = pdfDoc.catalog.get(PDFLib.PDFName.of('AcroForm'));
+                if (acroFormRef) {
+                    const acroFormObj = pdfDoc.context.lookup(acroFormRef);
+                    if (acroFormObj) acroFormObj.set(PDFLib.PDFName.of('NeedAppearances'), PDFLib.PDFBool.True);
                 }
 
                 // 全フィールドのアピアランス更新を無効化
