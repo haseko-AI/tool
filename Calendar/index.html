@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.59</title>
+    <title>カレンダー帳票作成8.60</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -1252,20 +1252,21 @@
                 yearSelect.appendChild(option);
             }
 
+            // 月を選択 ← initCalendarの前に移動
+            document.getElementById('month').value = nextMonth;
+
             // マンション名を読み込み
             loadMansionName();
-
-            // カレンダーを初期化
-            initCalendar(false);
-            
-            // 月を選択
-            document.getElementById('month').value = nextMonth;
 
             // 表示を更新
             const y = parseInt(document.getElementById('year').value);
             const m = parseInt(document.getElementById('month').value);
             document.getElementById('year-month-display').textContent = 
                 `${y}年${monthNames[m]}`;
+
+            // カレンダーを初期化 ← 最後に
+            initCalendar(false);
+
         }
 
         // 祝日データを読み込む
