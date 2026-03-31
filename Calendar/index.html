@@ -946,6 +946,7 @@
 </head>
 
 <body>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.65</div>
     <div class="container">
         <h1 id="calendar-title">📅 カレンダー帳票作成</h1>
         
@@ -1049,9 +1050,7 @@
                 </div>
             </div>
     </div>
-    <div style="text-align: center; padding: 10px; color: #aaa; font-size: 12px;">
-        Ver 8.65
-    </div>
+
     
     <div id="imageModal" class="modal">
         <div class="modal-content">
@@ -1574,6 +1573,11 @@
         
         function createDayCell(day, dayOfWeek) {
             console.log(`createDayCell ${day}日:`, calendarData[day]?.image1);
+
+            // calendarDataが初期化されていない場合のフォールバック
+            if (!calendarData[day]) {
+                calendarData[day] = { image1: null, image2: null, comment: '' };
+            }
 
             const cell = document.createElement('div');
             cell.className = 'day-cell';
