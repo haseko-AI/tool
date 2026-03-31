@@ -954,7 +954,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.67-</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.68</div>
     <div class="container">
         <h1 id="calendar-title">📅 カレンダー帳票作成</h1>
         
@@ -1192,7 +1192,6 @@
                 `${year}年${monthNames[month]}`;
             document.getElementById('year-month-dropdown').style.display = 'none';
             saveCurrentMonthData();
-            calendarData = {};
             loadHolidays().then(() => {
                 initCalendar(false);
             });
@@ -1230,7 +1229,6 @@
             
             // カレンダーを再描画
             saveCurrentMonthData();
-            calendarData = {};
             loadHolidays().then(() => {
                 initCalendar(false);
             });
@@ -1498,41 +1496,42 @@
             } else {
                 // 月別データを読み込む
                 if (!loadCurrentMonthData()) {
-                    calendarData = {};
+                    calendarData = {};  // 新規月は空にする
                 }
             }
             
             const calendar = document.getElementById('calendar');
             calendar.innerHTML = '';
             
-            // 曜日別デフォルトを適用（新規月のみ）
+            // 新規月のみ日付データを初期化してデフォルト適用
             if (Object.keys(calendarData).length === 0) {
                 for (let day = 1; day <= daysInMonth; day++) {
+                    const dayOfWeek = (firstDay + day - 1) % 7;
+                    const defaultImage = weekdayDefaults[dayOfWeek];
                     calendarData[day] = { 
-                        image1: null,
+                        image1: defaultImage ? {
+                            icon: defaultImage,
+                            label: images.find(img => img.icon === defaultImage)?.label || ''
+                        } : null,
                         image2: null,
                         comment: ''
                     };
                 }
-            }
-
-            // 曜日別デフォルトを適用
-            if (!clearData) {
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dayOfWeek = (firstDay + day - 1) % 7;
-                    const defaultImage = weekdayDefaults[dayOfWeek];
-                    
-                    // calendarData[day]が存在しない場合は初期化
-                    if (!calendarData[day]) {
-                        calendarData[day] = { image1: null, image2: null, comment: '' };
-                    }
-                    
-                    if (defaultImage && !calendarData[day].image1) {
-                        console.log(`${day}日にデフォルト適用:`, defaultImage);
-                        calendarData[day].image1 = {
-                            icon: defaultImage,
-                            label: images.find(img => img.icon === defaultImage)?.label || ''
-                        };
+            } else {
+                // 既存月でもデフォルト適用（image1が未設定の日のみ）
+                if (!clearData) {
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dayOfWeek = (firstDay + day - 1) % 7;
+                        const defaultImage = weekdayDefaults[dayOfWeek];
+                        if (!calendarData[day]) {
+                            calendarData[day] = { image1: null, image2: null, comment: '' };
+                        }
+                        if (defaultImage && !calendarData[day].image1) {
+                            calendarData[day].image1 = {
+                                icon: defaultImage,
+                                label: images.find(img => img.icon === defaultImage)?.label || ''
+                            };
+                        }
                     }
                 }
             }
