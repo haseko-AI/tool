@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.52</title>
+    <title>カレンダー帳票作成8.53</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2261,9 +2261,6 @@
                 setTextField('VER_No', '8.01');
 
                 const color = monthColors[month];
-                setTextField('COLOR_MAIN_1', color);
-                setTextField('COLOR_MAIN_2', color);
-                setTextField('COLOR_MAIN_3', color);
 
                 for (let day = 1; day <= 31; day++) {
                     const dayOfWeek = (firstDay + day - 1) % 7;
