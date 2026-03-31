@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.56</title>
+    <title>カレンダー帳票作成8.57</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2258,8 +2258,7 @@
                 // MONTHフィールドのテキスト色を月カラーに変更
                 const daString = `/HeBo 70 Tf ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg`;
                 const monthTextField = form.getTextField('MONTH');
-                const monthWidget = monthTextField.acroField;
-                monthWidget.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
+                monthTextField.acroField.dict.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
 
                 // MONTHだけアピアランスも更新
                 const monthField = form.getTextField('MONTH');
