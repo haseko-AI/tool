@@ -263,6 +263,25 @@
             cursor: pointer;
             font-weight: bold;
         }
+
+        .clear-all-btn {
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            padding: 15px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .clear-all-btn:hover {
+            background: #d32f2f;
+        }
         
         .print-btn:hover {
             background: #0b7dda;
@@ -954,7 +973,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.68</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.69</div>
     <div class="container">
         <h1 id="calendar-title">📅 カレンダー帳票作成</h1>
         
@@ -1006,7 +1025,10 @@
         <div class="print-instruction" style="text-align: center; margin-bottom: 10px; color: #666; font-size: 14px;">
             💡 印刷時は「A3横（landscape）」を選択してください
         </div>
-        <button class="print-btn" onclick="openPreview()">🖨️ 印刷プレビュー</button>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button class="clear-all-btn" onclick="clearAllImages()">🗑️ シール全削除</button>
+            <button class="print-btn" onclick="openPreview()">🖨️ 印刷プレビュー</button>
+        </div>
             <!-- ↓↓↓ ここに追加 ↓↓↓ -->
             <div class="weekday-defaults">
                 <h3>曜日別デフォルト設定（画像①）</h3>
@@ -1204,6 +1226,28 @@
                 document.getElementById('year-month-dropdown').style.display = 'none';
             }
         });
+
+        // シール全削除
+        async function clearAllImages() {
+            const result = await showConfirmDialog(
+                '🗑️ シール全削除',
+                'この月の全シール画像を削除します。よろしいですか？'
+            );
+            if (!result) return;
+
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                if (calendarData[day]) {
+                    calendarData[day].image1 = null;
+                    calendarData[day].image2 = null;
+                }
+            }
+            saveCurrentMonthData();
+            initCalendar(false);
+        }
 
         function changeMonth(delta) {
             const year = parseInt(document.getElementById('year').value);
