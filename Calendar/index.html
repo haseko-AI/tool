@@ -973,7 +973,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.69</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.70</div>
     <div class="container">
         <h1 id="calendar-title">📅 カレンダー帳票作成</h1>
         
@@ -1213,6 +1213,7 @@
             document.getElementById('year-month-display').textContent = 
                 `${year}年${monthNames[month]}`;
             document.getElementById('year-month-dropdown').style.display = 'none';
+            // 現在月を保存してから新月へ
             saveCurrentMonthData();
             loadHolidays().then(() => {
                 initCalendar(false);
@@ -1238,12 +1239,20 @@
             const year = parseInt(document.getElementById('year').value);
             const month = parseInt(document.getElementById('month').value);
             const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay();
 
+            // 全日付のシールをクリアしてデフォルトのみ適用
             for (let day = 1; day <= daysInMonth; day++) {
-                if (calendarData[day]) {
-                    calendarData[day].image1 = null;
-                    calendarData[day].image2 = null;
-                }
+                const dayOfWeek = (firstDay + day - 1) % 7;
+                const defaultImage = weekdayDefaults[dayOfWeek];
+                calendarData[day] = {
+                    image1: defaultImage ? {
+                        icon: defaultImage,
+                        label: images.find(img => img.icon === defaultImage)?.label || ''
+                    } : null,
+                    image2: null,
+                    comment: calendarData[day]?.comment || ''
+                };
             }
             saveCurrentMonthData();
             initCalendar(false);
@@ -1263,6 +1272,9 @@
                 newMonth = 11;
                 newYear--;
             }
+
+            // 現在月のコメントだけ保存（シールは引き継がない）
+            saveCurrentMonthData();
             
             document.getElementById('year').value = newYear;
             document.getElementById('month').value = newMonth;
@@ -1272,7 +1284,6 @@
                 `${newYear}年${monthNames[newMonth]}`;
             
             // カレンダーを再描画
-            saveCurrentMonthData();
             loadHolidays().then(() => {
                 initCalendar(false);
             });
