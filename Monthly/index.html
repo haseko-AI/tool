@@ -165,6 +165,16 @@ textarea.fi{resize:vertical;min-height:36px;}
 .del-btn{flex-shrink:0;border:1px solid #f5c0bc;border-radius:5px;background:#fff0f0;color:#c0392b;font-size:.72rem;font-weight:700;padding:3px 8px;cursor:pointer;font-family:inherit;line-height:1;transition:background .1s;}
 .del-btn:hover{background:#ffe0e0;}
 
+/* 送信エリア */
+.send-area{padding:16px 18px;border-top:1px solid var(--border);}
+.send-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+.send-label{font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;}
+.send-input{flex:1;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:.88rem;min-width:0;font-family:inherit;}
+.send-input:focus{border-color:var(--accent);outline:none;}
+.btn-send{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:11px 20px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:opacity .15s;}
+.btn-send:hover{opacity:.88;}
+.btn-send:disabled{opacity:.5;cursor:not-allowed;}
+
 /* seal */
 .seal-area{display:flex;gap:12px;padding:14px 18px;}
 
@@ -363,7 +373,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.05</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.06</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -1620,6 +1630,23 @@ async function downloadPDF(){
     if(typeof fontkit==='undefined'){showBanner('fontkitの読み込みに失敗しています','error');return;}
 
     showBanner('PDF生成中...','saved',10000);
+    const savedBytes = await generatePDFBytes();
+    const blob=new Blob([savedBytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
+    a.click(); URL.revokeObjectURL(url);
+    showBanner('PDFをダウンロードしました','saved');
+  }catch(err){
+    console.error(err);
+    showBanner(`エラー: ${err.message}`,'error');
+  }
+}
+
+async function downloadPDF_OLD(){
+  try{
+    showBanner('PDF生成中...','saved',10000);
 
     const [pdfResp, fontResp] = await Promise.all([
       fetch('Report_M.pdf', {cache: 'no-store'}),
@@ -2088,6 +2115,267 @@ function savePastData(){
 document.getElementById('past-modal').addEventListener('click', function(e){
   if(e.target === this) closePastModal();
 });
+
+// ============================================================
+// PDF送信
+// ============================================================
+async function sendPDF(){
+  const toEl  = document.getElementById('send-to');
+  const ccEl  = document.getElementById('send-cc');
+  const bccEl = document.getElementById('send-bcc');
+  const btn   = document.getElementById('btn-send');
+
+  // 送信先チェック
+  if(!toEl.value.trim()){
+    showBanner('送信先メールアドレスを入力してください','error');
+    toEl.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  showBanner('PDF生成中...','saved',30000);
+
+  try {
+    // PDFを生成（downloadPDFと同じ処理）
+    const pdfBytes = await generatePDFBytes();
+
+    // Base64に変換
+    const binary = Array.from(new Uint8Array(pdfBytes))
+      .map(b=>String.fromCharCode(b)).join('');
+    const base64 = btoa(binary);
+
+    // 件名：マンションコード-管理業務月報◯年◯月
+    const macd = document.getElementById('MaCD')?.value || '';
+    const gengo = adToGengo(currentADYear);
+    const subject = `${macd}-管理業務月報${gengo.name}${gengo.year}年${currentMonth}月`;
+
+    // ファイル名
+    const filename = `管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
+
+    // FormDataで送信
+    const fd = new FormData();
+    fd.append('to',         toEl.value.trim());
+    fd.append('cc',         ccEl.value.trim());
+    fd.append('bcc',        bccEl.value.trim());
+    fd.append('subject',    subject);
+    fd.append('body',       `${subject}を添付しました。`);
+    fd.append('filename',   filename);
+    fd.append('pdf_base64', base64);
+
+    const resp = await fetch('https://aidirector.shop/sendmail.php', {
+      method: 'POST',
+      body: fd,
+    });
+    const result = await resp.json();
+
+    if(result.success){
+      showBanner('送信しました！','saved');
+    } else {
+      showBanner(`送信失敗: ${result.message}`,'error');
+    }
+  } catch(e){
+    console.error(e);
+    showBanner(`エラー: ${e.message}`,'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// PDF生成（バイト列を返す）
+async function generatePDFBytes(){
+  const [pdfResp, fontResp] = await Promise.all([
+    fetch('Report_M.pdf', {cache: 'no-store'}),
+    fetch('ipaexg.ttf'),
+  ]);
+  if(!pdfResp.ok)  throw new Error('Report_M.pdf が見つかりません');
+  if(!fontResp.ok) throw new Error('ipaexg.ttf が見つかりません');
+  const [pdfBuf, fontBuf] = await Promise.all([
+    pdfResp.arrayBuffer(),
+    fontResp.arrayBuffer(),
+  ]);
+
+  const {PDFDocument, PDFName, PDFHexString, PDFString} = PDFLib;
+  const pdfDoc = await PDFDocument.load(pdfBuf);
+  pdfDoc.registerFontkit(fontkit);
+  const ipaFont = await pdfDoc.embedFont(fontBuf);
+  const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+  const form = pdfDoc.getForm();
+
+  // AcroFormのDRにipaFontを登録
+  try {
+    const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+    if(acroFormRef){
+      const acroForm = pdfDoc.context.lookup(acroFormRef);
+      const dr = acroForm ? acroForm.lookup(PDFName.of('DR')) : null;
+      const fontDict = dr ? dr.lookup(PDFName.of('Font')) : null;
+      if(fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
+      if(acroForm) acroForm.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+    }
+  } catch(e){}
+
+  // fieldMapを構築
+  const fieldMap = new Map();
+  const collectFields = (arr) => {
+    if(!arr) return;
+    for(let i=0; i<arr.size(); i++){
+      try {
+        const ref = arr.get(i);
+        const obj = pdfDoc.context.lookup(ref);
+        if(!obj) continue;
+        const t = obj.get(PDFName.of('T'));
+        if(t){
+          let name = '';
+          try { name = t.decodeText(); } catch(e1){
+            try { name = t.value; } catch(e2){ name = String(t); }
+          }
+          name = name.replace(/^[(]+|[)]+$/g,'').trim();
+          const daObj = obj.get(PDFName.of('DA'));
+          let daStr = '';
+          if(daObj){
+            try { daStr = daObj.decodeText(); } catch(e1){
+              try { daStr = daObj.value || ''; } catch(e2){
+                daStr = String(daObj).replace(/^[(]+|[)]+$/g,'');
+              }
+            }
+            daStr = daStr.replace(/^[(]+|[)]+$/g,'').trim();
+          }
+          if(name) fieldMap.set(name, {obj, da: daStr});
+        }
+        const kids = obj.get(PDFName.of('Kids'));
+        if(kids) collectFields(pdfDoc.context.lookup(kids));
+      } catch(e){}
+    }
+  };
+  try {
+    const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+    const acroForm = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
+    const fieldsRef = acroForm ? acroForm.get(PDFName.of('Fields')) : null;
+    const fieldsArr = fieldsRef ? pdfDoc.context.lookup(fieldsRef) : null;
+    if(fieldsArr) collectFields(fieldsArr);
+  } catch(e){}
+
+  const numericFields = new Set([
+    'R_Year','R_Month','TOTAL',
+    'Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL',
+    ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+      `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+    ]))
+  ]);
+  const centerFields = new Set([
+    'R_Year','R_Month',
+    ...['Rec','Res','Vis','Ins','Rep','Acc','Eve'].flatMap(p=>{
+      const counts={'Rec':7,'Res':2,'Vis':5,'Ins':8,'Rep':3,'Acc':2,'Eve':4};
+      return [...Array(counts[p]||0)].flatMap((_,i)=>[
+        `${p}_D${i+1}`,`${p}_R${i+1}`,`${p}_T${i+1}`,`${p}_P${i+1}`
+      ]);
+    }),
+    'KEY_Check',
+    ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+      `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+    ])),
+    'Elec_DS','Elec_DE','Water_DS','Water_DE'
+  ]);
+
+  const f = (name, val) => {
+    try {
+      const str = String(val || '');
+      const entry = fieldMap.get(name);
+      if(!entry) return;
+      const annot = entry.obj;
+      const origDAStr = entry.da || '';
+      annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
+      const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
+      const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
+      const fontName = numericFields.has(name) ? 'Helvetica' : 'IPAexGothic';
+      const newDA = `/${fontName} ${fontSize} Tf 0 g`;
+      annot.set(PDFName.of('DA'), PDFString.of(newDA));
+      annot.delete(PDFName.of('AP'));
+      if(str !== ''){
+        let hex = 'FEFF';
+        for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
+        annot.set(PDFName.of('V'), PDFHexString.of(hex));
+        try {
+          const field = form.getTextField(name);
+          const useFont = numericFields.has(name) ? helveticaFont : ipaFont;
+          if(centerFields.has(name)) field.setAlignment(PDFLib.TextAlignment.Center);
+          field.updateAppearances(useFont);
+        } catch(e){ console.warn('AP生成スキップ:', name, e.message); }
+      }
+    } catch(e){ console.warn(`field ${name}:`, e); }
+  };
+
+  // 以下はdownloadPDFと同じフィールド書き込み処理
+  f('R_Year', currentADYear);
+  f('R_Month', currentMonth);
+  const allFields=[
+    ...['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].flatMap(p=>Array.from({length:7},(_,i)=>`${p}${i+1}`)),
+    ...['Res_D','Res_R','Res_T'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+    ...['Vis_D','Vis_T','Vis_V','Vis_N'].flatMap(p=>Array.from({length:5},(_,i)=>`${p}${i+1}`)),
+    ...['Ins_D','Ins_C','Ins_E'].flatMap(p=>Array.from({length:8},(_,i)=>`${p}${i+1}`)),
+    ...['Rep_D','Rep_C','Rep_E','Rep_N'].flatMap(p=>Array.from({length:3},(_,i)=>`${p}${i+1}`)),
+    ...['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+    ...['Eve_D','Eve_C','Eve_N'].flatMap(p=>Array.from({length:4},(_,i)=>`${p}${i+1}`)),
+    'KEY_Check','KEY_Note','CHANGE_Note',
+    ...FIXED_FIELDS,
+  ];
+  const dayPfx=['Rec_D','Res_D','Vis_D','Ins_D','Rep_D','Acc_D','Eve_D'];
+  allFields.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    const isDayField=dayPfx.some(p=>id.startsWith(p));
+    f(id, isDayField ? (el.dataset.dayVal||'') : el.value);
+  });
+  for(let i=1;i<=COMMENT_LINES;i++){
+    const el=document.getElementById(`Comment_${i}`);
+    f(`Comment_${i}`, el?el.value:'');
+  }
+  f('KEY_Yes',    circleState['KEY']==='Yes'?'〇':'');
+  f('KEY_No',     circleState['KEY']==='No' ?'〇':'');
+  f('CHANGE_Yes', circleState['CHANGE']==='Yes'?'〇':'');
+  f('CHANGE_No',  circleState['CHANGE']==='No' ?'〇':'');
+  ['Elec','Water'].forEach(prefix=>{
+    const dtEl=document.getElementById(`${prefix}_DateT`);
+    const todayDate=dtEl?dtEl.value:'';
+    const pm=prevMonthAD(currentADYear,currentMonth);
+    const prevData=loadFromStorage(pm.year,pm.month);
+    const ds=prevData?(prevData[`${prefix}_DateT`]||''):'';
+    const de=prevDay(todayDate);
+    f(`${prefix}_DS`, ds);
+    f(`${prefix}_DE`, de);
+  });
+  const pm=prevMonthAD(currentADYear,currentMonth);
+  const ppm=prevMonthAD(pm.year,pm.month);
+  const ly=lastYearAD(currentADYear,currentMonth);
+  const lym=prevMonthAD(ly.year,ly.month);
+  const ppData=loadFromStorage(ppm.year,ppm.month);
+  const lymData=loadFromStorage(lym.year,lym.month);
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++){
+      const tVal=document.getElementById(`${prefix}_T${i}`).value;
+      const pVal=document.getElementById(`${prefix}_P${i}`).value;
+      const lVal=document.getElementById(`${prefix}_L${i}`).value;
+      const ppVal =ppData ?(ppData[`${prefix}_T${i}`]||''):'';
+      const lymVal=lymData?(lymData[`${prefix}_T${i}`]||''):'';
+      f(`${prefix}_T${i}`, valOrEmpty(calcUsage(tVal,pVal)));
+      f(`${prefix}_P${i}`, valOrEmpty(calcUsage(pVal,ppVal)));
+      f(`${prefix}_L${i}`, valOrEmpty(calcUsage(lVal,lymVal)));
+    }
+  });
+  if(sealImageData){
+    try{
+      const base64=sealImageData.split(',')[1];
+      const binary=atob(base64);
+      const bytes=new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      const isPng=sealImageType==='image/png';
+      const sealImg=isPng?await pdfDoc.embedPng(bytes.buffer):await pdfDoc.embedJpg(bytes.buffer);
+      const page=pdfDoc.getPages()[0];
+      const x=528.609,y=31.09,w=565.46-528.609,h=67.9404-31.09;
+      page.drawImage(sealImg,{x,y,width:w,height:h});
+    }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
+  }
+
+  return await pdfDoc.save();
+}
 
 // 起動
 init();
