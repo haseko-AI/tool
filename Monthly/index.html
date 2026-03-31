@@ -373,7 +373,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.07</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.01</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -685,17 +685,16 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 
   <!-- 送信エリア -->
   <div class="send-area">
-    <div class="send-row">
-      <span class="send-label">送信先</span>
-      <input class="send-input" type="email" id="send-to" placeholder="送信先メールアドレス">
+    <div class="send-row" style="font-size:.78rem;color:var(--text2);">
+      📨 送信先：フロントメールアドレス欄のアドレスに送信します
     </div>
     <div class="send-row">
-      <span class="send-label">CC</span>
-      <input class="send-input" type="email" id="send-cc" placeholder="CC（自分用・任意）">
+      <span class="send-label" style="width:auto;white-space:nowrap;font-size:.78rem;">相手に見える（任意）</span>
+      <input class="send-input" type="email" id="send-cc" placeholder="CC（自分のアドレスなど）">
     </div>
     <div class="send-row">
-      <span class="send-label">BCC</span>
-      <input class="send-input" type="email" id="send-bcc" placeholder="BCC（自分用・任意）">
+      <span class="send-label" style="width:auto;white-space:nowrap;font-size:.78rem;">相手に見えない（任意）</span>
+      <input class="send-input" type="email" id="send-bcc" placeholder="BCC（自分のアドレスなど）">
     </div>
     <div class="send-row" style="justify-content:flex-end;">
       <button class="btn-send" id="btn-send" onclick="sendPDF()">
@@ -2141,20 +2140,20 @@ document.getElementById('past-modal').addEventListener('click', function(e){
 // PDF送信
 // ============================================================
 async function sendPDF(){
-  const toEl  = document.getElementById('send-to');
   const ccEl  = document.getElementById('send-cc');
   const bccEl = document.getElementById('send-bcc');
   const btn   = document.getElementById('btn-send');
 
-  // 送信先チェック
-  if(!toEl.value.trim()){
-    showBanner('送信先メールアドレスを入力してください','error');
-    toEl.focus();
+  // フロントメールアドレスを送信先に使用
+  const frontAdd = document.getElementById('Front_Add')?.value?.trim() || '';
+  if(!frontAdd){
+    showBanner('フロントメールアドレスが未入力です。規定値欄に入力してください','error');
+    document.getElementById('Front_Add')?.focus();
     return;
   }
 
   btn.disabled = true;
-  showBanner('PDF生成中...','saved',30000);
+  showBanner('📄 PDF作成中...','saved',30000);
 
   try {
     // PDFを生成（downloadPDFと同じ処理）
@@ -2175,7 +2174,7 @@ async function sendPDF(){
 
     // FormDataで送信
     const fd = new FormData();
-    fd.append('to',         toEl.value.trim());
+    fd.append('to',         frontAdd);
     fd.append('cc',         ccEl.value.trim());
     fd.append('bcc',        bccEl.value.trim());
     fd.append('subject',    subject);
@@ -2190,7 +2189,7 @@ async function sendPDF(){
     const result = await resp.json();
 
     if(result.success){
-      showBanner('送信しました！','saved');
+      showBanner('✉️ 送信完了！フロントアドレスにPDFを送信しました','saved',5000);
     } else {
       showBanner(`送信失敗: ${result.message}`,'error');
     }
