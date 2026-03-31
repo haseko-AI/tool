@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.60</title>
+    <title>カレンダー帳票作成8.61</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -919,7 +919,20 @@
 
         <!-- 非表示にした年月セレクト（内部処理用） -->
         <select id="year" style="display:none;"></select>
-        <select id="month" style="display:none;"></select>
+        <select id="month" style="display:none;">
+            <option value="0">1月</option>
+            <option value="1">2月</option>
+            <option value="2">3月</option>
+            <option value="3">4月</option>
+            <option value="4">5月</option>
+            <option value="5">6月</option>
+            <option value="6">7月</option>
+            <option value="7">8月</option>
+            <option value="8">9月</option>
+            <option value="9">10月</option>
+            <option value="10">11月</option>
+            <option value="11">12月</option>
+        </select>
 
         <div id="calendar" class="calendar"></div>
         
