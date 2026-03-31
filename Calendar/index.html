@@ -4,7 +4,7 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成8.55</title>
+    <title>カレンダー帳票作成8.56</title>
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -2254,19 +2254,12 @@
 
                 // ↓ここに追加（MONTHフィールドの上に色付き矩形を描画）
                 page.drawRectangle({ x: 412.8, y: 760.9, width: 94.8, height: 67.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
-                
+
                 // MONTHフィールドのテキスト色を月カラーに変更
-                const acroForm = pdfDoc.context.lookup(pdfDoc.catalog.get(PDFLib.PDFName.of('AcroForm')));
-                const fields = acroForm.get(PDFLib.PDFName.of('Fields'));
-                for (const fieldRef of fields) {
-                    const field = pdfDoc.context.lookup(fieldRef);
-                    const t = field.get(PDFLib.PDFName.of('T'));
-                    if (t && t.decodeText() === 'MONTH') {
-                        const daString = `/HeBo 70 Tf ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg`;
-                        field.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
-                        break;
-                    }
-                }
+                const daString = `/HeBo 70 Tf ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg`;
+                const monthTextField = form.getTextField('MONTH');
+                const monthWidget = monthTextField.acroField;
+                monthWidget.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
 
                 // MONTHだけアピアランスも更新
                 const monthField = form.getTextField('MONTH');
