@@ -1019,7 +1019,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.76-</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.77</div>
     <div class="container">
         <h1 id="calendar-title">月間カレンダー</h1>
         
@@ -2694,7 +2694,9 @@
                 loadCurrentMonthData();
 
                 const btn = document.querySelector('.pdf-output-btn');
-                if (btn) { btn.disabled = true; btn.textContent = '⏳ 処理中...'; }
+                const btn2 = document.querySelector('.print-btn');
+                if (btn) { btn.disabled = true; btn.textContent = '⏳ PDF作成中...'; }
+                if (btn2) { btn2.disabled = true; btn2.textContent = '⏳ PDF作成中...'; }
 
                 const year = parseInt(document.getElementById('year').value);
                 const month = parseInt(document.getElementById('month').value);
@@ -2837,7 +2839,9 @@
                 await showConfirmDialog('❌ エラー', `PDF出力に失敗しました。\n${e.message}`, false);
             } finally {
                 const btn = document.querySelector('.pdf-output-btn');
+                const btn2 = document.querySelector('.print-btn');
                 if (btn) { btn.disabled = false; btn.textContent = '📄 PDF出力'; }
+                if (btn2) { btn2.disabled = false; btn2.textContent = '📄 PDFダウンロード'; }
             }
         }
 
