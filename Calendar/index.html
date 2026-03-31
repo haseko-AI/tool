@@ -73,10 +73,18 @@
 
         .controls {
             display: flex;
-            gap: 20px;
+            gap: 10px;
             margin-bottom: 30px;
             justify-content: center;
-            flex-wrap: nowrap;  /* wrap → nowrap */
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        @media (min-width: 769px) {
+            .controls {
+                flex-wrap: nowrap;
+                gap: 20px;
+            }
         }
         
         .controls select {
@@ -946,7 +954,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.65</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.65B</div>
     <div class="container">
         <h1 id="calendar-title">📅 カレンダー帳票作成</h1>
         
@@ -1184,8 +1192,10 @@
                 `${year}年${monthNames[month]}`;
             document.getElementById('year-month-dropdown').style.display = 'none';
             saveCurrentMonthData();
-            calendarData = {};  // ← 追加
-            initCalendar(false);
+            calendarData = {};
+            loadHolidays().then(() => {
+                initCalendar(false);
+            });
         }
 
         // ドロップダウン外クリックで閉じる
@@ -1220,8 +1230,10 @@
             
             // カレンダーを再描画
             saveCurrentMonthData();
-            calendarData = {};  // ← 追加
-            initCalendar(false);
+            calendarData = {};
+            loadHolidays().then(() => {
+                initCalendar(false);
+            });
         }
 
         // セレクトボックスに画像リストを追加
