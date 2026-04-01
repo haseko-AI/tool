@@ -106,7 +106,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 .meter-grid{padding:14px 18px;}
 .meter-date-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .meter-date-label{font-size:.78rem;font-weight:700;color:var(--text2);white-space:nowrap;}
-.meter-date-input{border:1.5px solid var(--border);border-radius:6px;padding:7px 8px;font-size:.85rem;width:115px;max-width:115px;background:var(--surface);color:var(--text);outline:none;text-align:center;}
+.meter-date-input{border:1.5px solid var(--border) !important;border-radius:6px;padding:7px 8px !important;font-size:.85rem !important;width:115px !important;max-width:115px !important;min-width:0 !important;background:var(--surface);color:var(--text);outline:none;text-align:center;-webkit-appearance:none;appearance:none;}
 .meter-date-input:focus{border-color:var(--accent);}
 .meter-date-range{font-size:.75rem;color:var(--text2);background:var(--surface2);border-radius:5px;padding:4px 10px;}
 .col-headers{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-bottom:5px;padding:0 0 5px;border-bottom:1px solid var(--border);}
@@ -376,7 +376,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.04</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.05</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -406,7 +406,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     <label style="font-size:.85rem;font-weight:700;color:var(--text2);">対象年月</label>
     <div style="display:flex;align-items:center;gap:6px;">
       <button class="btn-month-nav" onclick="changeMonthBy(-1)">◀</button>
-      <select id="sel-yearmonth" style="font-size:1rem;font-weight:700;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;width:auto;"></select>
+      <select id="sel-yearmonth" style="font-size:1rem;font-weight:700;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;width:auto;height:40px;box-sizing:border-box;-webkit-appearance:auto;appearance:auto;"></select>
       <button class="btn-month-nav" onclick="changeMonthBy(1)">▶</button>
     </div>
   </div>
@@ -522,7 +522,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <div class="section-body" style="display:flex;flex-direction:column;gap:14px;">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;">確認日</span>
-      <input class="fi date-input" type="date" id="KEY_Check" style="width:115px;max-width:115px;" onchange="checkRequiredFields()">
+      <input class="fi date-input" type="date" id="KEY_Check" style="width:115px !important;max-width:115px !important;min-width:0 !important;-webkit-appearance:none;appearance:none;" onchange="checkRequiredFields()">
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;flex-direction:column;gap:6px;">
