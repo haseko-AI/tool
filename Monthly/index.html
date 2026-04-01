@@ -289,8 +289,8 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   .month-info{margin-left:0;text-align:left;}
   .col-headers,.meter-row,.usage-row{grid-template-columns:38px repeat(3,1fr);gap:3px;}
   .meter-input{padding:7px 3px;font-size:1rem;}
-  input[type="date"].meter-date-input{width:140px !important;max-width:140px !important;}
-  input[type="date"]#KEY_Check{width:140px !important;max-width:140px !important;min-height:38px !important;}
+  input[type="date"].meter-date-input{width:140px !important;max-width:140px !important;min-height:38px !important;padding:8px !important;}
+  input[type="date"]#KEY_Check{width:140px !important;max-width:140px !important;min-height:38px !important;padding:8px !important;}
   .key-row{flex-wrap:wrap;}
   .key-note{width:calc(100% - 68px);flex-basis:calc(100% - 68px);margin-left:68px;box-sizing:border-box;}
   /* 駐車場などは常に2列 fixed-gridはスマホでも2列維持 */
@@ -384,7 +384,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.13</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.14</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
