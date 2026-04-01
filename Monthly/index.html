@@ -106,7 +106,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 .meter-grid{padding:14px 18px;}
 .meter-date-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .meter-date-label{font-size:.78rem;font-weight:700;color:var(--text2);white-space:nowrap;}
-.meter-date-input{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:.88rem;width:130px;max-width:130px;background:var(--surface);color:var(--text);outline:none;text-align:center;}
+.meter-date-input{border:1.5px solid var(--border);border-radius:6px;padding:7px 8px;font-size:.85rem;width:115px;max-width:115px;background:var(--surface);color:var(--text);outline:none;text-align:center;}
 .meter-date-input:focus{border-color:var(--accent);}
 .meter-date-range{font-size:.75rem;color:var(--text2);background:var(--surface2);border-radius:5px;padding:4px 10px;}
 .col-headers{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-bottom:5px;padding:0 0 5px;border-bottom:1px solid var(--border);}
@@ -375,7 +375,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.02</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.03</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -521,7 +521,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <div class="section-body" style="display:flex;flex-direction:column;gap:14px;">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;">確認日</span>
-      <input class="fi date-input" type="date" id="KEY_Check" style="width:130px;max-width:130px;" onchange="checkRequiredFields()">
+      <input class="fi date-input" type="date" id="KEY_Check" style="width:115px;max-width:115px;" onchange="checkRequiredFields()">
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -561,11 +561,13 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     <button class="btn-past" onclick="openPastModal('Elec')">📅 過去</button>
   </div>
   <div class="meter-grid">
-    <div class="meter-date-row">
-      <span class="meter-date-label">当月検針日</span>
+    <div class="meter-date-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="meter-date-label">当月検針日</span>
+        <span class="meter-date-range" id="Elec_DateRange">─</span>
+      </div>
       <input class="meter-date-input date-input" type="date" id="Elec_DateT"
         onfocus="autoFillToday(this)" onchange="updateMeterDateRange('Elec')">
-      <span class="meter-date-range" id="Elec_DateRange" style="margin-left:4px;">─</span>
     </div>
     <div class="col-headers">
       <div class="col-header"></div>
@@ -585,11 +587,13 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     <button class="btn-past" onclick="openPastModal('Water')">📅 過去</button>
   </div>
   <div class="meter-grid">
-    <div class="meter-date-row">
-      <span class="meter-date-label">当月検針日</span>
+    <div class="meter-date-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="meter-date-label">当月検針日</span>
+        <span class="meter-date-range" id="Water_DateRange">─</span>
+      </div>
       <input class="meter-date-input date-input" type="date" id="Water_DateT"
         onfocus="autoFillToday(this)" onchange="updateMeterDateRange('Water')">
-      <span class="meter-date-range" id="Water_DateRange" style="margin-left:4px;">─</span>
     </div>
     <div class="col-headers">
       <div class="col-header"></div>
@@ -2187,7 +2191,7 @@ async function sendPDF(){
     fd.append('cc',         ccEl.value.trim());
     fd.append('bcc',        bccEl.value.trim());
     fd.append('subject',    subject);
-    fd.append('body',       `${subject}を添付しました。`);
+    fd.append('body',       `${subject}\nPDFファイルを添付いたしました。\nご確認よろしくお願いいたします。`);
     fd.append('filename',   filename);
     fd.append('pdf_base64', base64);
 
