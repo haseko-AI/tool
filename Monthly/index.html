@@ -106,7 +106,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 .meter-grid{padding:14px 18px;}
 .meter-date-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .meter-date-label{font-size:.78rem;font-weight:700;color:var(--text2);white-space:nowrap;}
-.meter-date-input{border:1.5px solid var(--border);border-radius:6px;padding:7px 8px;font-size:.85rem;background:var(--surface);color:var(--text);outline:none;text-align:center;}
+.meter-date-input{border:1.5px solid var(--border);border-radius:6px;padding:7px 8px;font-size:.85rem;background:var(--surface);color:var(--text);outline:none;text-align:center;width:140px;max-width:140px;}
 .meter-date-input:focus{border-color:var(--accent);}
 .meter-date-range{font-size:.75rem;color:var(--text2);background:var(--surface2);border-radius:5px;padding:4px 10px;}
 .col-headers{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-bottom:5px;padding:0 0 5px;border-bottom:1px solid var(--border);}
@@ -288,8 +288,6 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   .meter-input{padding:7px 3px;font-size:1rem;}
   .key-row{flex-wrap:wrap;}
   .key-note{width:100%;flex-basis:100%;margin-left:68px;}
-  .meter-date-input{width:140px !important;max-width:140px !important;}
-  .meter-date-input,.form-table td.td-date input[type="date"]{width:100% !important;max-width:100% !important;}
   /* 駐車場などは常に2列 fixed-gridはスマホでも2列維持 */
   .btn{padding:10px 12px;font-size:.82rem;}
   select{font-size:.85rem;padding:6px 8px;}
@@ -381,7 +379,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.09</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.11</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
