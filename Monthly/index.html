@@ -286,6 +286,9 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   .month-info{margin-left:0;text-align:left;}
   .col-headers,.meter-row,.usage-row{grid-template-columns:38px repeat(3,1fr);gap:3px;}
   .meter-input{padding:7px 3px;font-size:1rem;}
+  .key-row{flex-wrap:wrap;}
+  .key-note{width:100%;flex-basis:100%;margin-left:68px;}
+  .meter-date-input{width:140px !important;max-width:140px !important;}
   .meter-date-input,.form-table td.td-date input[type="date"]{width:100% !important;max-width:100% !important;}
   /* 駐車場などは常に2列 fixed-gridはスマホでも2列維持 */
   .btn{padding:10px 12px;font-size:.82rem;}
@@ -378,7 +381,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.07</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.09</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -527,29 +530,21 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
       <input class="fi date-input" type="date" id="KEY_Check" onchange="checkRequiredFields()">
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;">鍵の状態</span>
-          <div class="circle-wrap">
-            <button class="circle-btn" id="KEY_Yes_btn" onclick="toggleCircle('KEY','Yes')">異常あり ○</button>
-            <button class="circle-btn" id="KEY_No_btn"  onclick="toggleCircle('KEY','No')">異常なし ○</button>
-          </div>
+      <div class="key-row">
+        <span class="key-label">鍵の状態</span>
+        <div class="circle-wrap">
+          <button class="circle-btn" id="KEY_Yes_btn" onclick="toggleCircle('KEY','Yes')">異常あり ○</button>
+          <button class="circle-btn" id="KEY_No_btn"  onclick="toggleCircle('KEY','No')">異常なし ○</button>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;padding-left:68px;">
-          <input class="fi circle-note" type="text" id="KEY_Note" placeholder="備考" style="width:100%;">
-        </div>
+        <input class="fi circle-note key-note" type="text" id="KEY_Note" placeholder="備考">
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;">鍵の変更</span>
-          <div class="circle-wrap">
-            <button class="circle-btn" id="CHANGE_Yes_btn" onclick="toggleCircle('CHANGE','Yes')">変更あり ○</button>
-            <button class="circle-btn" id="CHANGE_No_btn"  onclick="toggleCircle('CHANGE','No')">変更なし ○</button>
-          </div>
+      <div class="key-row">
+        <span class="key-label">鍵の変更</span>
+        <div class="circle-wrap">
+          <button class="circle-btn" id="CHANGE_Yes_btn" onclick="toggleCircle('CHANGE','Yes')">変更あり ○</button>
+          <button class="circle-btn" id="CHANGE_No_btn"  onclick="toggleCircle('CHANGE','No')">変更なし ○</button>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;padding-left:68px;">
-          <input class="fi circle-note" type="text" id="CHANGE_Note" placeholder="備考" style="width:100%;">
-        </div>
+        <input class="fi circle-note key-note" type="text" id="CHANGE_Note" placeholder="備考">
       </div>
     </div>
 
