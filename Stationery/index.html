@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.10＝</title>
+<title>事務用品 注文シート v1.20</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -168,7 +168,7 @@
 <header class="app-header">
   <div>
     <div class="app-logo">📦 <span>事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ハセコーコミュニティ v1.10</div>
+    <div class="app-subtitle">ハセコーコミュニティ v1.20</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -906,16 +906,45 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF GENERATION ───
-// ⑧ 修正：テンプレートを毎回新規ロードしてフィールド書き込み後に保存
-// copyPagesでフィールドが消える問題を回避するため、
-// fillPdfPage()でフラット化せず、各ページのbytesをコピー
+// ─── PDF GENERATION v1.20 ───
+// UTF-16BE PDFHexString方式でANSIエラーを回避
+// setText()を使わず辞書に直接書き込む（月報・カレンダーと同じ解決策）
+
 async function downloadPDF(){
   const btn=document.getElementById('downloadBtn');
   btn.disabled=true;btn.textContent='⏳ 作成中...';
   try{await generateAndDownload();}
   catch(err){console.error(err);toast('PDF作成エラー：'+err.message,'error');}
   btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
+}
+
+// 文字列 → UTF-16BE PDFHexString（ANSIエラー回避の核心）
+function toUtf16Hex(str){
+  if(!str) return PDFLib.PDFHexString.of('');
+  let hex='FEFF'; // BOM
+  for(let i=0;i<str.length;i++){
+    const code=str.charCodeAt(i);
+    hex+=code.toString(16).padStart(4,'0').toUpperCase();
+  }
+  return PDFLib.PDFHexString.of(hex);
+}
+
+// フィールド名でAcroFormウィジェットを探してVに直接書き込む
+function setFieldUtf16(pdfDoc, fieldName, value){
+  try{
+    const {PDFName, PDFHexString}=PDFLib;
+    const form=pdfDoc.getForm();
+    const field=form.getTextField(fieldName);
+    // フィールドの内部辞書に直接書き込み
+    field.acroField.dict.set(PDFName.of('V'), toUtf16Hex(String(value||'')));
+    // ウィジェットのAPをリセット（NeedAppearancesに任せる）
+    const widgets=field.acroField.getWidgets();
+    widgets.forEach(w=>{
+      w.dict.delete(PDFName.of('AP'));
+    });
+  }catch(e){
+    // フィールドが存在しない場合は無視
+  }
 }
 
 function collectFilledItems(){
@@ -934,7 +963,7 @@ function collectFilledItems(){
 }
 
 async function generateAndDownload(){
-  const {PDFDocument}=PDFLib;
+  const {PDFDocument, PDFName, PDFBool}=PDFLib;
   const ord=parseDateField('ORD');
   const dlv=parseDateField('DLV');
 
@@ -951,7 +980,7 @@ async function generateAndDownload(){
   // ⑦ PDF作成時に送信者・担当者情報を自動保存
   saveProfile();saveStaff();
 
-  // 共通フィールド値を収集
+  // 共通フィールド値
   const commonFields={
     ORD_Year:ord.y, ORD_Month:ord.m, ORD_Day:ord.d,
     DLV_Year:dlv.y, DLV_Month:dlv.m, DLV_Day:dlv.d,
@@ -971,20 +1000,19 @@ async function generateAndDownload(){
   // 各ページのPDFバイト列を生成
   const pageBytesList=[];
   for(let pageIdx=0;pageIdx<totalPages;pageIdx++){
-    // テンプレートを毎回クリーンにロード（重要：slice()でコピーして使い回しを防ぐ）
+    // テンプレートを毎回クリーンにロード
     const pdfDoc=await PDFDocument.load(templateBytes.slice(),{ignoreEncryption:true});
     const form=pdfDoc.getForm();
 
     // NeedAppearances=true → MSPGothicなど既存フォントで表示
-    form.acroForm.dict.set(PDFLib.PDFName.of('NeedAppearances'),PDFLib.PDFBool.True);
+    form.acroForm.dict.set(PDFName.of('NeedAppearances'), PDFBool.True);
 
-    const set=(name,val)=>{
-      try{form.getTextField(name).setText(String(val||''));}catch(e){}
-    };
+    // UTF-16BE方式でフィールド書き込み（ANSIエラー回避）
+    const set=(name,val)=>setFieldUtf16(pdfDoc, name, val);
 
     // 共通フィールド書き込み
     Object.entries(commonFields).forEach(([k,v])=>set(k,v));
-    set('NUM_Page',String(pageIdx+1));
+    set('NUM_Page', String(pageIdx+1));
 
     // 明細（このページ分10行）
     const pageItems=filledItems.slice(pageIdx*10,(pageIdx+1)*10);
@@ -998,23 +1026,20 @@ async function generateAndDownload(){
       set('ODPR_1'+s, item.price||'');
     }
 
-    // ★ ここが核心：copyPagesを使わず、このPDFをそのまま保存してバイト列として保持
+    // このPDFをそのまま保存（copyPages不要）
     const bytes=await pdfDoc.save({updateFieldAppearances:false});
     pageBytesList.push(bytes);
   }
 
   let finalBytes;
   if(pageBytesList.length===1){
-    // 1ページのみ：そのままダウンロード（copyPages不要）
+    // 1ページ：そのままダウンロード（copyPages一切不要）
     finalBytes=pageBytesList[0];
   } else {
-    // 複数ページ：PDFをバイナリレベルで結合
-    // 各PDFを再ロードしてページをコピー（フォームは既に書き込み済みでフラット扱い）
-    // flatten=trueでフィールドをコンテンツに焼き付けてからコピー
+    // 複数ページ：flatten後にコピー結合
     const mergedDoc=await PDFDocument.create();
     for(const pgBytes of pageBytesList){
       const srcDoc=await PDFDocument.load(pgBytes,{ignoreEncryption:true});
-      // フォームをフラット化（外観をコンテンツに焼き込み）してからコピー
       srcDoc.getForm().flatten();
       const [pg]=await mergedDoc.copyPages(srcDoc,[0]);
       mergedDoc.addPage(pg);
