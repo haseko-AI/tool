@@ -50,7 +50,7 @@ select:focus{border-color:var(--accent);}
 /* セクションカード共通 */
 .section-card{background:var(--surface);border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);overflow:hidden;}
 .section-body.required-alert-body,.meter-grid.required-alert-body{background:#fff8f8;border-top:2px solid #e74c3c;}
-.section-header{padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid var(--border);background:var(--surface2);position:sticky;top:64px;z-index:50;box-shadow:0 2px 4px rgba(0,0,0,.06);}
+.section-header{padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid var(--border);background:var(--surface2);}
 .section-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--accent);color:#fff;}
 .section-title{font-size:.93rem;font-weight:700;color:var(--accent);flex:1;}
 .btn-past{border:1.5px solid currentColor;border-radius:6px;padding:4px 10px;font-size:.75rem;font-weight:700;cursor:pointer;background:transparent;color:inherit;font-family:inherit;opacity:.8;transition:opacity .15s;margin-left:auto;}
@@ -304,7 +304,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     margin-bottom:6px;padding:8px 10px;
     background:var(--surface);
   }
-  .section-header{top:88px;}
+  .section-header{position:sticky;top:88px;z-index:50;box-shadow:0 2px 4px rgba(0,0,0,.06);}
   .form-table tr.tr-hidden{display:none;}
   /* スマホ：セクションヘッダーをスクロール時に上部固定 */
   .section-header{
@@ -392,7 +392,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.37</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.38</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -691,6 +691,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <!-- 印鑑エリア -->
   <div style="border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;background:var(--surface2);">
     <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;">🔴 印鑑（PDFの右欄に押印されます）</div>
+    <div style="font-size:.72rem;color:var(--text2);margin-bottom:8px;">PNG・JPEG対応。規定値に登録すると毎月自動で押印されます</div>
     <div style="display:flex;justify-content:center;align-items:center;">
       <!-- 未選択時：ボタン -->
       <button class="btn-seal" id="seal-btn" onclick="selectSeal()" style="padding:12px 24px;">🔴 印鑑画像を選択</button>
