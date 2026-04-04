@@ -46,8 +46,8 @@
   @media(max-width:860px){.main-wrap{grid-template-columns:1fr;}.sidebar{order:-1;}}
 
   /* Cards */
-  .card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px;}
-  .card-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2);}
+  .card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:14px;}
+  .card-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--radius) var(--radius) 0 0;}
   .card-header h3{font-size:13px;font-weight:700;}
   .card-body{padding:14px 16px;}
   .section-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--accent-k-bg);flex-shrink:0;}
@@ -71,7 +71,7 @@
   .date-preview{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;padding-left:2px;margin-top:2px;}
 
   /* Order table */
-  .order-table-wrap{overflow-x:auto;}
+  .order-table-wrap{overflow-x:auto;width:100%;}
   .order-table{width:100%;border-collapse:collapse;font-size:12.5px;}
   .order-table th{background:var(--surface2);border:1px solid var(--border);padding:7px 8px;font-size:11px;font-weight:700;color:var(--text2);text-align:center;white-space:nowrap;}
   .order-table td{border:1px solid var(--border);padding:4px 5px;vertical-align:middle;}
@@ -517,30 +517,57 @@ function toggleWorkTime() {
 }
 
 // ─── ORDER ROWS ───
+let totalRows = 0; // 現在の行数
+
 function buildOrderRows() {
+  totalRows = 0;
+  document.getElementById('orderBody').innerHTML = '';
+  addRows(5); // 初期5行
+}
+
+// n行追加する
+function addRows(n) {
   const tbody = document.getElementById('orderBody');
-  tbody.innerHTML='';
-  for (let i=1;i<=10;i++) {
-    const s=pad2(i);
-    const tr=document.createElement('tr');
-    tr.id='row_'+i;
-    tr.innerHTML=`
+  for (let k = 0; k < n; k++) {
+    totalRows++;
+    const i = totalRows;
+    const tr = document.createElement('tr');
+    tr.id = 'row_' + i;
+    tr.innerHTML = `
       <td class="row-num">${i}</td>
-      <td><input type="text" id="ODNO_1${s}" class="code-part code-p1" maxlength="3" placeholder="000"
+      <td><input type="text" id="ODNO_1_${i}" class="code-part code-p1" maxlength="3" placeholder="000"
         oninput="onCodeInput(${i})" onblur="zeroPad(this,3)"></td>
       <td style="text-align:center;color:var(--text3);font-weight:700;padding:0 2px;">-</td>
-      <td><input type="text" id="ODNO_2${s}" class="code-part code-p2" maxlength="4" placeholder="0000"
+      <td><input type="text" id="ODNO_2_${i}" class="code-part code-p2" maxlength="4" placeholder="0000"
         oninput="onCodeInput(${i})" onblur="zeroPad(this,4)"></td>
-      <td><input type="number" id="ODSU_1${s}" class="qty-input" min="1" placeholder="0"
+      <td><input type="number" id="ODSU_1_${i}" class="qty-input" min="1" placeholder="0"
         oninput="this.value=toHankaku(this.value);onItemChange()"></td>
-      <td><input type="text" id="ODNA_1${s}" class="name-input" placeholder="商品名"
+      <td><input type="text" id="ODNA_1_${i}" class="name-input" placeholder="商品名"
         oninput="onNameInput(${i})"></td>
-      <td><input type="number" id="ODPR_1${s}" class="price-input" min="0" placeholder=""
+      <td><input type="number" id="ODPR_1_${i}" class="price-input" min="0" placeholder=""
         oninput="this.value=toHankaku(this.value);onItemChange()"></td>
       <td><button class="pick-btn" onclick="openHistory(${i})" title="履歴から選ぶ">📋</button></td>
       <td><button class="clear-row-btn" onclick="clearRow(${i})" title="クリア">✕</button></td>
     `;
     tbody.appendChild(tr);
+  }
+}
+
+// 末尾行（5の倍数）に入力があれば5行追加
+function checkExpandRows() {
+  if (totalRows >= 20) return; // 最大20行
+  // 現在の末尾5行ブロックの最後の行に入力があるか
+  const lastBlockEnd = totalRows;
+  const lastBlockStart = totalRows - 4;
+  let hasInputInLastBlock = false;
+  for (let i = lastBlockStart; i <= lastBlockEnd; i++) {
+    const c1 = (document.getElementById('ODNO_1_' + i)?.value || '').trim();
+    const c2 = (document.getElementById('ODNO_2_' + i)?.value || '').trim();
+    if (c1 || c2) { hasInputInLastBlock = true; break; }
+  }
+  if (hasInputInLastBlock) {
+    addRows(5);
+    toast(`📋 ${totalRows}行目まで追加しました`, '');
   }
 }
 
@@ -559,61 +586,61 @@ function toHankaku(str){
 
 // ⑥ コード入力 → 数量1 + ⑨ 商品名自動補完
 function onCodeInput(i) {
-  const s=pad2(i);
-  ['ODNO_1','ODNO_2'].forEach(f=>{
-    const el=document.getElementById(f+s);
-    el.value=toHankaku(el.value).replace(/\D/g,'');
+  ['ODNO_1_','ODNO_2_'].forEach(f=>{
+    const el=document.getElementById(f+i);
+    if(el) el.value=toHankaku(el.value).replace(/\D/g,'');
   });
-  const c1=document.getElementById('ODNO_1'+s).value.trim();
-  const c2=document.getElementById('ODNO_2'+s).value.trim();
+  const c1=(document.getElementById('ODNO_1_'+i)?.value||'').trim();
+  const c2=(document.getElementById('ODNO_2_'+i)?.value||'').trim();
 
   // ⑥ 数量が空なら1セット
-  const qtyEl=document.getElementById('ODSU_1'+s);
-  if((c1||c2)&&!qtyEl.value) qtyEl.value='1';
+  const qtyEl=document.getElementById('ODSU_1_'+i);
+  if((c1||c2)&&qtyEl&&!qtyEl.value) qtyEl.value='1';
 
   // ⑨ 3桁+4桁が揃ったら商品名を自動補完
   if(c1.length===3&&c2.length===4){
     const code=c1+'-'+c2;
     const found=getHistory().find(p=>p.code===code);
-    const nameEl=document.getElementById('ODNA_1'+s);
-    const priceEl=document.getElementById('ODPR_1'+s);
-    if(found&&!nameEl.classList.contains('user-edited')){
+    const nameEl=document.getElementById('ODNA_1_'+i);
+    const priceEl=document.getElementById('ODPR_1_'+i);
+    if(found&&nameEl&&!nameEl.classList.contains('user-edited')){
       nameEl.value=found.name||'';
-      priceEl.value=found.price||'';
+      if(priceEl) priceEl.value=found.price||'';
       nameEl.classList.add('name-autofilled');
       nameEl.dataset.autoCode=code;
     }
   }
+  checkExpandRows();
   onItemChange();
 }
 
 // ⑨ 商品名手動修正 → 履歴も更新
 function onNameInput(i){
-  const s=pad2(i);
-  const nameEl=document.getElementById('ODNA_1'+s);
-  const priceEl=document.getElementById('ODPR_1'+s);
+  const nameEl=document.getElementById('ODNA_1_'+i);
+  const priceEl=document.getElementById('ODPR_1_'+i);
+  if(!nameEl) return;
   nameEl.classList.remove('name-autofilled');
   nameEl.classList.add('user-edited');
   const autoCode=nameEl.dataset.autoCode;
   if(autoCode){
     const hist=getHistory();
     const idx=hist.findIndex(p=>p.code===autoCode);
-    if(idx>=0){hist[idx].name=nameEl.value;hist[idx].price=priceEl.value;saveHistory(hist);}
+    if(idx>=0){hist[idx].name=nameEl.value;if(priceEl)hist[idx].price=priceEl.value;saveHistory(hist);}
   }
   onItemChange();
 }
 
 function clearRow(i){
-  const s=pad2(i);
-  ['ODNO_1','ODNO_2','ODSU_1','ODNA_1','ODPR_1'].forEach(f=>{
-    const el=document.getElementById(f+s);
+  ['ODNO_1_','ODNO_2_','ODSU_1_','ODNA_1_','ODPR_1_'].forEach(f=>{
+    const el=document.getElementById(f+i);
+    if(!el) return;
     el.value='';
     el.classList.remove('name-autofilled','user-edited');
     delete el.dataset.autoCode;
   });
   onItemChange();
 }
-function clearAllItems(){for(let i=1;i<=10;i++)clearRow(i);}
+function clearAllItems(){for(let i=1;i<=totalRows;i++)clearRow(i);}
 function onItemChange(){saveItems();updateSummary();}
 
 // ─── SUMMARY ───
@@ -622,12 +649,11 @@ function updateSummary(){
   document.getElementById('sum-date').textContent=ord.y?`${ord.y}年${ord.m}月${ord.d}日`:'-';
   document.getElementById('sum-name').textContent=document.getElementById('ID_Name').value||'-';
   let count=0,total=0,hasPrice=false;
-  for(let i=1;i<=10;i++){
-    const s=pad2(i);
-    const c1=document.getElementById('ODNO_1'+s).value.trim();
-    const c2=document.getElementById('ODNO_2'+s).value.trim();
-    const qty=parseInt(document.getElementById('ODSU_1'+s).value)||0;
-    const pr=parseFloat(document.getElementById('ODPR_1'+s).value)||0;
+  for(let i=1;i<=totalRows;i++){
+    const c1=(document.getElementById('ODNO_1_'+i)?.value||'').trim();
+    const c2=(document.getElementById('ODNO_2_'+i)?.value||'').trim();
+    const qty=parseInt(document.getElementById('ODSU_1_'+i)?.value)||0;
+    const pr=parseFloat(document.getElementById('ODPR_1_'+i)?.value)||0;
     if(c1||c2){count++;total+=pr*(qty||1);if(pr>0)hasPrice=true;}
   }
   const pages=Math.max(1,Math.ceil(count/10));
@@ -735,21 +761,20 @@ function renderHistory(){
 function selectHistoryItem(product){
   let row=targetRow;
   if(row===null){
-    for(let i=1;i<=10;i++){
-      const s=pad2(i);
-      if(!document.getElementById('ODNO_1'+s).value.trim()&&!document.getElementById('ODNO_2'+s).value.trim()){row=i;break;}
+    for(let i=1;i<=totalRows;i++){
+      if(!(document.getElementById('ODNO_1_'+i)?.value||'').trim()&&!(document.getElementById('ODNO_2_'+i)?.value||'').trim()){row=i;break;}
     }
   }
   if(row===null){toast('空き行がありません','error');return;}
   const s=pad2(row);
-  document.getElementById('ODNO_1'+s).value=product.code1.padStart(3,'0');
-  document.getElementById('ODNO_2'+s).value=product.code2.padStart(4,'0');
-  document.getElementById('ODNA_1'+s).value=product.name||'';
-  document.getElementById('ODPR_1'+s).value=product.price||'';
-  document.getElementById('ODSU_1'+s).value='1'; // ⑥
+  document.getElementById('ODNO_1_'+row).value=product.code1.padStart(3,'0');
+  document.getElementById('ODNO_2_'+row).value=product.code2.padStart(4,'0');
+  document.getElementById('ODNA_1_'+row).value=product.name||'';
+  document.getElementById('ODPR_1_'+row).value=product.price||'';
+  document.getElementById('ODSU_1_'+row).value='1'; // ⑥
   onItemChange();
   closeHistory();clearTargetRow();
-  setTimeout(()=>{const el=document.getElementById('ODSU_1'+s);if(el){el.focus();el.select();}},50);
+  setTimeout(()=>{const el=document.getElementById('ODSU_1_'+row);if(el){el.focus();el.select();}},50);
   toast(`${row}行目に「${product.name||product.code}」を挿入しました`,'success');
 }
 
@@ -816,14 +841,13 @@ function loadStaff(){
 }
 function saveItems(){
   const items=[];
-  for(let i=1;i<=10;i++){
-    const s=pad2(i);
+  for(let i=1;i<=totalRows;i++){
     items.push({
-      code1:document.getElementById('ODNO_1'+s).value,
-      code2:document.getElementById('ODNO_2'+s).value,
-      qty:document.getElementById('ODSU_1'+s).value,
-      name:document.getElementById('ODNA_1'+s).value,
-      price:document.getElementById('ODPR_1'+s).value,
+      code1:document.getElementById('ODNO_1_'+i)?.value||'',
+      code2:document.getElementById('ODNO_2_'+i)?.value||'',
+      qty:document.getElementById('ODSU_1_'+i)?.value||'',
+      name:document.getElementById('ODNA_1_'+i)?.value||'',
+      price:document.getElementById('ODPR_1_'+i)?.value||'',
     });
   }
   localStorage.setItem(SK.items,JSON.stringify(items));
@@ -832,13 +856,17 @@ function loadItems(){
   try{
     const items=JSON.parse(localStorage.getItem(SK.items));
     if(!items)return;
+    // 必要な行数を確保
+    while(totalRows < items.length && totalRows < 20) addRows(5);
     items.forEach((item,idx)=>{
-      const i=idx+1;const s=pad2(i);
-      document.getElementById('ODNO_1'+s).value=item.code1||'';
-      document.getElementById('ODNO_2'+s).value=item.code2||'';
-      document.getElementById('ODSU_1'+s).value=item.qty||'';
-      document.getElementById('ODNA_1'+s).value=item.name||'';
-      document.getElementById('ODPR_1'+s).value=item.price||'';
+      const i=idx+1;
+      const el1=document.getElementById('ODNO_1_'+i);
+      if(!el1) return;
+      el1.value=item.code1||'';
+      document.getElementById('ODNO_2_'+i).value=item.code2||'';
+      document.getElementById('ODSU_1_'+i).value=item.qty||'';
+      document.getElementById('ODNA_1_'+i).value=item.name||'';
+      document.getElementById('ODPR_1_'+i).value=item.price||'';
     });
     updateSummary();
   }catch(e){}
@@ -892,15 +920,14 @@ async function downloadPDF(){
 
 function collectFilledItems(){
   const items=[];
-  for(let i=1;i<=10;i++){
-    const s=pad2(i);
-    const c1=document.getElementById('ODNO_1'+s).value.trim();
-    const c2=document.getElementById('ODNO_2'+s).value.trim();
+  for(let i=1;i<=totalRows;i++){
+    const c1=(document.getElementById('ODNO_1_'+i)?.value||'').trim();
+    const c2=(document.getElementById('ODNO_2_'+i)?.value||'').trim();
     items.push({
       code1:c1,code2:c2,
-      qty:document.getElementById('ODSU_1'+s).value.trim(),
-      name:document.getElementById('ODNA_1'+s).value.trim(),
-      price:document.getElementById('ODPR_1'+s).value.trim(),
+      qty:(document.getElementById('ODSU_1_'+i)?.value||'').trim(),
+      name:(document.getElementById('ODNA_1_'+i)?.value||'').trim(),
+      price:(document.getElementById('ODPR_1_'+i)?.value||'').trim(),
     });
   }
   return items.filter(it=>it.code1||it.code2);
