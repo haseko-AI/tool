@@ -384,7 +384,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.25</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.27</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -1941,10 +1941,28 @@ async function downloadPDF_OLD(){
 
     // AcroForm・Annotsは削除しない（削除すると値も消えるため）
 
-    // フォームをフラット化（編集不可・文字化け解消）
+    // 編集可能フィールド以外をflatten（編集不可・文字化け解消）
     try {
-      form.flatten();
-    } catch(e){ console.warn('flatten失敗:', e); }
+      const editableFields = new Set([
+        ...Array.from({length:7}, (_,i) => `Rec_N${i+1}`),
+        ...Array.from({length:5}, (_,i) => `Vis_N${i+1}`),
+        ...Array.from({length:3}, (_,i) => `Rep_N${i+1}`),
+        ...Array.from({length:2}, (_,i) => `Acc_N${i+1}`),
+        ...Array.from({length:4}, (_,i) => `Eve_N${i+1}`),
+        ...Array.from({length:5}, (_,i) => `Comment_${i+1}`),
+        'Seal_2','Seal_3',
+      ]);
+      form.getFields().forEach(field => {
+        try {
+          if(!editableFields.has(field.getName())){
+            field.enableReadOnly();
+          }
+        } catch(e){}
+      });
+      // 編集可能フィールド以外をflatten
+      const fieldsToFlatten = form.getFields().filter(f => !editableFields.has(f.getName()));
+      form.flatten({ fields: fieldsToFlatten });
+    } catch(e){ console.warn('flatten失敗:', e.message); }
 
     // ダウンロード
     const savedBytes=await pdfDoc.save();
@@ -2424,10 +2442,27 @@ async function generatePDFBytes(){
     }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
   }
 
-  // フォームをフラット化（編集不可・文字化け解消）
+  // 編集可能フィールド以外をflatten
   try {
-    form.flatten();
-  } catch(e){ console.warn('flatten失敗:', e); }
+    const editableFields2 = new Set([
+      ...Array.from({length:7}, (_,i) => `Rec_N${i+1}`),
+      ...Array.from({length:5}, (_,i) => `Vis_N${i+1}`),
+      ...Array.from({length:3}, (_,i) => `Rep_N${i+1}`),
+      ...Array.from({length:2}, (_,i) => `Acc_N${i+1}`),
+      ...Array.from({length:4}, (_,i) => `Eve_N${i+1}`),
+      ...Array.from({length:5}, (_,i) => `Comment_${i+1}`),
+      'Seal_2','Seal_3',
+    ]);
+    form.getFields().forEach(field => {
+      try {
+        if(!editableFields2.has(field.getName())){
+          field.enableReadOnly();
+        }
+      } catch(e){}
+    });
+    const fieldsToFlatten2 = form.getFields().filter(f => !editableFields2.has(f.getName()));
+    form.flatten({ fields: fieldsToFlatten2 });
+  } catch(e){ console.warn('flatten失敗:', e.message); }
 
   return await pdfDoc.save();
 }
