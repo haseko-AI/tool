@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.10-</title>
+<title>事務用品 注文シート v1.10＝</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -951,11 +951,27 @@ async function generateAndDownload(){
   // ⑦ PDF作成時に送信者・担当者情報を自動保存
   saveProfile();saveStaff();
 
-  // 結合先PDF
-  const mergedDoc=await PDFDocument.create();
+  // 共通フィールド値を収集
+  const commonFields={
+    ORD_Year:ord.y, ORD_Month:ord.m, ORD_Day:ord.d,
+    DLV_Year:dlv.y, DLV_Month:dlv.m, DLV_Day:dlv.d,
+    NUM_All:String(totalPages),
+    ID_No:getLoginIdForPdf(),
+    ID_Name:document.getElementById('ID_Name').value.trim(),
+    ID_Code:document.getElementById('ID_Code').value.trim(),
+    ID_Staff:document.getElementById('ID_Staff').value.trim(),
+    ID_Tel:document.getElementById('ID_Tel').value.trim(),
+    WORK_Time:document.getElementById('WORK_Time').value.trim(),
+    BRC_Name:document.getElementById('BRC_Name').value.trim(),
+    BRC_Front:document.getElementById('BRC_Front').value.trim(),
+    BRC_Tel:document.getElementById('BRC_Tel').value.trim(),
+    BRC_Fax:document.getElementById('BRC_Fax').value.trim(),
+  };
 
+  // 各ページのPDFバイト列を生成
+  const pageBytesList=[];
   for(let pageIdx=0;pageIdx<totalPages;pageIdx++){
-    // テンプレートを毎回クリーンにロード
+    // テンプレートを毎回クリーンにロード（重要：slice()でコピーして使い回しを防ぐ）
     const pdfDoc=await PDFDocument.load(templateBytes.slice(),{ignoreEncryption:true});
     const form=pdfDoc.getForm();
 
@@ -966,29 +982,11 @@ async function generateAndDownload(){
       try{form.getTextField(name).setText(String(val||''));}catch(e){}
     };
 
-    // 日付
-    set('ORD_Year',ord.y); set('ORD_Month',ord.m); set('ORD_Day',ord.d);
-    set('DLV_Year',dlv.y); set('DLV_Month',dlv.m); set('DLV_Day',dlv.d);
-
-    // 枚数
+    // 共通フィールド書き込み
+    Object.entries(commonFields).forEach(([k,v])=>set(k,v));
     set('NUM_Page',String(pageIdx+1));
-    set('NUM_All',String(totalPages));
 
-    // ③ ログインID（サフィックス付き）
-    set('ID_No',getLoginIdForPdf());
-    set('ID_Name',document.getElementById('ID_Name').value.trim());
-    set('ID_Code',document.getElementById('ID_Code').value.trim());
-    set('ID_Staff',document.getElementById('ID_Staff').value.trim());
-    set('ID_Tel',document.getElementById('ID_Tel').value.trim());
-    set('WORK_Time',document.getElementById('WORK_Time').value.trim());
-
-    // 担当者
-    set('BRC_Name',document.getElementById('BRC_Name').value.trim());
-    set('BRC_Front',document.getElementById('BRC_Front').value.trim());
-    set('BRC_Tel',document.getElementById('BRC_Tel').value.trim());
-    set('BRC_Fax',document.getElementById('BRC_Fax').value.trim());
-
-    // 明細
+    // 明細（このページ分10行）
     const pageItems=filledItems.slice(pageIdx*10,(pageIdx+1)*10);
     for(let i=1;i<=10;i++){
       const s=pad2(i);
@@ -1000,14 +998,30 @@ async function generateAndDownload(){
       set('ODPR_1'+s, item.price||'');
     }
 
-    // フィールド付きのまま保存 → ページをコピー
-    const filledBytes=await pdfDoc.save({updateFieldAppearances:false});
-    const filledDoc=await PDFDocument.load(filledBytes);
-    const [pg]=await mergedDoc.copyPages(filledDoc,[0]);
-    mergedDoc.addPage(pg);
+    // ★ ここが核心：copyPagesを使わず、このPDFをそのまま保存してバイト列として保持
+    const bytes=await pdfDoc.save({updateFieldAppearances:false});
+    pageBytesList.push(bytes);
   }
 
-  const finalBytes=await mergedDoc.save();
+  let finalBytes;
+  if(pageBytesList.length===1){
+    // 1ページのみ：そのままダウンロード（copyPages不要）
+    finalBytes=pageBytesList[0];
+  } else {
+    // 複数ページ：PDFをバイナリレベルで結合
+    // 各PDFを再ロードしてページをコピー（フォームは既に書き込み済みでフラット扱い）
+    // flatten=trueでフィールドをコンテンツに焼き付けてからコピー
+    const mergedDoc=await PDFDocument.create();
+    for(const pgBytes of pageBytesList){
+      const srcDoc=await PDFDocument.load(pgBytes,{ignoreEncryption:true});
+      // フォームをフラット化（外観をコンテンツに焼き込み）してからコピー
+      srcDoc.getForm().flatten();
+      const [pg]=await mergedDoc.copyPages(srcDoc,[0]);
+      mergedDoc.addPage(pg);
+    }
+    finalBytes=await mergedDoc.save();
+  }
+
   const blob=new Blob([finalBytes],{type:'application/pdf'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
