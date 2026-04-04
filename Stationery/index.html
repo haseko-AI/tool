@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.30</title>
+<title>事務用品 注文シート v1.34</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -168,7 +168,7 @@
 <header class="app-header">
   <div>
     <div class="app-logo">📦 <span>事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ハセコーコミュニティ v1.30</div>
+    <div class="app-subtitle">ハセコーコミュニティ v1.34</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -906,7 +906,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF GENERATION v1.30 ───
+// ─── PDF GENERATION v1.34 ───
 // UTF-16BE PDFHexString方式でANSIエラーを回避
 // setText()を使わず辞書に直接書き込む（月報・カレンダーと同じ解決策）
 
@@ -1000,6 +1000,23 @@ async function downloadPDF(){
   btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
 }
 
+// 複数ページ：ページごとに個別ダウンロード
+// flatten/getForm/copyPagesを一切使わない究極シンプル方式
+async function downloadMultiplePages(pageBytesList, baseFilename) {
+  for (let pi = 0; pi < pageBytesList.length; pi++) {
+    const blob = new Blob([pageBytesList[pi]], {type: 'application/pdf'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = baseFilename + '_' + (pi+1) + 'of' + pageBytesList.length + '.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+    if (pi < pageBytesList.length - 1) {
+      await new Promise(r => setTimeout(r, 400));
+    }
+  }
+}
+
 async function generateAndDownload(){
   const {PDFDocument, PDFName, PDFBool} = PDFLib;
   const ord = parseDateField('ORD');
@@ -1074,34 +1091,29 @@ async function generateAndDownload(){
     pageBytesList.push(bytes);
   }
 
-  let finalBytes;
+  // ─── ダウンロード ───
+  const ord3 = parseDateField('ORD');
+  const fname3 = currentType === 'kanri' ? PDF_FILE_KANRI : PDF_FILE_KAISHA;
+  const baseName = fname3.replace('.pdf','') + '_'
+    + ord3.y + ord3.m.padStart(2,'0') + ord3.d.padStart(2,'0');
+
   if (pageBytesList.length === 1) {
-    // 1ページ：copyPages不要、そのままダウンロード
-    finalBytes = pageBytesList[0];
+    // 1ページ：そのまま1ファイルダウンロード
+    const blob = new Blob([pageBytesList[0]], {type: 'application/pdf'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = baseName + '.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
   } else {
-    // 複数ページ：バイト列を再ロードしてページ結合
-    // この時点でフィールドは既にV値書き込み済み＆AP削除済み
-    // flatten()でコンテンツに焼き付けてからcopyPages
-    const mergedDoc = await PDFDocument.create();
-    for (const pgBytes of pageBytesList) {
-      const srcDoc = await PDFDocument.load(pgBytes, {ignoreEncryption: true});
-      // 再ロードしたドキュメントのgetForm()はdirtyにならない（変更していないため）
-      srcDoc.getForm().flatten();
-      const [pg] = await mergedDoc.copyPages(srcDoc, [0]);
-      mergedDoc.addPage(pg);
-    }
-    finalBytes = await mergedDoc.save();
+    // 複数ページ：ページごとに個別ファイルでダウンロード
+    // flatten()/getForm()を一切使わない完全安全方式
+    toast('📄 ' + pageBytesList.length + 'ページ分を順番にダウンロードします', '');
+    await downloadMultiplePages(pageBytesList, baseName);
   }
 
-  const blob = new Blob([finalBytes], {type: 'application/pdf'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url;
-  const fname = currentType === 'kanri' ? PDF_FILE_KANRI : PDF_FILE_KAISHA;
-  a.download = fname.replace('.pdf','') + '_'
-    + ord.y + ord.m.padStart(2,'0') + ord.d.padStart(2,'0') + '.pdf';
-  a.click();
-  URL.revokeObjectURL(url);
+
 
   // 履歴保存
   for (const item of filledItems) {
