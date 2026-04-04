@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.21</title>
+<title>事務用品 注文シート v1.30</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -168,7 +168,7 @@
 <header class="app-header">
   <div>
     <div class="app-logo">📦 <span>事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ハセコーコミュニティ v1.20</div>
+    <div class="app-subtitle">ハセコーコミュニティ v1.30</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -906,7 +906,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF GENERATION v1.20 ───
+// ─── PDF GENERATION v1.30 ───
 // UTF-16BE PDFHexString方式でANSIエラーを回避
 // setText()を使わず辞書に直接書き込む（月報・カレンダーと同じ解決策）
 
@@ -918,33 +918,63 @@ async function downloadPDF(){
   btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
 }
 
-// 文字列 → UTF-16BE PDFHexString（ANSIエラー回避の核心）
-function toUtf16Hex(str){
-  if(!str) return PDFLib.PDFHexString.of('');
-  let hex='FEFF'; // BOM
-  for(let i=0;i<str.length;i++){
-    const code=str.charCodeAt(i);
-    hex+=code.toString(16).padStart(4,'0').toUpperCase();
+// ─── PDF書き込み（getForm/getTextField を一切使わない低レベル方式）───
+// pdf-lib の getTextField() を呼ぶと PDFTextField オブジェクトが dirty になり
+// save() 時に defaultUpdateAppearances() が自動実行されて WinAnsiエラー爆発。
+// 解決：AcroFieldsを生のPDFDictとして直接操作し、Vに UTF-16BE HexString を書く。
+
+function toUtf16Hex(str) {
+  // 文字列を UTF-16BE HexString に変換（BOM付き）
+  if (!str) return '';
+  let hex = 'FEFF';
+  for (let i = 0; i < str.length; i++) {
+    hex += str.charCodeAt(i).toString(16).padStart(4, '0').toUpperCase();
   }
-  return PDFLib.PDFHexString.of(hex);
+  return hex;
 }
 
-// フィールド名でAcroFormウィジェットを探してVに直接書き込む
-function setFieldUtf16(pdfDoc, fieldName, value){
-  try{
-    const {PDFName, PDFHexString}=PDFLib;
-    const form=pdfDoc.getForm();
-    const field=form.getTextField(fieldName);
-    // フィールドの内部辞書に直接書き込み
-    field.acroField.dict.set(PDFName.of('V'), toUtf16Hex(String(value||'')));
-    // ウィジェットのAPをリセット（NeedAppearancesに任せる）
-    const widgets=field.acroField.getWidgets();
-    widgets.forEach(w=>{
-      w.dict.delete(PDFName.of('AP'));
-    });
-  }catch(e){
-    // フィールドが存在しない場合は無視
+// AcroFormフィールド辞書一覧を低レベルで取得（getForm()を使わない）
+function getRawAcroFields(pdfDoc) {
+  const {PDFName, PDFDict, PDFArray} = PDFLib;
+  const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
+  if (!acroFormRef) return {};
+  const acroForm = pdfDoc.context.lookup(acroFormRef);
+  if (!acroForm) return {};
+
+  const fieldMap = {};
+
+  function collectFields(arr) {
+    if (!arr) return;
+    for (let i = 0; i < arr.size(); i++) {
+      try {
+        const ref = arr.get(i);
+        const dict = pdfDoc.context.lookup(ref);
+        if (!dict) continue;
+        // フィールド名を取得
+        const tObj = dict.get(PDFName.of('T'));
+        const name = tObj ? tObj.decodeText() : null;
+        if (name) fieldMap[name] = {dict, ref};
+        // Kids（子フィールド）を再帰処理
+        const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
+        if (kids) collectFields(kids);
+      } catch(e) {}
+    }
   }
+
+  const fields = acroForm.lookupMaybe(PDFName.of('Fields'), PDFArray);
+  collectFields(fields);
+  return fieldMap;
+}
+
+// フィールドに値をUTF-16BE HexStringで書き込む（getTextField不使用）
+function writeFieldValue(fieldMap, pdfDoc, name, value) {
+  const {PDFName, PDFHexString} = PDFLib;
+  const entry = fieldMap[name];
+  if (!entry) return;
+  const hexStr = toUtf16Hex(String(value || ''));
+  entry.dict.set(PDFName.of('V'), PDFHexString.of(hexStr));
+  // AP（外観キャッシュ）を削除してビューア再描画を促す
+  entry.dict.delete(PDFName.of('AP'));
 }
 
 function collectFilledItems(){
@@ -962,142 +992,124 @@ function collectFilledItems(){
   return items.filter(it=>it.code1||it.code2);
 }
 
+async function downloadPDF(){
+  const btn=document.getElementById('downloadBtn');
+  btn.disabled=true;btn.textContent='⏳ 作成中...';
+  try{await generateAndDownload();}
+  catch(err){console.error(err);toast('PDF作成エラー：'+err.message,'error');}
+  btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
+}
+
 async function generateAndDownload(){
-  const {PDFDocument, PDFName, PDFBool}=PDFLib;
-  const ord=parseDateField('ORD');
-  const dlv=parseDateField('DLV');
+  const {PDFDocument, PDFName, PDFBool} = PDFLib;
+  const ord = parseDateField('ORD');
+  const dlv = parseDateField('DLV');
 
-  if(!ord.y){toast('注文日を入力してください','error');return;}
+  if (!ord.y) { toast('注文日を入力してください','error'); return; }
 
-  const templateBytes=currentType==='kanri'?pdfBytesKanri:pdfBytesKaisha;
-  if(!templateBytes){toast('PDFテンプレートが読み込まれていません','error');return;}
+  const templateBytes = currentType==='kanri' ? pdfBytesKanri : pdfBytesKaisha;
+  if (!templateBytes) { toast('PDFテンプレートが読み込まれていません','error'); return; }
 
-  const filledItems=collectFilledItems();
-  if(!filledItems.length){toast('注文明細を1件以上入力してください','error');return;}
+  const filledItems = collectFilledItems();
+  if (!filledItems.length) { toast('注文明細を1件以上入力してください','error'); return; }
 
-  const totalPages=Math.max(1,Math.ceil(filledItems.length/10));
+  const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
 
   // ⑦ PDF作成時に送信者・担当者情報を自動保存
-  saveProfile();saveStaff();
+  saveProfile(); saveStaff();
 
   // 共通フィールド値
-  const commonFields={
-    ORD_Year:ord.y, ORD_Month:ord.m, ORD_Day:ord.d,
-    DLV_Year:dlv.y, DLV_Month:dlv.m, DLV_Day:dlv.d,
-    NUM_All:String(totalPages),
-    ID_No:getLoginIdForPdf(),
-    ID_Name:document.getElementById('ID_Name').value.trim(),
-    ID_Code:document.getElementById('ID_Code').value.trim(),
-    ID_Staff:document.getElementById('ID_Staff').value.trim(),
-    ID_Tel:document.getElementById('ID_Tel').value.trim(),
-    WORK_Time:document.getElementById('WORK_Time').value.trim(),
-    BRC_Name:document.getElementById('BRC_Name').value.trim(),
-    BRC_Front:document.getElementById('BRC_Front').value.trim(),
-    BRC_Tel:document.getElementById('BRC_Tel').value.trim(),
-    BRC_Fax:document.getElementById('BRC_Fax').value.trim(),
+  const commonFields = {
+    ORD_Year:  ord.y, ORD_Month: ord.m, ORD_Day: ord.d,
+    DLV_Year:  dlv.y, DLV_Month: dlv.m, DLV_Day: dlv.d,
+    NUM_All:   String(totalPages),
+    ID_No:     getLoginIdForPdf(),
+    ID_Name:   document.getElementById('ID_Name').value.trim(),
+    ID_Code:   document.getElementById('ID_Code').value.trim(),
+    ID_Staff:  document.getElementById('ID_Staff').value.trim(),
+    ID_Tel:    document.getElementById('ID_Tel').value.trim(),
+    WORK_Time: document.getElementById('WORK_Time').value.trim(),
+    BRC_Name:  document.getElementById('BRC_Name').value.trim(),
+    BRC_Front: document.getElementById('BRC_Front').value.trim(),
+    BRC_Tel:   document.getElementById('BRC_Tel').value.trim(),
+    BRC_Fax:   document.getElementById('BRC_Fax').value.trim(),
   };
 
-  // 各ページのPDFバイト列を生成
-  const pageBytesList=[];
-  for(let pageIdx=0;pageIdx<totalPages;pageIdx++){
+  const pageBytesList = [];
+
+  for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
     // テンプレートを毎回クリーンにロード
-    const pdfDoc=await PDFDocument.load(templateBytes.slice(),{ignoreEncryption:true});
-    const form=pdfDoc.getForm();
+    const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption: true});
 
-    // NeedAppearances=true → MSPGothicなど既存フォントで表示
-    form.acroForm.dict.set(PDFName.of('NeedAppearances'), PDFBool.True);
+    // NeedAppearances=true をAcroFormに直接セット（getForm()不使用）
+    try {
+      const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
+      const acroForm    = pdfDoc.context.lookup(acroFormRef);
+      if (acroForm) acroForm.set(PDFName.of('NeedAppearances'), PDFBool.True);
+    } catch(e) {}
 
-    // UTF-16BE方式でフィールド書き込み（ANSIエラー回避）
-    const set=(name,val)=>setFieldUtf16(pdfDoc, name, val);
+    // フィールド辞書マップを低レベルで取得
+    const fieldMap = getRawAcroFields(pdfDoc);
+    const set = (name, val) => writeFieldValue(fieldMap, pdfDoc, name, val);
 
     // 共通フィールド書き込み
-    Object.entries(commonFields).forEach(([k,v])=>set(k,v));
-    set('NUM_Page', String(pageIdx+1));
+    Object.entries(commonFields).forEach(([k, v]) => set(k, v));
+    set('NUM_Page', String(pageIdx + 1));
 
     // 明細（このページ分10行）
-    const pageItems=filledItems.slice(pageIdx*10,(pageIdx+1)*10);
-    for(let i=1;i<=10;i++){
-      const s=pad2(i);
-      const item=pageItems[i-1]||{};
-      set('ODNO_1'+s, item.code1?item.code1.padStart(3,'0'):'');
-      set('ODNO_2'+s, item.code2?item.code2.padStart(4,'0'):'');
-      set('ODSU_1'+s, item.qty||'');
-      set('ODNA_1'+s, item.name||'');
-      set('ODPR_1'+s, item.price||'');
+    const pageItems = filledItems.slice(pageIdx * 10, (pageIdx + 1) * 10);
+    for (let i = 1; i <= 10; i++) {
+      const s   = pad2(i);
+      const item = pageItems[i - 1] || {};
+      set('ODNO_1' + s, item.code1 ? item.code1.padStart(3, '0') : '');
+      set('ODNO_2' + s, item.code2 ? item.code2.padStart(4, '0') : '');
+      set('ODSU_1' + s, item.qty   || '');
+      set('ODNA_1' + s, item.name  || '');
+      set('ODPR_1' + s, item.price || '');
     }
 
-    // ★ ANSIエラー完全防御（月報・カレンダー実績済み方式）
-    // setFieldUtf16()でV値を直接書き込んだ後、
-    // getForm()経由でdirtyになったフィールドをリセットし、
-    // pdf-libの自動外観更新を完全停止する。
-
-    // 方法：全フィールドのAP（外観ストリーム）とDA（デフォルト外観）を削除。
-    // これによりpdf-libが外観生成しようとしてもフォントが見つからず
-    // エラーになる前に処理をスキップする。
-    // NeedAppearances=trueなのでPDFビューア側が表示してくれる。
-    try {
-      const rawFields = pdfDoc.catalog
-        .lookupMaybe(PDFName.of('AcroForm'), PDFLib.PDFDict)
-        ?.lookupMaybe(PDFName.of('Fields'), PDFLib.PDFArray);
-      if (rawFields) {
-        for (let fi = 0; fi < rawFields.size(); fi++) {
-          try {
-            const fRef = rawFields.get(fi);
-            const fDict = pdfDoc.context.lookup(fRef, PDFLib.PDFDict);
-            if (!fDict) continue;
-            fDict.delete(PDFName.of('AP'));
-            fDict.delete(PDFName.of('DA'));
-            // Kids（ウィジェット）も処理
-            const kids = fDict.lookupMaybe(PDFName.of('Kids'), PDFLib.PDFArray);
-            if (kids) {
-              for (let ki = 0; ki < kids.size(); ki++) {
-                try {
-                  const kDict = pdfDoc.context.lookup(kids.get(ki), PDFLib.PDFDict);
-                  if (kDict) { kDict.delete(PDFName.of('AP')); kDict.delete(PDFName.of('DA')); }
-                } catch(e) {}
-              }
-            }
-          } catch(e) {}
-        }
-      }
-    } catch(e) { console.warn('AP cleanup error:', e); }
-
+    // getForm()を呼んでいないので defaultUpdateAppearances は発動しない
+    // updateFieldAppearances:false も念のため指定
     const bytes = await pdfDoc.save({updateFieldAppearances: false});
     pageBytesList.push(bytes);
   }
 
   let finalBytes;
-  if(pageBytesList.length===1){
-    // 1ページ：そのままダウンロード（copyPages一切不要）
-    finalBytes=pageBytesList[0];
+  if (pageBytesList.length === 1) {
+    // 1ページ：copyPages不要、そのままダウンロード
+    finalBytes = pageBytesList[0];
   } else {
-    // 複数ページ：flatten後にコピー結合
-    const mergedDoc=await PDFDocument.create();
-    for(const pgBytes of pageBytesList){
-      const srcDoc=await PDFDocument.load(pgBytes,{ignoreEncryption:true});
+    // 複数ページ：バイト列を再ロードしてページ結合
+    // この時点でフィールドは既にV値書き込み済み＆AP削除済み
+    // flatten()でコンテンツに焼き付けてからcopyPages
+    const mergedDoc = await PDFDocument.create();
+    for (const pgBytes of pageBytesList) {
+      const srcDoc = await PDFDocument.load(pgBytes, {ignoreEncryption: true});
+      // 再ロードしたドキュメントのgetForm()はdirtyにならない（変更していないため）
       srcDoc.getForm().flatten();
-      const [pg]=await mergedDoc.copyPages(srcDoc,[0]);
+      const [pg] = await mergedDoc.copyPages(srcDoc, [0]);
       mergedDoc.addPage(pg);
     }
-    finalBytes=await mergedDoc.save();
+    finalBytes = await mergedDoc.save();
   }
 
-  const blob=new Blob([finalBytes],{type:'application/pdf'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  const fname=currentType==='kanri'?PDF_FILE_KANRI:PDF_FILE_KAISHA;
-  a.download=fname.replace('.pdf','')+'_'+ord.y+ord.m.padStart(2,'0')+ord.d.padStart(2,'0')+'.pdf';
-  a.click();URL.revokeObjectURL(url);
+  const blob = new Blob([finalBytes], {type: 'application/pdf'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  const fname = currentType === 'kanri' ? PDF_FILE_KANRI : PDF_FILE_KAISHA;
+  a.download = fname.replace('.pdf','') + '_'
+    + ord.y + ord.m.padStart(2,'0') + ord.d.padStart(2,'0') + '.pdf';
+  a.click();
+  URL.revokeObjectURL(url);
 
   // 履歴保存
-  for(const item of filledItems){
-    if(item.code1||item.code2)addToHistory(item);
+  for (const item of filledItems) {
+    if (item.code1 || item.code2) addToHistory(item);
   }
   renderRecentList();
-  toast('PDF作成完了 ✅','success');
+  toast('PDF作成完了 ✅', 'success');
 }
-
 // ─── TOAST ───
 function toast(msg,type=''){
   const el=document.createElement('div');
