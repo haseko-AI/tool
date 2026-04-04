@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.45</title>
+<title>事務用品 注文シート v1.47</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -82,9 +82,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   .btn{font-size:14px;padding:10px 16px;}
   .btn-sm{font-size:13px;padding:8px 13px;}
   /* 注文日・指定日 スマホで2列固定 */
-  .date-row-2col{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;width:100%!important;}
+  .date-row-2col{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;width:100%!important;box-sizing:border-box!important;}
   .date-row-2col .form-group{min-width:0!important;overflow:hidden!important;}
-  .date-row-2col input[type="date"]{width:100%!important;min-width:0!important;box-sizing:border-box!important;font-size:14px!important;padding:8px 4px!important;}
+  .date-row-2col input[type="date"]{width:100%!important;min-width:0!important;box-sizing:border-box!important;font-size:13px!important;padding:8px 2px!important;}
 }
 
 /* ─ Cards ─ */
@@ -235,6 +235,10 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 .history-empty{text-align:center;color:var(--text3);padding:36px;font-size:13px;}
 .history-empty .icon{font-size:34px;margin-bottom:9px;}
 
+/* ─ 必須項目 未入力ハイライト ─ */
+.field-required-empty{background:#fff1f1!important;border-color:#fca5a5!important;}
+.field-required-empty:focus{border-color:var(--danger)!important;box-shadow:0 0 0 3px rgba(220,38,38,.15)!important;}
+
 /* ─ Toast ─ */
 .toast-container{position:fixed;top:72px;right:14px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
 .toast{background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);
@@ -253,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.45</div>
+    <div class="app-subtitle">ナビリオン v1.47</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -385,6 +389,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
         <div class="header-spacer"></div>
         <button class="btn btn-secondary btn-sm" onclick="openHistory(null)">📋 履歴</button>
         <button class="btn btn-secondary btn-sm" onclick="clearAllItems()">🗑 全クリア</button>
+        <button class="btn btn-primary btn-sm" id="downloadBtnTop" onclick="downloadPDF()" style="margin-left:4px;">⬇ PDF</button>
       </div>
       <div class="card-body">
         <div class="target-indicator" id="targetIndicator">
@@ -442,6 +447,11 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
         </button>
         <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:5px;" id="pdfFileName">
           OrderSheet_v2.pdf に書き込み
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:#fef9c3;border:1px solid #fde68a;border-radius:var(--radius-sm);font-size:11px;color:#92400e;line-height:1.6;">
+          💡 1回のご注文金額の合計が<br>
+          <b>800円未満（税別）</b>の場合、<br>
+          税込送料 <b>330円</b> をご負担いただきます。
         </div>
       </div>
     </div>
@@ -610,6 +620,19 @@ function updateIdPreview() {
 }
 
 // ─── ① 自動保存（入力即時） ───
+// ─── 必須項目未入力ハイライト ───
+const PROFILE_REQUIRED = ['ID_No_base','ID_Name','ID_Code','ID_Staff','ID_Tel'];
+const STAFF_REQUIRED   = ['BRC_Name','BRC_Front','BRC_Tel','BRC_Fax'];
+
+function checkRequiredFields() {
+  [...PROFILE_REQUIRED, ...STAFF_REQUIRED].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const empty = !el.value.trim();
+    el.classList.toggle('field-required-empty', empty);
+  });
+}
+
 let autoSaveTimer = null;
 function autoSaveProfile() {
   clearTimeout(autoSaveTimer);
@@ -619,7 +642,8 @@ function autoSaveProfile() {
       const el = document.getElementById(id); if(el) data[id] = el.value;
     });
     localStorage.setItem(SK.profile, JSON.stringify(data));
-  }, 600); // 600ms後に保存
+    checkRequiredFields();
+  }, 600);
 }
 let autoSaveStaffTimer = null;
 function autoSaveStaff() {
@@ -630,6 +654,7 @@ function autoSaveStaff() {
       const el = document.getElementById(id); if(el) data[id] = el.value;
     });
     localStorage.setItem(SK.staff, JSON.stringify(data));
+    checkRequiredFields();
   }, 600);
 }
 
@@ -641,6 +666,7 @@ function loadProfile() {
       const el = document.getElementById(id); if(el && data[id]!==undefined) el.value = data[id];
     });
     updateIdPreview(); updateSummary();
+    setTimeout(checkRequiredFields, 100);
   } catch(e) {}
 }
 function loadStaff() {
@@ -1067,11 +1093,14 @@ async function downloadMultiplePages(pageBytesList,baseFilename){
 }
 
 async function downloadPDF(){
-  const btn=document.getElementById('downloadBtn');
-  btn.disabled=true;btn.textContent='⏳ 作成中...';
+  const btn    = document.getElementById('downloadBtn');
+  const btnTop = document.getElementById('downloadBtnTop');
+  [btn, btnTop].forEach(b=>{ if(b){ b.disabled=true; } });
+  btn.textContent='⏳ 作成中...'; if(btnTop) btnTop.textContent='⏳';
   try{await generateAndDownload();}
   catch(err){console.error(err);toast('PDF作成エラー：'+err.message,'error');}
-  btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
+  btn.disabled=false; btn.innerHTML='⬇ PDF作成・ダウンロード';
+  if(btnTop){ btnTop.disabled=false; btnTop.innerHTML='⬇ PDF'; }
 }
 
 async function generateAndDownload(){
