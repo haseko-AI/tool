@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.44</title>
+<title>事務用品 注文シート v1.45</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -81,6 +81,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   .card-header h3{font-size:15px;}
   .btn{font-size:14px;padding:10px 16px;}
   .btn-sm{font-size:13px;padding:8px 13px;}
+  /* 注文日・指定日 スマホで2列固定 */
+  .date-row-2col{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;width:100%!important;}
+  .date-row-2col .form-group{min-width:0!important;overflow:hidden!important;}
+  .date-row-2col input[type="date"]{width:100%!important;min-width:0!important;box-sizing:border-box!important;font-size:14px!important;padding:8px 4px!important;}
 }
 
 /* ─ Cards ─ */
@@ -249,7 +253,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.44</div>
+    <div class="app-subtitle">ナビリオン v1.45</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -676,10 +680,10 @@ function addRows(n) {
     tr.id = 'row_'+i;
     tr.innerHTML = `
       <td class="row-num">${i}</td>
-      <td><input type="text" id="ODNO_1_${i}" class="code-part code-p1" maxlength="3" placeholder="000"
+      <td><input type="text" id="ODNO_1_${i}" class="code-part code-p1" maxlength="3" inputmode="numeric" placeholder="000"
         oninput="onCodeInput(${i})" onblur="zeroPad(this,3)"></td>
       <td style="text-align:center;color:var(--text3);font-weight:700;padding:0 2px;">-</td>
-      <td><input type="text" id="ODNO_2_${i}" class="code-part code-p2" maxlength="4" placeholder="0000"
+      <td><input type="text" id="ODNO_2_${i}" class="code-part code-p2" maxlength="4" inputmode="numeric" placeholder="0000"
         oninput="onCodeInput(${i})" onblur="zeroPad(this,4)"></td>
       <td><input type="number" id="ODSU_1_${i}" class="qty-input" min="1" inputmode="numeric" placeholder="0"
         oninput="this.value=toHankaku(this.value);onItemChange()"></td>
@@ -699,10 +703,10 @@ function addRows(n) {
       <div class="order-card-header">
         <div class="order-card-num">${i}</div>
         <div class="order-card-code">
-          <input type="text" id="ODNO_1s_${i}" class="code-part code-sp1" maxlength="3" placeholder="000"
+          <input type="text" id="ODNO_1s_${i}" class="code-part code-sp1" maxlength="3" inputmode="numeric" placeholder="000"
             oninput="syncCode(${i},'1',this.value);onCodeInput(${i})" onblur="zeroPad(this,3)">
           <span style="color:var(--text3);font-weight:700;font-size:16px;">-</span>
-          <input type="text" id="ODNO_2s_${i}" class="code-part code-sp2" maxlength="4" placeholder="0000"
+          <input type="text" id="ODNO_2s_${i}" class="code-part code-sp2" maxlength="4" inputmode="numeric" placeholder="0000"
             oninput="syncCode(${i},'2',this.value);onCodeInput(${i})" onblur="zeroPad(this,4)">
         </div>
       </div>
