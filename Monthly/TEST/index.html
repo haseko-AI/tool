@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>管理業務月報ー</title>
+<title>管理業務月報</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -384,7 +384,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.30</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.31</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -1803,7 +1803,7 @@ async function downloadPDF_OLD(){
     fieldMap.forEach((annot, name) => {
       try {
         annot.delete(PDFName.of('AP'));
-        annot.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+        annot.set(PDFName.of('DA'), PDFString.of('/MS-Gothic 10 Tf 0 g'));
       } catch(e){}
     });
 
@@ -1825,7 +1825,7 @@ async function downloadPDF_OLD(){
         const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
         const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
         // フォント名を使用フォントに置き換えてDAを再設定
-        const fontName = numericFields.has(name) ? 'Helvetica' : 'IPAexGothic';
+        const fontName = numericFields.has(name) ? 'Helvetica' : 'MS-Gothic';
         const newDA = `/${fontName} ${fontSize} Tf 0 g`;
         annot.set(PDFName.of('DA'), PDFString.of(newDA));
 
@@ -2254,7 +2254,7 @@ async function generatePDFBytes(){
       const dr = acroForm ? acroForm.lookup(PDFName.of('DR')) : null;
       const fontDict = dr ? dr.lookup(PDFName.of('Font')) : null;
       if(fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
-      if(acroForm) acroForm.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+      if(acroForm) acroForm.set(PDFName.of('DA'), PDFString.of('/MS-Gothic 10 Tf 0 g'));
     }
   } catch(e){}
 
@@ -2331,7 +2331,7 @@ async function generatePDFBytes(){
       annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
       const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
       const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
-      const fontName = numericFields.has(name) ? 'Helvetica' : 'IPAexGothic';
+      const fontName = numericFields.has(name) ? 'Helvetica' : 'MS-Gothic';
       const newDA = `/${fontName} ${fontSize} Tf 0 g`;
       annot.set(PDFName.of('DA'), PDFString.of(newDA));
       annot.delete(PDFName.of('AP'));
