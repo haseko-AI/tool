@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>事務用品 注文シート</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fontkit/1.9.0/fontkit.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --surface2: #f8f9fb;
+    --border: #e2e6ea;
+    --border2: #d0d5dd;
+    --text: #1a1f2e;
+    --text2: #5a6072;
+    --text3: #9aa0b0;
+    --accent-k: #1a56db;   /* 管理組合 blue */
+    --accent-k-bg: #eff6ff;
+    --accent-k-border: #93c5fd;
+    --accent-c: #0d9488;   /* 会社経費 teal */
+    --accent-c-bg: #f0fdfa;
+    --accent-c-border: #5eead4;
+    --accent: var(--accent-k);
+    --accent-bg: var(--accent-k-bg);
+    --accent-border: var(--accent-k-border);
+    --danger: #dc2626;
+    --warn: #f59e0b;
+    --success: #10b981;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ─── Header ─── */
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .app-logo {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.5px;
+    color: var(--text);
+  }
+  .app-logo span { color: var(--accent-k); }
+  .app-subtitle {
+    font-size: 11px;
+    color: var(--text3);
+    margin-left: 2px;
+  }
+  .header-spacer { flex: 1; }
+  .backup-btns {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* ─── Type Toggle ─── */
+  .type-toggle-bar {
+    background: var(--surface);
+    border-bottom: 3px solid var(--accent);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: border-color .25s;
+  }
+  .type-toggle-label { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .toggle-btns { display: flex; gap: 0; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border2); }
+  .toggle-btn {
+    padding: 7px 20px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all .2s;
+    background: var(--surface2);
+    color: var(--text2);
+  }
+  .toggle-btn.active-k { background: var(--accent-k); color: #fff; }
+  .toggle-btn.active-c { background: var(--accent-c); color: #fff; }
+  .type-badge {
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+  }
+  .badge-k { background: var(--accent-k-bg); color: var(--accent-k); border: 1px solid var(--accent-k-border); }
+  .badge-c { background: var(--accent-c-bg); color: var(--accent-c); border: 1px solid var(--accent-c-border); }
+
+  /* ─── Main Layout ─── */
+  .main-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 16px 40px;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+  }
+  @media (max-width: 860px) {
+    .main-wrap { grid-template-columns: 1fr; }
+    .sidebar { order: -1; }
+  }
+
+  /* ─── Cards ─── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .card-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+  }
+  .card-header h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .card-body { padding: 14px 16px; }
+  .section-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* ─── Form Elements ─── */
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: .3px;
+  }
+  label .req { color: var(--danger); margin-left: 2px; }
+  label .field-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 400;
+    margin-left: 4px;
+  }
+  input[type="text"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="number"],
+  select {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color .15s, box-shadow .15s;
+    outline: none;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+  .date-row {
+    display: grid;
+    grid-template-columns: 80px 60px 60px;
+    gap: 4px;
+    align-items: end;
+  }
+  .date-sep {
+    text-align: center;
+    font-size: 16px;
+    color: var(--text3);
+    padding-bottom: 6px;
+    line-height: 34px;
+  }
+  .date-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 4px;
+    align-items: end;
+  }
+
+  /* ─── Order Table ─── */
+  .order-table-wrap { overflow-x: auto; }
+  .order-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .order-table th {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 7px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text2);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .order-table td {
+    border: 1px solid var(--border);
+    padding: 4px 5px;
+    vertical-align: middle;
+  }
+  .order-table tr:hover td { background: var(--surface2); }
+  .row-num {
+    font-family: 'DM Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text3);
+    text-align: center;
+    width: 28px;
+  }
+  .code-cell { display: flex; gap: 3px; align-items: center; }
+  .code-part {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .code-sep { color: var(--text3); font-weight: 700; font-size: 14px; }
+  .code-p1 { width: 58px; }
+  .code-p2 { width: 68px; }
+  .qty-input { width: 64px; text-align: right; }
+  .name-input { min-width: 160px; }
+  .price-input { width: 80px; text-align: right; font-family: 'DM Mono', monospace; }
+  .pick-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    background: var(--surface);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+  .pick-btn:hover { border-color: var(--accent); background: var(--accent-bg); transform: scale(1.1); }
+  .clear-row-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--border2);
+    background: transparent;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+  }
+  .clear-row-btn:hover { border-color: var(--danger); color: var(--danger); background: #fef2f2; }
+
+  /* ─── Sidebar ─── */
+  .sidebar {}
+  .info-summary {
+    background: linear-gradient(135deg, var(--accent-bg) 0%, var(--surface) 100%);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .info-summary .info-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 3px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .info-summary .info-line:last-child { border-bottom: none; }
+  .info-summary .info-key { color: var(--text2); }
+  .info-summary .info-val { font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  /* ─── Buttons ─── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent-k);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(26,86,219,.3);
+  }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(26,86,219,.35); }
+  .btn-primary.teal { background: var(--accent-c); box-shadow: 0 2px 6px rgba(13,148,136,.3); }
+  .btn-primary.teal:hover { box-shadow: 0 4px 10px rgba(13,148,136,.35); }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text2);
+    border: 1.5px solid var(--border2);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-danger { background: #fef2f2; color: var(--danger); border: 1.5px solid #fecaca; }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-full { width: 100%; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+
+  /* ─── History Panel / Modal ─── */
+  .history-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 200;
+    backdrop-filter: blur(3px);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .history-modal-overlay.open { display: flex; }
+  .history-modal {
+    background: var(--surface);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    width: 100%;
+    max-width: 740px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .history-modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .history-modal-header h2 { font-size: 16px; font-weight: 700; flex: 1; }
+  .history-search {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .history-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  .history-search input:focus { border-color: var(--accent); }
+  .history-list { flex: 1; overflow-y: auto; padding: 10px 12px; }
+  .history-item {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .history-item:hover {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    transform: translateX(2px);
+  }
+  .history-score {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    min-width: 48px;
+    text-align: center;
+  }
+  .history-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    flex-shrink: 0;
+    letter-spacing: 1px;
+  }
+  .history-info { flex: 1; min-width: 0; }
+  .history-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-meta {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .history-meta span { display: flex; align-items: center; gap: 3px; }
+  .history-count-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--text2);
+    flex-shrink: 0;
+  }
+  .history-del-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border2);
+    background: transparent;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .history-del-btn:hover { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
+  .history-empty {
+    text-align: center;
+    color: var(--text3);
+    padding: 40px;
+    font-size: 13px;
+  }
+  .history-empty .icon { font-size: 36px; margin-bottom: 10px; }
+
+  /* ─── Target Row Indicator ─── */
+  .target-indicator {
+    background: #fef9c3;
+    border: 1px solid #fde68a;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #92400e;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .target-indicator.show { display: flex; }
+
+  /* ─── Page count display ─── */
+  .page-count-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  .page-count-box .count-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* ─── Toast ─── */
+  .toast-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    background: var(--text);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    box-shadow: var(--shadow-md);
+    animation: toastIn .25s ease;
+    max-width: 280px;
+  }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+  @keyframes toastIn { from { opacity:0; transform: translateY(-10px) scale(.95); } to { opacity:1; transform:none; } }
+
+  /* ─── Highlight active row ─── */
+  .order-table tr.active-row td { background: #fef9c3 !important; }
+
+  /* ─── PDF status ─── */
+  .pdf-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .pdf-status.ok { background: #d1fae5; color: #065f46; }
+  .pdf-status.ng { background: #fee2e2; color: #991b1b; }
+  .pdf-status.loading { background: #fef3c7; color: #92400e; }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 600px) {
+    .main-wrap { padding: 10px 10px 40px; }
+    .card-body { padding: 10px; }
+    .order-table { font-size: 11px; }
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 10px 0; }
+  .label-small { font-size: 10px; color: var(--text3); }
+  .mono { font-family: 'DM Mono', monospace; }
+</style>
+</head>
+<body>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Header -->
+<header class="app-header">
+  <div>
+    <div class="app-logo">📦 <span>事務用品</span> 注文シート</div>
+    <div class="app-subtitle">ハセコーコミュニティ</div>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="backup-btns">
+    <button class="btn btn-secondary btn-sm" onclick="exportData()">⬇ データ保存</button>
+    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importFile').click()">⬆ データ読込</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</header>
+
+<!-- Type Toggle Bar -->
+<div class="type-toggle-bar" id="typeToggleBar">
+  <span class="type-toggle-label">経費区分：</span>
+  <div class="toggle-btns">
+    <button class="toggle-btn active-k" id="btnKanri" onclick="setType('kanri')">🏢 管理組合</button>
+    <button class="toggle-btn" id="btnKaisha" onclick="setType('kaisha')">🏬 会社経費</button>
+  </div>
+  <span class="type-badge badge-k" id="typeBadge">管理組合 → OrderSheet_v2.pdf</span>
+  <div class="header-spacer"></div>
+  <div id="pdfStatusK" class="pdf-status loading">⏳ PDF読込中...</div>
+  <div id="pdfStatusC" class="pdf-status loading">⏳ PDF読込中...</div>
+</div>
+
+<!-- Main -->
+<div class="main-wrap">
+  <!-- Left: Form -->
+  <div class="form-col">
+
+    <!-- 注文日 / 配送日 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="section-icon">📅</div>
+        <h3>注文日・配送指定日</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>注文日 <span class="req">★</span> <span class="field-name">ORD_Year/Month/Day</span></label>
+            <div class="date-grid">
+              <input type="text" id="ORD_Year" class="mono" placeholder="2026" maxlength="4">
+              <span class="date-sep">年</span>
+              <input type="text" id="ORD_Month" class="mono" placeholder="1" maxlength="2">
+              <span class="date-sep">月</span>
+              <input type="text" id="ORD_Day" class="mono" placeholder="1" maxlength="2">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>配送指定日（任意） <span class="field-name">DLV_Year/Month/Day</span></label>
+            <div class="date-grid">
+              <input type="text" id="DLV_Year" class="mono" placeholder="2026" maxlength="4">
+              <span class="date-sep">年</span>
+              <input type="text" id="DLV_Month" class="mono" placeholder="" maxlength="2">
+              <span class="date-sep">月</span>
+              <input type="text" id="DLV_Day" class="mono" placeholder="" maxlength="2">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 注文者情報 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="section-icon">👤</div>
+        <h3>FAX送信者様（注文者情報）</h3>
+        <div class="header-spacer"></div>
+        <button class="btn btn-secondary btn-sm" onclick="saveProfile()">💾 記憶</button>
+        <button class="btn btn-secondary btn-sm" onclick="loadProfile()">📂 呼出</button>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>ログインID <span class="req">★</span> <span class="field-name">ID_No</span></label>
+            <input type="text" id="ID_No" class="mono" placeholder="12345" maxlength="10">
+          </div>
+          <div class="form-group">
+            <label>ご登録名称 <span class="req">★</span> <span class="field-name">ID_Name</span></label>
+            <input type="text" id="ID_Name" placeholder="マンション名 / 事務室">
+          </div>
+          <div class="form-group">
+            <label>Maコード <span class="req">★</span> <span class="field-name">ID_Code</span></label>
+            <input type="text" id="ID_Code" class="mono" placeholder="12345678" maxlength="10">
+          </div>
+          <div class="form-group">
+            <label>管理員名 <span class="req">★</span> <span class="field-name">ID_Staff</span></label>
+            <input type="text" id="ID_Staff" placeholder="氏名">
+          </div>
+          <div class="form-group">
+            <label>電話番号 <span class="req">★</span> <span class="field-name">ID_Tel</span></label>
+            <input type="tel" id="ID_Tel" class="mono" placeholder="03-0000-0000">
+          </div>
+          <div class="form-group">
+            <label>勤務曜日・時間（任意） <span class="field-name">WORK_Time</span></label>
+            <input type="text" id="WORK_Time" placeholder="例：月水金 9:00〜17:00">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 担当者情報 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="section-icon">🏢</div>
+        <h3>担当者情報（長谷エコミュニティ）</h3>
+        <div class="header-spacer"></div>
+        <button class="btn btn-secondary btn-sm" onclick="saveStaff()">💾 記憶</button>
+        <button class="btn btn-secondary btn-sm" onclick="loadStaff()">📂 呼出</button>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>担当支店・部署 <span class="field-name">BRC_Name</span></label>
+            <input type="text" id="BRC_Name" placeholder="例：北関東支店">
+          </div>
+          <div class="form-group">
+            <label>フロント担当 <span class="field-name">BRC_Front</span></label>
+            <input type="text" id="BRC_Front" placeholder="担当者名">
+          </div>
+          <div class="form-group">
+            <label>電話番号 <span class="field-name">BRC_Tel</span></label>
+            <input type="tel" id="BRC_Tel" class="mono" placeholder="00-0000-0000">
+          </div>
+          <div class="form-group">
+            <label>FAX番号 <span class="field-name">BRC_Fax</span></label>
+            <input type="tel" id="BRC_Fax" class="mono" placeholder="00-0000-0000">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 注文商品 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="section-icon">🛒</div>
+        <h3>ご注文記入欄</h3>
+        <div class="header-spacer"></div>
+        <button class="btn btn-secondary btn-sm" onclick="openHistory(null)">📋 履歴から選ぶ</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearAllItems()">🗑 全クリア</button>
+      </div>
+      <div class="card-body">
+        <div class="target-indicator" id="targetIndicator">
+          📍 <span id="targetRowLabel">行を選択して履歴から商品を追加</span>
+          <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="clearTargetRow()">解除</button>
+        </div>
+        <div class="order-table-wrap">
+          <table class="order-table" id="orderTable">
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th colspan="3">★ お申込番号</th>
+                <th>★ 数量</th>
+                <th>★ 商品名</th>
+                <th>価格</th>
+                <th>履歴</th>
+                <th></th>
+              </tr>
+              <tr>
+                <th></th>
+                <th>前3桁</th>
+                <th>-</th>
+                <th>後4桁</th>
+                <th>[右詰め]</th>
+                <th></th>
+                <th>(任意)</th>
+                <th></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="orderBody">
+              <!-- Generated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="page-count-box">
+          <div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:2px;">送信枚数（PDF出力）</div>
+            <div style="font-size:11px;color:var(--text3);">明細数に応じて自動計算</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:20px;">
+            <div style="text-align:center;">
+              <div style="font-size:10px;color:var(--text3);">このシート</div>
+              <div class="count-val" id="pageNum">1</div>
+              <div style="font-size:10px;color:var(--text3);">枚目</div>
+            </div>
+            <div style="font-size:20px;color:var(--text3);">/</div>
+            <div style="text-align:center;">
+              <div style="font-size:10px;color:var(--text3);">総枚数</div>
+              <div class="count-val" id="totalPages">1</div>
+              <div style="font-size:10px;color:var(--text3);">枚</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /form-col -->
+
+  <!-- Right: Sidebar -->
+  <div class="sidebar">
+
+    <!-- サマリー -->
+    <div class="card">
+      <div class="card-header">
+        <div class="section-icon">📊</div>
+        <h3>入力サマリー</h3>
+      </div>
+      <div class="card-body">
+        <div class="info-summary" id="summaryBox">
+          <div class="info-line"><span class="info-key">経費区分</span><span class="info-val" id="sum-type">管理組合</span></div>
+          <div class="info-line"><span class="info-key">注文日</span><span class="info-val" id="sum-date">-</span></div>
+          <div class="info-line"><span class="info-key">マンション</span><span class="info-val" id="sum-name">-</span></div>
+          <div class="info-line"><span class="info-key">注文明細数</span><span class="info-val" id="sum-items">0 件</span></div>
+          <div class="info-line"><span class="info-key">合計金額（税別）</span><span class="info-val" id="sum-total">¥ -</span></div>
+          <div class="info-line"><span class="info-key">PDF出力枚数</span><span class="info-val" id="sum-pages">1 枚</span></div>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="downloadBtn" onclick="downloadPDF()">
+          ⬇ PDF作成・ダウンロード
+        </button>
+        <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px;" id="pdfFileName">
+          OrderSheet_v2.pdf に書き込み
+        </div>
+      </div>
+    </div>
+
+    <!-- 最近の注文 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="section-icon">🕐</div>
+        <h3>最近の注文（Top 5）</h3>
+        <div class="header-spacer"></div>
+        <button class="btn btn-secondary btn-sm" onclick="openHistory(null)">全て見る</button>
+      </div>
+      <div class="card-body" style="padding:8px;">
+        <div id="recentList">
+          <div class="history-empty"><div class="icon">📭</div><div>まだ注文履歴がありません</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ヘルプ -->
+    <div class="card">
+      <div class="card-header">
+        <div class="section-icon">💡</div>
+        <h3>操作ガイド</h3>
+      </div>
+      <div class="card-body">
+        <div style="font-size:12px;color:var(--text2);line-height:1.9;">
+          <div>📋 <b>履歴ボタン</b>：各行の📋から商品選択</div>
+          <div>📦 <b>並び順</b>：Σ経過日数×回数でスコアリング</div>
+          <div>💾 <b>自動記憶</b>：PDF作成時に履歴保存</div>
+          <div>⬇ <b>データ保存</b>：全データをJSONで書き出し</div>
+          <div>⬆ <b>データ読込</b>：バックアップから復元</div>
+          <div>🗑 <b>行クリア</b>：各行末の×ボタン</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div><!-- /main-wrap -->
+
+<!-- History Modal -->
+<div class="history-modal-overlay" id="historyOverlay" onclick="if(event.target===this)closeHistory()">
+  <div class="history-modal">
+    <div class="history-modal-header">
+      <div style="font-size:22px;">📦</div>
+      <h2>注文履歴から選ぶ</h2>
+      <div style="font-size:12px;color:var(--text3);margin-left:4px;" id="historyTargetLabel"></div>
+      <div class="header-spacer"></div>
+      <button class="btn btn-secondary btn-sm" onclick="closeHistory()">✕ 閉じる</button>
+    </div>
+    <div class="history-search">
+      <input type="text" id="historySearchInput" placeholder="🔍 商品番号・商品名で絞り込み..." oninput="renderHistory()" autofocus>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty"><div class="icon">📭</div><div>履歴がありません</div></div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);display:flex;gap:12px;">
+      <span>🏆 スコア = Σ経過日数 × 注文回数</span>
+      <span>古いほど・多いほど上位</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let currentType = 'kanri'; // 'kanri' | 'kaisha'
+let targetRow = null; // null or 0-indexed row
+let pdfBytesKanri = null;
+let pdfBytesKaisha = null;
+
+const PDF_FILE_KANRI  = 'OrderSheet_v2.pdf';
+const PDF_FILE_KAISHA = 'RequestSheet_v3.pdf';
+
+const STORAGE_KEYS = {
+  history: 'stationery_history_v1',
+  profile: 'stationery_profile_v1',
+  staff:   'stationery_staff_v1',
+  items:   'stationery_items_v1',
+};
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  setToday();
+  buildOrderRows();
+  loadProfile();
+  loadStaff();
+  loadItems();
+  renderRecentList();
+  updateSummary();
+  loadPDFs();
+});
+
+function setToday() {
+  const now = new Date();
+  document.getElementById('ORD_Year').value  = now.getFullYear();
+  document.getElementById('ORD_Month').value = now.getMonth() + 1;
+  document.getElementById('ORD_Day').value   = now.getDate();
+}
+
+// ═══════════════════════════════════════════════════
+// PDF LOADING
+// ═══════════════════════════════════════════════════
+async function loadPDFs() {
+  loadOnePDF(PDF_FILE_KANRI,  'K');
+  loadOnePDF(PDF_FILE_KAISHA, 'C');
+}
+
+async function loadOnePDF(filename, key) {
+  const el = document.getElementById('pdfStatus' + key);
+  try {
+    const res = await fetch(filename);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const buf = await res.arrayBuffer();
+    if (key === 'K') pdfBytesKanri  = buf;
+    else             pdfBytesKaisha = buf;
+    el.className = 'pdf-status ok';
+    el.textContent = '✅ ' + filename;
+  } catch(e) {
+    el.className = 'pdf-status ng';
+    el.textContent = '❌ ' + filename + ' 未取得';
+    console.warn('PDF load failed:', filename, e);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// TYPE TOGGLE
+// ═══════════════════════════════════════════════════
+function setType(type) {
+  currentType = type;
+  const bar   = document.getElementById('typeToggleBar');
+  const badge = document.getElementById('typeBadge');
+  const btnK  = document.getElementById('btnKanri');
+  const btnC  = document.getElementById('btnKaisha');
+  const fileLabel = document.getElementById('pdfFileName');
+  const dlBtn = document.getElementById('downloadBtn');
+
+  if (type === 'kanri') {
+    bar.style.borderBottomColor = 'var(--accent-k)';
+    badge.className = 'type-badge badge-k';
+    badge.textContent = '管理組合 → ' + PDF_FILE_KANRI;
+    btnK.className = 'toggle-btn active-k';
+    btnC.className = 'toggle-btn';
+    fileLabel.textContent = PDF_FILE_KANRI + ' に書き込み';
+    dlBtn.className = 'btn btn-primary btn-full';
+  } else {
+    bar.style.borderBottomColor = 'var(--accent-c)';
+    badge.className = 'type-badge badge-c';
+    badge.textContent = '会社経費 → ' + PDF_FILE_KAISHA;
+    btnK.className = 'toggle-btn';
+    btnC.className = 'toggle-btn active-c';
+    fileLabel.textContent = PDF_FILE_KAISHA + ' に書き込み';
+    dlBtn.className = 'btn btn-primary btn-full teal';
+  }
+  document.getElementById('sum-type').textContent = type === 'kanri' ? '管理組合' : '会社経費';
+  updateSummary();
+}
+
+// ═══════════════════════════════════════════════════
+// ORDER ROWS
+// ═══════════════════════════════════════════════════
+function buildOrderRows() {
+  const tbody = document.getElementById('orderBody');
+  tbody.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const tr = document.createElement('tr');
+    tr.id = 'row_' + i;
+    tr.innerHTML = `
+      <td class="row-num">${i}</td>
+      <td><div class="code-cell">
+        <input type="text" id="ODNO_1${pad2(i)}" class="code-part code-p1" maxlength="3" placeholder="000"
+          oninput="onItemChange()" onblur="zeroPad(this,3)">
+      </div></td>
+      <td class="code-sep" style="text-align:center;font-size:14px;color:var(--text3);">-</td>
+      <td><div class="code-cell">
+        <input type="text" id="ODNO_2${pad2(i)}" class="code-part code-p2" maxlength="4" placeholder="0000"
+          oninput="onItemChange()" onblur="zeroPad(this,4)">
+      </div></td>
+      <td>
+        <input type="number" id="ODSU_1${pad2(i)}" class="qty-input" min="1" placeholder="0"
+          oninput="onItemChange()">
+      </td>
+      <td>
+        <input type="text" id="ODNA_1${pad2(i)}" class="name-input" placeholder="商品名"
+          oninput="onItemChange()">
+      </td>
+      <td>
+        <input type="number" id="ODPR_1${pad2(i)}" class="price-input" min="0" placeholder=""
+          oninput="onItemChange()">
+      </td>
+      <td>
+        <button class="pick-btn" onclick="openHistory(${i})" title="履歴から選ぶ">📋</button>
+      </td>
+      <td>
+        <button class="clear-row-btn" onclick="clearRow(${i})" title="この行をクリア">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+function zeroPad(el, len) {
+  const v = el.value.trim();
+  if (!v) return;
+  el.value = v.replace(/\D/g,'').padStart(len, '0');
+}
+
+function clearRow(i) {
+  const s = pad2(i);
+  document.getElementById('ODNO_1' + s).value = '';
+  document.getElementById('ODNO_2' + s).value = '';
+  document.getElementById('ODSU_1' + s).value = '';
+  document.getElementById('ODNA_1' + s).value = '';
+  document.getElementById('ODPR_1' + s).value = '';
+  onItemChange();
+}
+
+function clearAllItems() {
+  for (let i = 1; i <= 10; i++) clearRow(i);
+}
+
+function onItemChange() {
+  saveItems();
+  updateSummary();
+  updatePageCount();
+}
+
+function updatePageCount() {
+  // Count filled items
+  let filled = 0;
+  for (let i = 1; i <= 10; i++) {
+    const s = pad2(i);
+    const code1 = document.getElementById('ODNO_1' + s).value.trim();
+    const code2 = document.getElementById('ODNO_2' + s).value.trim();
+    if (code1 || code2) filled++;
+  }
+  const pages = Math.max(1, Math.ceil(filled / 10)) || 1;
+  document.getElementById('pageNum').textContent = '1'; // always page 1 in this form
+  document.getElementById('totalPages').textContent = pages;
+}
+
+// ═══════════════════════════════════════════════════
+// SUMMARY
+// ═══════════════════════════════════════════════════
+function updateSummary() {
+  const y = document.getElementById('ORD_Year').value;
+  const m = document.getElementById('ORD_Month').value;
+  const d = document.getElementById('ORD_Day').value;
+  document.getElementById('sum-date').textContent = (y && m && d) ? `${y}年${m}月${d}日` : '-';
+  document.getElementById('sum-name').textContent = document.getElementById('ID_Name').value || '-';
+
+  let count = 0, total = 0, hasPrice = false;
+  for (let i = 1; i <= 10; i++) {
+    const s = pad2(i);
+    const code1 = document.getElementById('ODNO_1' + s).value.trim();
+    const code2 = document.getElementById('ODNO_2' + s).value.trim();
+    const qty  = parseInt(document.getElementById('ODSU_1' + s).value) || 0;
+    const pr   = parseFloat(document.getElementById('ODPR_1' + s).value) || 0;
+    if (code1 || code2) { count++; total += pr * (qty || 1); if(pr>0) hasPrice=true; }
+  }
+  document.getElementById('sum-items').textContent = count + ' 件';
+  document.getElementById('sum-total').textContent = hasPrice ? '¥ ' + total.toLocaleString() : '未入力';
+  const pages = Math.max(1, Math.ceil(count / 10));
+  document.getElementById('sum-pages').textContent = pages + ' 枚';
+}
+
+['ORD_Year','ORD_Month','ORD_Day','ID_Name'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateSummary);
+});
+
+// ═══════════════════════════════════════════════════
+// HISTORY  (localStorage)
+// ═══════════════════════════════════════════════════
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.history)) || []; }
+  catch(e) { return []; }
+}
+
+function saveHistory(hist) {
+  localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(hist));
+}
+
+/** スコア = Σ経過日数 × 注文回数 (高いほど上位) */
+function computeScore(product) {
+  const now = Date.now();
+  const entries = product.orders || [];
+  const n = entries.length;
+  if (!n) return 0;
+  const sumDays = entries.reduce((acc, o) => {
+    const days = Math.floor((now - new Date(o.date).getTime()) / 86400000);
+    return acc + days;
+  }, 0);
+  return sumDays * n;
+}
+
+function getSortedHistory(query) {
+  let hist = getHistory();
+  if (query) {
+    const q = query.toLowerCase();
+    hist = hist.filter(p =>
+      p.code.toLowerCase().includes(q) ||
+      p.name.toLowerCase().includes(q)
+    );
+  }
+  return hist.sort((a, b) => computeScore(b) - computeScore(a));
+}
+
+function addToHistory(item) {
+  const hist = getHistory();
+  const today = new Date().toISOString().slice(0,10);
+  const code = item.code1.padStart(3,'0') + '-' + item.code2.padStart(4,'0');
+  const idx = hist.findIndex(p => p.code === code);
+  if (idx >= 0) {
+    hist[idx].name = item.name;
+    hist[idx].price = item.price;
+    hist[idx].orders = hist[idx].orders || [];
+    hist[idx].orders.push({ date: today, qty: item.qty });
+  } else {
+    hist.push({
+      code,
+      code1: item.code1,
+      code2: item.code2,
+      name: item.name,
+      price: item.price,
+      orders: [{ date: today, qty: item.qty }]
+    });
+  }
+  saveHistory(hist);
+}
+
+// ═══════════════════════════════════════════════════
+// HISTORY MODAL
+// ═══════════════════════════════════════════════════
+function openHistory(rowIndex) {
+  targetRow = rowIndex;
+  const overlay = document.getElementById('historyOverlay');
+  overlay.classList.add('open');
+  document.getElementById('historySearchInput').value = '';
+  if (rowIndex !== null) {
+    document.getElementById('historyTargetLabel').textContent = `→ ${rowIndex}行目に挿入`;
+    document.getElementById('targetIndicator').classList.add('show');
+    document.getElementById('targetRowLabel').textContent = `${rowIndex}行目を選択中 — 履歴をクリックで挿入`;
+    // Highlight row
+    document.querySelectorAll('.order-table tr').forEach(r => r.classList.remove('active-row'));
+    const tr = document.getElementById('row_' + rowIndex);
+    if (tr) tr.classList.add('active-row');
+  } else {
+    document.getElementById('historyTargetLabel').textContent = '（挿入先を選んでください）';
+  }
+  setTimeout(() => document.getElementById('historySearchInput').focus(), 100);
+  renderHistory();
+}
+
+function closeHistory() {
+  document.getElementById('historyOverlay').classList.remove('open');
+  document.querySelectorAll('.order-table tr').forEach(r => r.classList.remove('active-row'));
+}
+
+function clearTargetRow() {
+  targetRow = null;
+  document.getElementById('targetIndicator').classList.remove('show');
+  document.querySelectorAll('.order-table tr').forEach(r => r.classList.remove('active-row'));
+}
+
+function renderHistory() {
+  const q = document.getElementById('historySearchInput').value.trim();
+  const sorted = getSortedHistory(q);
+  const container = document.getElementById('historyList');
+
+  if (!sorted.length) {
+    container.innerHTML = `<div class="history-empty"><div class="icon">🔍</div><div>${q ? '該当なし' : 'まだ注文履歴がありません'}</div></div>`;
+    return;
+  }
+
+  container.innerHTML = '';
+  sorted.forEach(product => {
+    const score = computeScore(product);
+    const n = (product.orders || []).length;
+    const lastDate = n ? (product.orders[n-1].date || '') : '';
+    const daysSinceLast = lastDate ? Math.floor((Date.now() - new Date(lastDate).getTime()) / 86400000) : '?';
+
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    div.innerHTML = `
+      <div class="history-score" title="スコア（高いほど上位）">${score.toLocaleString()}</div>
+      <div class="history-code">${product.code}</div>
+      <div class="history-info">
+        <div class="history-name">${product.name || '（商品名未登録）'}</div>
+        <div class="history-meta">
+          <span>📅 ${daysSinceLast}日前</span>
+          <span>🔁 ${n}回</span>
+          ${product.price ? `<span>¥${Number(product.price).toLocaleString()}</span>` : ''}
+        </div>
+      </div>
+      <div class="history-count-badge">${n}回注文</div>
+      <button class="history-del-btn" onclick="deleteHistory(event,'${product.code}')" title="履歴から削除">🗑</button>
+    `;
+    div.addEventListener('click', (e) => {
+      if (e.target.closest('.history-del-btn')) return;
+      selectHistoryItem(product);
+    });
+    container.appendChild(div);
+  });
+}
+
+function selectHistoryItem(product) {
+  // Find first empty row if no target
+  let row = targetRow;
+  if (row === null) {
+    for (let i = 1; i <= 10; i++) {
+      const s = pad2(i);
+      if (!document.getElementById('ODNO_1' + s).value.trim() &&
+          !document.getElementById('ODNO_2' + s).value.trim()) {
+        row = i;
+        break;
+      }
+    }
+  }
+  if (row === null) {
+    toast('空き行がありません（全10行が埋まっています）', 'error');
+    return;
+  }
+  const s = pad2(row);
+  document.getElementById('ODNO_1' + s).value = product.code1.padStart(3,'0');
+  document.getElementById('ODNO_2' + s).value = product.code2.padStart(4,'0');
+  document.getElementById('ODNA_1' + s).value = product.name || '';
+  document.getElementById('ODPR_1' + s).value = product.price || '';
+  document.getElementById('ODSU_1' + s).value = '';
+  onItemChange();
+  closeHistory();
+  clearTargetRow();
+  // Focus on qty
+  setTimeout(() => {
+    const qtyEl = document.getElementById('ODSU_1' + s);
+    if (qtyEl) { qtyEl.focus(); qtyEl.select(); }
+  }, 50);
+  toast(`${row}行目に「${product.name}」を挿入しました`, 'success');
+}
+
+function deleteHistory(e, code) {
+  e.stopPropagation();
+  if (!confirm(`「${code}」の履歴を削除しますか？`)) return;
+  const hist = getHistory().filter(p => p.code !== code);
+  saveHistory(hist);
+  renderHistory();
+  renderRecentList();
+  toast('履歴を削除しました');
+}
+
+function renderRecentList() {
+  const sorted = getSortedHistory('').slice(0, 5);
+  const container = document.getElementById('recentList');
+  if (!sorted.length) {
+    container.innerHTML = `<div class="history-empty" style="padding:16px;"><div class="icon">📭</div><div>まだありません</div></div>`;
+    return;
+  }
+  container.innerHTML = '';
+  sorted.forEach(product => {
+    const n = (product.orders || []).length;
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:6px 4px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);cursor:pointer;';
+    div.innerHTML = `
+      <span style="font-family:DM Mono,monospace;font-size:12px;font-weight:700;">${product.code}</span>
+      <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${product.name||''}</span>
+      <span style="font-size:10px;color:var(--text3);">${n}回</span>
+    `;
+    div.addEventListener('click', () => selectHistoryItem(product));
+    container.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// PROFILE / STAFF SAVE & LOAD
+// ═══════════════════════════════════════════════════
+const PROFILE_FIELDS = ['ID_No','ID_Name','ID_Code','ID_Staff','ID_Tel','WORK_Time'];
+const STAFF_FIELDS   = ['BRC_Name','BRC_Front','BRC_Tel','BRC_Fax'];
+
+function saveProfile() {
+  const data = {};
+  PROFILE_FIELDS.forEach(id => data[id] = document.getElementById(id).value);
+  localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(data));
+  toast('注文者情報を記憶しました', 'success');
+}
+function loadProfile() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEYS.profile));
+    if (!data) return;
+    PROFILE_FIELDS.forEach(id => {
+      if (data[id] !== undefined) document.getElementById(id).value = data[id];
+    });
+  } catch(e) {}
+}
+
+function saveStaff() {
+  const data = {};
+  STAFF_FIELDS.forEach(id => data[id] = document.getElementById(id).value);
+  localStorage.setItem(STORAGE_KEYS.staff, JSON.stringify(data));
+  toast('担当者情報を記憶しました', 'success');
+}
+function loadStaff() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEYS.staff));
+    if (!data) return;
+    STAFF_FIELDS.forEach(id => {
+      if (data[id] !== undefined) document.getElementById(id).value = data[id];
+    });
+  } catch(e) {}
+}
+
+function saveItems() {
+  const items = [];
+  for (let i = 1; i <= 10; i++) {
+    const s = pad2(i);
+    items.push({
+      code1: document.getElementById('ODNO_1' + s).value,
+      code2: document.getElementById('ODNO_2' + s).value,
+      qty:   document.getElementById('ODSU_1' + s).value,
+      name:  document.getElementById('ODNA_1' + s).value,
+      price: document.getElementById('ODPR_1' + s).value,
+    });
+  }
+  localStorage.setItem(STORAGE_KEYS.items, JSON.stringify(items));
+}
+
+function loadItems() {
+  try {
+    const items = JSON.parse(localStorage.getItem(STORAGE_KEYS.items));
+    if (!items) return;
+    items.forEach((item, idx) => {
+      const i = idx + 1;
+      const s = pad2(i);
+      document.getElementById('ODNO_1' + s).value = item.code1 || '';
+      document.getElementById('ODNO_2' + s).value = item.code2 || '';
+      document.getElementById('ODSU_1' + s).value = item.qty   || '';
+      document.getElementById('ODNA_1' + s).value = item.name  || '';
+      document.getElementById('ODPR_1' + s).value = item.price || '';
+    });
+    updateSummary();
+    updatePageCount();
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════════════
+function exportData() {
+  const profile = JSON.parse(localStorage.getItem(STORAGE_KEYS.profile) || '{}');
+  const staff   = JSON.parse(localStorage.getItem(STORAGE_KEYS.staff)   || '{}');
+  const history = getHistory();
+  const items   = JSON.parse(localStorage.getItem(STORAGE_KEYS.items)   || '[]');
+  const data = { profile, staff, history, items, exported: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'stationery_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('バックアップを保存しました', 'success');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.profile) localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(data.profile));
+      if (data.staff)   localStorage.setItem(STORAGE_KEYS.staff,   JSON.stringify(data.staff));
+      if (data.history) saveHistory(data.history);
+      if (data.items)   localStorage.setItem(STORAGE_KEYS.items,   JSON.stringify(data.items));
+      loadProfile();
+      loadStaff();
+      loadItems();
+      renderRecentList();
+      updateSummary();
+      toast('データを読み込みました ✅', 'success');
+    } catch(err) {
+      toast('読み込み失敗：JSONファイルを確認してください', 'error');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════
+// PDF GENERATION
+// ═══════════════════════════════════════════════════
+async function downloadPDF() {
+  const btn = document.getElementById('downloadBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 作成中...';
+  try {
+    await generateAndDownload();
+  } catch(err) {
+    console.error(err);
+    toast('PDF作成エラー：' + err.message, 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '⬇ PDF作成・ダウンロード';
+}
+
+function getFormData() {
+  const g = (id) => document.getElementById(id)?.value?.trim() || '';
+
+  // Page / total
+  let filledCount = 0;
+  for (let i = 1; i <= 10; i++) {
+    const s = pad2(i);
+    if (g('ODNO_1' + s) || g('ODNO_2' + s)) filledCount++;
+  }
+  const totalPages = Math.max(1, Math.ceil(filledCount / 10));
+
+  const data = {
+    ORD_Year:  g('ORD_Year'),
+    ORD_Month: g('ORD_Month'),
+    ORD_Day:   g('ORD_Day'),
+    DLV_Year:  g('DLV_Year'),
+    DLV_Month: g('DLV_Month'),
+    DLV_Day:   g('DLV_Day'),
+    NUM_Page:  '1',
+    NUM_All:   String(totalPages),
+    ID_No:    g('ID_No'),
+    ID_Name:  g('ID_Name'),
+    ID_Code:  g('ID_Code'),
+    ID_Staff: g('ID_Staff'),
+    ID_Tel:   g('ID_Tel'),
+    WORK_Time:g('WORK_Time'),
+    BRC_Name: g('BRC_Name'),
+    BRC_Front:g('BRC_Front'),
+    BRC_Tel:  g('BRC_Tel'),
+    BRC_Fax:  g('BRC_Fax'),
+  };
+  for (let i = 1; i <= 10; i++) {
+    const s = pad2(i);
+    const c1 = g('ODNO_1' + s);
+    const c2 = g('ODNO_2' + s);
+    data['ODNO_1' + s] = c1 ? c1.padStart(3,'0') : '';
+    data['ODNO_2' + s] = c2 ? c2.padStart(4,'0') : '';
+    data['ODSU_1' + s] = g('ODSU_1' + s);
+    data['ODNA_1' + s] = g('ODNA_1' + s);
+    data['ODPR_1' + s] = g('ODPR_1' + s);
+  }
+  return data;
+}
+
+async function fillPdfPage(templateBytes, data, pageNum, totalPages) {
+  const { PDFDocument } = PDFLib;
+  const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
+  const form = pdfDoc.getForm();
+
+  // NeedAppearances: true (既存フォントを使用)
+  form.acroForm.dict.set(PDFLib.PDFName.of('NeedAppearances'), PDFLib.PDFBool.True);
+
+  const setField = (name, val) => {
+    try {
+      const field = form.getTextField(name);
+      field.setText(val || '');
+    } catch(e) {
+      // field not found — skip silently
+    }
+  };
+
+  // Update page number for this page
+  const pageData = { ...data, NUM_Page: String(pageNum), NUM_All: String(totalPages) };
+
+  Object.keys(pageData).forEach(key => setField(key, pageData[key]));
+
+  return await pdfDoc.save({ updateFieldAppearances: false });
+}
+
+async function generateAndDownload() {
+  const data = getFormData();
+  const templateBytes = currentType === 'kanri' ? pdfBytesKanri : pdfBytesKaisha;
+
+  if (!templateBytes) {
+    toast('PDFテンプレートが読み込まれていません。ページ再読み込みをお試しください。', 'error');
+    return;
+  }
+
+  // Validate
+  if (!data.ORD_Year || !data.ORD_Month || !data.ORD_Day) {
+    toast('注文日を入力してください', 'error');
+    return;
+  }
+
+  // Count items needing output
+  let allItems = [];
+  for (let i = 1; i <= 10; i++) {
+    const s = pad2(i);
+    allItems.push({
+      code1: data['ODNO_1' + s],
+      code2: data['ODNO_2' + s],
+      qty:   data['ODSU_1' + s],
+      name:  data['ODNA_1' + s],
+      price: data['ODPR_1' + s],
+    });
+  }
+  const filledItems = allItems.filter(it => it.code1 || it.code2);
+  const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
+
+  // Generate each page
+  const { PDFDocument } = PDFLib;
+  const mergedDoc = await PDFDocument.create();
+
+  for (let page = 0; page < totalPages; page++) {
+    const pageItems = filledItems.slice(page * 10, (page + 1) * 10);
+    // Build per-page data
+    const pageData = { ...data };
+    for (let i = 1; i <= 10; i++) {
+      const s = pad2(i);
+      const item = pageItems[i - 1] || {};
+      pageData['ODNO_1' + s] = item.code1 ? item.code1.padStart(3,'0') : '';
+      pageData['ODNO_2' + s] = item.code2 ? item.code2.padStart(4,'0') : '';
+      pageData['ODSU_1' + s] = item.qty   || '';
+      pageData['ODNA_1' + s] = item.name  || '';
+      pageData['ODPR_1' + s] = item.price || '';
+    }
+
+    const filledBytes = await fillPdfPage(templateBytes, pageData, page + 1, totalPages);
+    const filledDoc = await PDFDocument.load(filledBytes);
+    const [copiedPage] = await mergedDoc.copyPages(filledDoc, [0]);
+    mergedDoc.addPage(copiedPage);
+  }
+
+  const finalBytes = await mergedDoc.save();
+  const blob = new Blob([finalBytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const fname = currentType === 'kanri' ? PDF_FILE_KANRI : PDF_FILE_KAISHA;
+  a.download = fname.replace('.pdf', '') + '_' + data.ORD_Year + data.ORD_Month.padStart(2,'0') + data.ORD_Day.padStart(2,'0') + '.pdf';
+  a.click();
+  URL.revokeObjectURL(url);
+
+  // Save history
+  for (const item of filledItems) {
+    if (item.code1 || item.code2) {
+      addToHistory(item);
+    }
+  }
+  renderRecentList();
+
+  // Clear items after download? (keep for now, user can clear manually)
+  toast('PDFを作成しました ✅', 'success');
+}
+
+// ═══════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════
+function toast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+</body>
+</html>
