@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<!-- Programmed by Claude (Anthropic) - 2025 -->
+<!-- Programmed by Claude (Anthropic) - 2026 -->
+<!-- Directed by A.I. -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -23,7 +24,7 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 header{background:var(--accent);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.15);position:sticky;top:0;z-index:100;}
-header h1{font-size:1.05rem;font-weight:700;letter-spacing:.05em;flex:1;}
+header h1{font-size:1.15rem;font-weight:700;letter-spacing:.05em;flex:1;}
 .status-dot{width:8px;height:8px;border-radius:50%;background:#7fd17f;box-shadow:0 0 0 2px rgba(127,209,127,.3);}
 .container{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
 
@@ -48,6 +49,7 @@ select:focus{border-color:var(--accent);}
 
 /* セクションカード共通 */
 .section-card{background:var(--surface);border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);overflow:hidden;}
+.section-body.required-alert-body,.meter-grid.required-alert-body{background:#fff8f8;border-top:2px solid #e74c3c;}
 .section-header{padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid var(--border);background:var(--surface2);}
 .section-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--accent);color:#fff;}
 .section-title{font-size:.93rem;font-weight:700;color:var(--accent);flex:1;}
@@ -99,12 +101,15 @@ textarea.fi{resize:vertical;min-height:36px;}
 .circle-btn.selected{border-color:var(--accent);background:var(--accent2);color:var(--accent);}
 .circle-btn.selected.danger{border-color:#c0392b;background:#fff0f0;color:#c0392b;}
 .circle-note{flex:1;}
+.key-row{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;}
+.key-label{font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;flex-shrink:0;}
+.key-note{flex:1;min-width:60px;}
 
 /* メーターセクション */
 .meter-grid{padding:14px 18px;}
 .meter-date-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .meter-date-label{font-size:.78rem;font-weight:700;color:var(--text2);white-space:nowrap;}
-.meter-date-input{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:.88rem;width:110px;max-width:110px;background:var(--surface);color:var(--text);outline:none;text-align:center;}
+.meter-date-input{border:1.5px solid var(--border);border-radius:6px;padding:7px 8px;font-size:.85rem;background:var(--surface);color:var(--text);outline:none;text-align:center;}
 .meter-date-input:focus{border-color:var(--accent);}
 .meter-date-range{font-size:.75rem;color:var(--text2);background:var(--surface2);border-radius:5px;padding:4px 10px;}
 .col-headers{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-bottom:5px;padding:0 0 5px;border-bottom:1px solid var(--border);}
@@ -164,6 +169,16 @@ textarea.fi{resize:vertical;min-height:36px;}
 .del-btn{flex-shrink:0;border:1px solid #f5c0bc;border-radius:5px;background:#fff0f0;color:#c0392b;font-size:.72rem;font-weight:700;padding:3px 8px;cursor:pointer;font-family:inherit;line-height:1;transition:background .1s;}
 .del-btn:hover{background:#ffe0e0;}
 
+/* 送信エリア */
+.send-area{padding:16px 18px;border-top:1px solid var(--border);}
+.send-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+.send-label{font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;}
+.send-input{flex:1;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:.88rem;min-width:0;font-family:inherit;}
+.send-input:focus{border-color:var(--accent);outline:none;}
+.btn-send{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:11px 20px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:opacity .15s;}
+.btn-send:hover{opacity:.88;}
+.btn-send:disabled{opacity:.5;cursor:not-allowed;}
+
 /* seal */
 .seal-area{display:flex;gap:12px;padding:14px 18px;}
 
@@ -218,6 +233,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 .sh-eve .section-title{color:#f39c12;}
 .sh-key .section-icon{background:#7f8c8d;}
 .section-header.sh-key.required-alert{background:#fff0f0 !important;}
+.sh-key.required-alert ~ .section-body,.sh-key.required-alert + .section-body{outline:2px solid #e74c3c;outline-offset:-2px;}
 .sh-key .section-title{color:#7f8c8d;}
 .sh-elec .section-header{background:var(--elec-bg);}
 .section-header.sh-elec.required-alert{background:#fff0f0 !important;}
@@ -246,7 +262,7 @@ textarea.fi{resize:vertical;min-height:36px;}
 
 /* レスポンシブ */
 /* date inputの透明化はJSで制御 */
-input[type="date"].date-input.empty{
+input[type="date"].meter-date-input.empty,input[type="date"].date-input.empty{
   color: transparent !important;
 }
 input[type="date"].date-input.empty::-webkit-datetime-edit,
@@ -265,12 +281,18 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   .form-table td.td-time{width:100px;min-width:100px;}
   .form-table td.td-room{width:85px;min-width:85px;}
   .form-table td.row-num{width:28px;min-width:28px;}
+  input[type="date"].meter-date-input{width:115px !important;max-width:115px !important;}
+  input[type="date"]#KEY_Check{width:115px !important;max-width:115px !important;}
 }
 @media(max-width:600px){
   .month-card{flex-direction:column;align-items:flex-start;}
   .month-info{margin-left:0;text-align:left;}
   .col-headers,.meter-row,.usage-row{grid-template-columns:38px repeat(3,1fr);gap:3px;}
   .meter-input{padding:7px 3px;font-size:1rem;}
+  input[type="date"].meter-date-input{width:140px !important;max-width:140px !important;height:38px !important;padding:7px 8px !important;box-sizing:border-box !important;}
+  input[type="date"]#KEY_Check{width:140px !important;max-width:140px !important;height:38px !important;padding:7px 8px !important;box-sizing:border-box !important;}
+  .key-row{flex-wrap:wrap;}
+  .key-note{width:calc(100% - 68px);flex-basis:calc(100% - 68px);margin-left:68px;box-sizing:border-box;}
   /* 駐車場などは常に2列 fixed-gridはスマホでも2列維持 */
   .btn{padding:10px 12px;font-size:.82rem;}
   select{font-size:.85rem;padding:6px 8px;}
@@ -362,11 +384,11 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v6.05</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.25</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
-    <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">◀</button>
-    <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.85rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
-    <button onclick="changeMonthBy(1)" style="background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-size:.9rem;font-weight:700;padding:4px 8px;cursor:pointer;">▶</button>
+    <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
+    <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
+    <button onclick="changeMonthBy(1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">▶</button>
   </div>
 </header>
 <div id="toast" class="toast"></div>
@@ -392,7 +414,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     <label style="font-size:.85rem;font-weight:700;color:var(--text2);">対象年月</label>
     <div style="display:flex;align-items:center;gap:6px;">
       <button class="btn-month-nav" onclick="changeMonthBy(-1)">◀</button>
-      <select id="sel-yearmonth" style="font-size:1rem;font-weight:700;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;flex:1;min-width:0;"></select>
+      <select id="sel-yearmonth" style="font-size:1rem;font-weight:700;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;width:auto;height:40px;box-sizing:border-box;-webkit-appearance:auto;appearance:auto;"></select>
       <button class="btn-month-nav" onclick="changeMonthBy(1)">▶</button>
     </div>
   </div>
@@ -508,24 +530,24 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <div class="section-body" style="display:flex;flex-direction:column;gap:14px;">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;">確認日</span>
-      <input class="fi date-input" type="date" id="KEY_Check" style="width:175px;" onchange="checkRequiredFields()">
+      <input class="fi date-input" type="date" id="KEY_Check" onchange="checkRequiredFields()">
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;">鍵の状態</span>
+      <div class="key-row">
+        <span class="key-label">鍵の状態</span>
         <div class="circle-wrap">
           <button class="circle-btn" id="KEY_Yes_btn" onclick="toggleCircle('KEY','Yes')">異常あり ○</button>
           <button class="circle-btn" id="KEY_No_btn"  onclick="toggleCircle('KEY','No')">異常なし ○</button>
         </div>
-        <input class="fi circle-note" type="text" id="KEY_Note" placeholder="備考">
+        <input class="fi circle-note key-note" type="text" id="KEY_Note" placeholder="備考">
       </div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;">鍵の変更</span>
+      <div class="key-row">
+        <span class="key-label">鍵の変更</span>
         <div class="circle-wrap">
           <button class="circle-btn" id="CHANGE_Yes_btn" onclick="toggleCircle('CHANGE','Yes')">変更あり ○</button>
           <button class="circle-btn" id="CHANGE_No_btn"  onclick="toggleCircle('CHANGE','No')">変更なし ○</button>
         </div>
-        <input class="fi circle-note" type="text" id="CHANGE_Note" placeholder="備考">
+        <input class="fi circle-note key-note" type="text" id="CHANGE_Note" placeholder="備考">
       </div>
     </div>
 
@@ -540,11 +562,13 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     <button class="btn-past" onclick="openPastModal('Elec')">📅 過去</button>
   </div>
   <div class="meter-grid">
-    <div class="meter-date-row">
-      <span class="meter-date-label">当月検針日</span>
-      <input class="meter-date-input" type="date" id="Elec_DateT"
+    <div class="meter-date-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="meter-date-label">当月検針日</span>
+        <span class="meter-date-range" id="Elec_DateRange">─</span>
+      </div>
+      <input class="meter-date-input date-input" type="date" id="Elec_DateT"
         onfocus="autoFillToday(this)" onchange="updateMeterDateRange('Elec')">
-      <span class="meter-date-range" id="Elec_DateRange">─</span>
     </div>
     <div class="col-headers">
       <div class="col-header"></div>
@@ -564,11 +588,13 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     <button class="btn-past" onclick="openPastModal('Water')">📅 過去</button>
   </div>
   <div class="meter-grid">
-    <div class="meter-date-row">
-      <span class="meter-date-label">当月検針日</span>
-      <input class="meter-date-input" type="date" id="Water_DateT"
+    <div class="meter-date-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="meter-date-label">当月検針日</span>
+        <span class="meter-date-range" id="Water_DateRange">─</span>
+      </div>
+      <input class="meter-date-input date-input" type="date" id="Water_DateT"
         onfocus="autoFillToday(this)" onchange="updateMeterDateRange('Water')">
-      <span class="meter-date-range" id="Water_DateRange">─</span>
     </div>
     <div class="col-headers">
       <div class="col-header"></div>
@@ -670,6 +696,26 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <div class="action-row">
     <button class="btn btn-save"    onclick="saveData()">💾 このデータを保存</button>
     <button class="btn btn-primary" onclick="downloadPDF()">📄 PDFダウンロード</button>
+  </div>
+
+  <!-- 送信エリア -->
+  <div class="send-area">
+    <div class="send-row" style="font-size:.78rem;color:var(--text2);">
+      📨 送信先：フロントメールアドレス欄のアドレスに送信します
+    </div>
+    <div class="send-row">
+      <span class="send-label" style="width:auto;white-space:nowrap;font-size:.78rem;">相手に見える（任意）</span>
+      <input class="send-input" type="email" id="send-cc" placeholder="CC（自分のアドレスなど）">
+    </div>
+    <div class="send-row">
+      <span class="send-label" style="width:auto;white-space:nowrap;font-size:.78rem;">相手に見えない（任意）</span>
+      <input class="send-input" type="email" id="send-bcc" placeholder="BCC（自分のアドレスなど）">
+    </div>
+    <div class="send-row" style="justify-content:flex-end;">
+      <button class="btn-send" id="btn-send" onclick="sendPDF()">
+        <span>📨</span> PDFを送信
+      </button>
+    </div>
   </div>
   <div class="action-row">
     <button class="btn btn-outline" onclick="exportJSON()">⬇️ データを書き出し</button>
@@ -839,10 +885,13 @@ function init(){
     else { el.classList.remove('empty'); }
   }
   function initDateInputEmpty(){
-    document.querySelectorAll('input[type="date"].date-input').forEach(el=>{
+    document.querySelectorAll('input[type="date"].date-input, input[type="date"].meter-date-input').forEach(el=>{
       updateDateInputEmpty(el);
-      el.addEventListener('change', ()=>updateDateInputEmpty(el));
-      el.addEventListener('blur', ()=>updateDateInputEmpty(el));
+      if(!el._emptyListenerAdded){
+        el.addEventListener('change', ()=>updateDateInputEmpty(el));
+        el.addEventListener('blur', ()=>updateDateInputEmpty(el));
+        el._emptyListenerAdded = true;
+      }
     });
   }
   setTimeout(initDateInputEmpty, 200);
@@ -987,39 +1036,39 @@ function onDatePickDay(el, containerId, rowIdx, maxCount){
 
 // 必須項目チェック（未入力時にセクションヘッダーを赤くする）
 function checkRequiredFields(){
+  // section-cardにrequired-cardクラスを付けてsection-bodyを赤枠に
+  const toggle = (headerSel, isAlert) => {
+    const header = document.querySelector(headerSel);
+    if(!header) return;
+    header.classList.toggle('required-alert', isAlert);
+    const card = header.closest('.section-card');
+    if(card){
+      const body = card.querySelector('.section-body, .meter-grid');
+      if(body) body.classList.toggle('required-alert-body', isAlert);
+    }
+  };
+
   // ① 鍵確認日
   const keyCheck = document.getElementById('KEY_Check');
-  const keyHeader = document.querySelector('.sh-key');
-  if(keyHeader){
-    keyHeader.classList.toggle('required-alert', !!(keyCheck && !keyCheck.value));
-  }
+  toggle('.sh-key', !!(keyCheck && !keyCheck.value));
 
-  // ② 電気メーター（4項目のうち1つでも入力があればOK）
-  const elecHeader = document.querySelector('.sh-elec');
-  if(elecHeader){
-    const hasElec = [1,2,3,4].some(i=>{
-      const el = document.getElementById(`Elec_T${i}`);
-      return el && el.value.trim()!=='' && el.value!=='0';
-    });
-    elecHeader.classList.toggle('required-alert', !hasElec);
-  }
+  // ② 電気メーター
+  const hasElec = [1,2,3,4].some(i=>{
+    const el = document.getElementById(`Elec_T${i}`);
+    return el && el.value.trim()!=='' && el.value!=='0';
+  });
+  toggle('.sh-elec', !hasElec);
 
-  // ② 水道メーター（4項目のうち1つでも入力があればOK）
-  const waterHeader = document.querySelector('.sh-water');
-  if(waterHeader){
-    const hasWater = [1,2,3,4].some(i=>{
-      const el = document.getElementById(`Water_T${i}`);
-      return el && el.value.trim()!=='' && el.value!=='0';
-    });
-    waterHeader.classList.toggle('required-alert', !hasWater);
-  }
+  // ② 水道メーター
+  const hasWater = [1,2,3,4].some(i=>{
+    const el = document.getElementById(`Water_T${i}`);
+    return el && el.value.trim()!=='' && el.value!=='0';
+  });
+  toggle('.sh-water', !hasWater);
 
   // ③ マンション名
   const maName = document.getElementById('Ma_Name');
-  const fixedHeader = document.querySelector('.sh-fixed');
-  if(fixedHeader){
-    fixedHeader.classList.toggle('required-alert', !!(maName && !maName.value.trim()));
-  }
+  toggle('.sh-fixed', !!(maName && !maName.value.trim()));
 }
 
 // 駐車場・バイク・自転車：利用台数 > 総数 で赤表示
@@ -1397,7 +1446,13 @@ function loadCurrentMonth(){
   }
 
   refreshDataList();
-  setTimeout(()=>{ if(typeof initDateInputEmpty==="function") initDateInputEmpty(); }, 300);
+  // データ読み込み完了後にemptyクラスを更新（少し遅らせて確実にvalueがセットされた後に実行）
+  setTimeout(()=>{
+    document.querySelectorAll('input[type="date"]').forEach(el=>{
+      if(el.value){ el.classList.remove('empty'); }
+      else { el.classList.add('empty'); }
+    });
+  }, 50);
 }
 
 // ============================================================
@@ -1619,6 +1674,23 @@ async function downloadPDF(){
     if(typeof fontkit==='undefined'){showBanner('fontkitの読み込みに失敗しています','error');return;}
 
     showBanner('PDF生成中...','saved',10000);
+    const savedBytes = await generatePDFBytes();
+    const blob=new Blob([savedBytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
+    a.click(); URL.revokeObjectURL(url);
+    showBanner('PDFをダウンロードしました','saved');
+  }catch(err){
+    console.error(err);
+    showBanner(`エラー: ${err.message}`,'error');
+  }
+}
+
+async function downloadPDF_OLD(){
+  try{
+    showBanner('PDF生成中...','saved',10000);
 
     const [pdfResp, fontResp] = await Promise.all([
       fetch('Report_M.pdf', {cache: 'no-store'}),
@@ -1748,6 +1820,7 @@ async function downloadPDF(){
 
         // Printフラグ確実ON
         annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
+
         // フォントサイズをDAから抽出（例：/MSPGothic 10.5 Tf → 10.5）
         const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
         const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
@@ -1774,6 +1847,7 @@ async function downloadPDF(){
               field.setAlignment(PDFLib.TextAlignment.Center);
             }
             field.updateAppearances(useFont);
+
           } catch(e){
             console.warn('AP生成スキップ:', name, e.message);
           }
@@ -1866,6 +1940,11 @@ async function downloadPDF(){
     }
 
     // AcroForm・Annotsは削除しない（削除すると値も消えるため）
+
+    // フォームをフラット化（編集不可・文字化け解消）
+    try {
+      form.flatten();
+    } catch(e){ console.warn('flatten失敗:', e); }
 
     // ダウンロード
     const savedBytes=await pdfDoc.save();
@@ -2087,6 +2166,271 @@ function savePastData(){
 document.getElementById('past-modal').addEventListener('click', function(e){
   if(e.target === this) closePastModal();
 });
+
+// ============================================================
+// PDF送信
+// ============================================================
+async function sendPDF(){
+  const ccEl  = document.getElementById('send-cc');
+  const bccEl = document.getElementById('send-bcc');
+  const btn   = document.getElementById('btn-send');
+
+  // フロントメールアドレスを送信先に使用
+  const frontAdd = document.getElementById('Front_Add')?.value?.trim() || '';
+  if(!frontAdd){
+    showBanner('フロントメールアドレスが未入力です。規定値欄に入力してください','error');
+    document.getElementById('Front_Add')?.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  showBanner('📄 PDF作成中...','saved',30000);
+
+  try {
+    // PDFを生成（downloadPDFと同じ処理）
+    const pdfBytes = await generatePDFBytes();
+
+    // Base64に変換
+    const binary = Array.from(new Uint8Array(pdfBytes))
+      .map(b=>String.fromCharCode(b)).join('');
+    const base64 = btoa(binary);
+
+    // 件名：マンションコード-管理業務月報◯年◯月
+    const macd = document.getElementById('MaCD')?.value || '';
+    const subject = `${macd}-管理業務月報${currentADYear}年${currentMonth}月`;
+
+    // ファイル名
+    const filename = `管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
+
+    // FormDataで送信
+    const fd = new FormData();
+    fd.append('to',         frontAdd);
+    fd.append('cc',         ccEl.value.trim());
+    fd.append('bcc',        bccEl.value.trim());
+    fd.append('subject',    subject);
+    fd.append('body',       `${subject}\nPDFファイルを添付いたしました。\nご確認よろしくお願いいたします。\n\n─────────────────────────\nこのメールは送信専用アドレスから自動送信されています。\nご返信いただいてもお答えできませんのでご了承ください。\nなお、送信履歴はサーバーには保存されません。\n─────────────────────────AI`);
+    fd.append('filename',   filename);
+    fd.append('pdf_base64', base64);
+
+    const resp = await fetch('https://aidirector.shop/sendmail.php', {
+      method: 'POST',
+      body: fd,
+    });
+    const result = await resp.json();
+
+    if(result.success){
+      showBanner('✉️ 送信完了！フロントアドレスにPDFを送信しました','saved',5000);
+    } else {
+      showBanner(`送信失敗: ${result.message}`,'error');
+    }
+  } catch(e){
+    console.error(e);
+    showBanner(`エラー: ${e.message}`,'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// PDF生成（バイト列を返す）
+async function generatePDFBytes(){
+  const [pdfResp, fontResp] = await Promise.all([
+    fetch('Report_M.pdf', {cache: 'no-store'}),
+    fetch('ipaexg.ttf'),
+  ]);
+  if(!pdfResp.ok)  throw new Error('Report_M.pdf が見つかりません');
+  if(!fontResp.ok) throw new Error('ipaexg.ttf が見つかりません');
+  const [pdfBuf, fontBuf] = await Promise.all([
+    pdfResp.arrayBuffer(),
+    fontResp.arrayBuffer(),
+  ]);
+
+  const {PDFDocument, PDFName, PDFHexString, PDFString} = PDFLib;
+  const pdfDoc = await PDFDocument.load(pdfBuf);
+  pdfDoc.registerFontkit(fontkit);
+  const ipaFont = await pdfDoc.embedFont(fontBuf);
+  const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+  const form = pdfDoc.getForm();
+
+  // AcroFormのDRにipaFontを登録
+  try {
+    const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+    if(acroFormRef){
+      const acroForm = pdfDoc.context.lookup(acroFormRef);
+      const dr = acroForm ? acroForm.lookup(PDFName.of('DR')) : null;
+      const fontDict = dr ? dr.lookup(PDFName.of('Font')) : null;
+      if(fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
+      if(acroForm) acroForm.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+    }
+  } catch(e){}
+
+  // fieldMapを構築
+  const fieldMap = new Map();
+  const collectFields = (arr) => {
+    if(!arr) return;
+    for(let i=0; i<arr.size(); i++){
+      try {
+        const ref = arr.get(i);
+        const obj = pdfDoc.context.lookup(ref);
+        if(!obj) continue;
+        const t = obj.get(PDFName.of('T'));
+        if(t){
+          let name = '';
+          try { name = t.decodeText(); } catch(e1){
+            try { name = t.value; } catch(e2){ name = String(t); }
+          }
+          name = name.replace(/^[(]+|[)]+$/g,'').trim();
+          const daObj = obj.get(PDFName.of('DA'));
+          let daStr = '';
+          if(daObj){
+            try { daStr = daObj.decodeText(); } catch(e1){
+              try { daStr = daObj.value || ''; } catch(e2){
+                daStr = String(daObj).replace(/^[(]+|[)]+$/g,'');
+              }
+            }
+            daStr = daStr.replace(/^[(]+|[)]+$/g,'').trim();
+          }
+          if(name) fieldMap.set(name, {obj, da: daStr});
+        }
+        const kids = obj.get(PDFName.of('Kids'));
+        if(kids) collectFields(pdfDoc.context.lookup(kids));
+      } catch(e){}
+    }
+  };
+  try {
+    const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+    const acroForm = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
+    const fieldsRef = acroForm ? acroForm.get(PDFName.of('Fields')) : null;
+    const fieldsArr = fieldsRef ? pdfDoc.context.lookup(fieldsRef) : null;
+    if(fieldsArr) collectFields(fieldsArr);
+  } catch(e){}
+
+  const numericFields = new Set([
+    'R_Year','R_Month','TOTAL',
+    'Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL',
+    ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+      `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+    ]))
+  ]);
+  const centerFields = new Set([
+    'R_Year','R_Month',
+    ...['Rec','Res','Vis','Ins','Rep','Acc','Eve'].flatMap(p=>{
+      const counts={'Rec':7,'Res':2,'Vis':5,'Ins':8,'Rep':3,'Acc':2,'Eve':4};
+      return [...Array(counts[p]||0)].flatMap((_,i)=>[
+        `${p}_D${i+1}`,`${p}_R${i+1}`,`${p}_T${i+1}`,`${p}_P${i+1}`
+      ]);
+    }),
+    'KEY_Check',
+    ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+      `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+    ])),
+    'Elec_DS','Elec_DE','Water_DS','Water_DE'
+  ]);
+
+  const f = (name, val) => {
+    try {
+      const str = String(val || '');
+      const entry = fieldMap.get(name);
+      if(!entry) return;
+      const annot = entry.obj;
+      const origDAStr = entry.da || '';
+      annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
+      const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
+      const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
+      const fontName = numericFields.has(name) ? 'Helvetica' : 'IPAexGothic';
+      const newDA = `/${fontName} ${fontSize} Tf 0 g`;
+      annot.set(PDFName.of('DA'), PDFString.of(newDA));
+      annot.delete(PDFName.of('AP'));
+      if(str !== ''){
+        let hex = 'FEFF';
+        for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
+        annot.set(PDFName.of('V'), PDFHexString.of(hex));
+        try {
+          const field = form.getTextField(name);
+          const useFont = numericFields.has(name) ? helveticaFont : ipaFont;
+          if(centerFields.has(name)) field.setAlignment(PDFLib.TextAlignment.Center);
+          field.updateAppearances(useFont);
+        } catch(e){ console.warn('AP生成スキップ:', name, e.message); }
+      }
+    } catch(e){ console.warn(`field ${name}:`, e); }
+  };
+
+  // 以下はdownloadPDFと同じフィールド書き込み処理
+  f('R_Year', currentADYear);
+  f('R_Month', currentMonth);
+  const allFields=[
+    ...['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].flatMap(p=>Array.from({length:7},(_,i)=>`${p}${i+1}`)),
+    ...['Res_D','Res_R','Res_T'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+    ...['Vis_D','Vis_T','Vis_V','Vis_N'].flatMap(p=>Array.from({length:5},(_,i)=>`${p}${i+1}`)),
+    ...['Ins_D','Ins_C','Ins_E'].flatMap(p=>Array.from({length:8},(_,i)=>`${p}${i+1}`)),
+    ...['Rep_D','Rep_C','Rep_E','Rep_N'].flatMap(p=>Array.from({length:3},(_,i)=>`${p}${i+1}`)),
+    ...['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+    ...['Eve_D','Eve_C','Eve_N'].flatMap(p=>Array.from({length:4},(_,i)=>`${p}${i+1}`)),
+    'KEY_Check','KEY_Note','CHANGE_Note',
+    ...FIXED_FIELDS,
+  ];
+  const dayPfx=['Rec_D','Res_D','Vis_D','Ins_D','Rep_D','Acc_D','Eve_D'];
+  allFields.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    const isDayField=dayPfx.some(p=>id.startsWith(p));
+    f(id, isDayField ? (el.dataset.dayVal||'') : el.value);
+  });
+  for(let i=1;i<=COMMENT_LINES;i++){
+    const el=document.getElementById(`Comment_${i}`);
+    f(`Comment_${i}`, el?el.value:'');
+  }
+  f('KEY_Yes',    circleState['KEY']==='Yes'?'〇':'');
+  f('KEY_No',     circleState['KEY']==='No' ?'〇':'');
+  f('CHANGE_Yes', circleState['CHANGE']==='Yes'?'〇':'');
+  f('CHANGE_No',  circleState['CHANGE']==='No' ?'〇':'');
+  ['Elec','Water'].forEach(prefix=>{
+    const dtEl=document.getElementById(`${prefix}_DateT`);
+    const todayDate=dtEl?dtEl.value:'';
+    const pm=prevMonthAD(currentADYear,currentMonth);
+    const prevData=loadFromStorage(pm.year,pm.month);
+    const ds=prevData?(prevData[`${prefix}_DateT`]||''):'';
+    const de=prevDay(todayDate);
+    f(`${prefix}_DS`, ds);
+    f(`${prefix}_DE`, de);
+  });
+  const pm=prevMonthAD(currentADYear,currentMonth);
+  const ppm=prevMonthAD(pm.year,pm.month);
+  const ly=lastYearAD(currentADYear,currentMonth);
+  const lym=prevMonthAD(ly.year,ly.month);
+  const ppData=loadFromStorage(ppm.year,ppm.month);
+  const lymData=loadFromStorage(lym.year,lym.month);
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++){
+      const tVal=document.getElementById(`${prefix}_T${i}`).value;
+      const pVal=document.getElementById(`${prefix}_P${i}`).value;
+      const lVal=document.getElementById(`${prefix}_L${i}`).value;
+      const ppVal =ppData ?(ppData[`${prefix}_T${i}`]||''):'';
+      const lymVal=lymData?(lymData[`${prefix}_T${i}`]||''):'';
+      f(`${prefix}_T${i}`, valOrEmpty(calcUsage(tVal,pVal)));
+      f(`${prefix}_P${i}`, valOrEmpty(calcUsage(pVal,ppVal)));
+      f(`${prefix}_L${i}`, valOrEmpty(calcUsage(lVal,lymVal)));
+    }
+  });
+  if(sealImageData){
+    try{
+      const base64=sealImageData.split(',')[1];
+      const binary=atob(base64);
+      const bytes=new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      const isPng=sealImageType==='image/png';
+      const sealImg=isPng?await pdfDoc.embedPng(bytes.buffer):await pdfDoc.embedJpg(bytes.buffer);
+      const page=pdfDoc.getPages()[0];
+      const x=528.609,y=31.09,w=565.46-528.609,h=67.9404-31.09;
+      page.drawImage(sealImg,{x,y,width:w,height:h});
+    }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
+  }
+
+  // フォームをフラット化（編集不可・文字化け解消）
+  try {
+    form.flatten();
+  } catch(e){ console.warn('flatten失敗:', e); }
+
+  return await pdfDoc.save();
+}
 
 // 起動
 init();
