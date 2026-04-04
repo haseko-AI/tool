@@ -1026,8 +1026,43 @@ async function generateAndDownload(){
       set('ODPR_1'+s, item.price||'');
     }
 
-    // このPDFをそのまま保存（copyPages不要）
-    const bytes=await pdfDoc.save({updateFieldAppearances:false});
+    // ★ ANSIエラー完全防御（月報・カレンダー実績済み方式）
+    // setFieldUtf16()でV値を直接書き込んだ後、
+    // getForm()経由でdirtyになったフィールドをリセットし、
+    // pdf-libの自動外観更新を完全停止する。
+
+    // 方法：全フィールドのAP（外観ストリーム）とDA（デフォルト外観）を削除。
+    // これによりpdf-libが外観生成しようとしてもフォントが見つからず
+    // エラーになる前に処理をスキップする。
+    // NeedAppearances=trueなのでPDFビューア側が表示してくれる。
+    try {
+      const rawFields = pdfDoc.catalog
+        .lookupMaybe(PDFName.of('AcroForm'), PDFLib.PDFDict)
+        ?.lookupMaybe(PDFName.of('Fields'), PDFLib.PDFArray);
+      if (rawFields) {
+        for (let fi = 0; fi < rawFields.size(); fi++) {
+          try {
+            const fRef = rawFields.get(fi);
+            const fDict = pdfDoc.context.lookup(fRef, PDFLib.PDFDict);
+            if (!fDict) continue;
+            fDict.delete(PDFName.of('AP'));
+            fDict.delete(PDFName.of('DA'));
+            // Kids（ウィジェット）も処理
+            const kids = fDict.lookupMaybe(PDFName.of('Kids'), PDFLib.PDFArray);
+            if (kids) {
+              for (let ki = 0; ki < kids.size(); ki++) {
+                try {
+                  const kDict = pdfDoc.context.lookup(kids.get(ki), PDFLib.PDFDict);
+                  if (kDict) { kDict.delete(PDFName.of('AP')); kDict.delete(PDFName.of('DA')); }
+                } catch(e) {}
+              }
+            }
+          } catch(e) {}
+        }
+      }
+    } catch(e) { console.warn('AP cleanup error:', e); }
+
+    const bytes = await pdfDoc.save({updateFieldAppearances: false});
     pageBytesList.push(bytes);
   }
 
