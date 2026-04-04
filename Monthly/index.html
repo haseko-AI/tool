@@ -304,7 +304,16 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     margin-bottom:6px;padding:8px 10px;
     background:var(--surface);
   }
+  .section-card{overflow:visible;border-radius:var(--radius);}
+  .section-header{position:sticky;top:102px;z-index:50;box-shadow:0 2px 4px rgba(0,0,0,.06);border-radius:var(--radius) var(--radius) 0 0;}
   .form-table tr.tr-hidden{display:none;}
+  /* スマホ：セクションヘッダーをスクロール時に上部固定 */
+  .section-header{
+    position:sticky;
+    top:64px; /* headerの高さ分下げる */
+    z-index:50;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+  }
   .form-table td{
     display:flex;flex-direction:column;
     padding:0 0 6px 0;border:none;width:100%;box-sizing:border-box;
@@ -384,7 +393,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.24</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.48</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -683,14 +692,16 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <!-- 印鑑エリア -->
   <div style="border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;background:var(--surface2);">
     <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;">🔴 印鑑（PDFの右欄に押印されます）</div>
-    <div class="seal-select-area">
-      <div class="seal-preview empty" id="seal-preview">印鑑<br>未選択</div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <button class="btn-seal" id="seal-btn" onclick="selectSeal()">印鑑画像を選択</button>
-        <button class="btn-clear-seal" id="seal-clear" onclick="clearSeal()" style="display:none;">✕ クリア</button>
-      </div>
+    <div style="font-size:.72rem;color:var(--text2);margin-bottom:8px;">PNG・JPEG対応。規定値に登録すると毎月自動で押印されます</div>
+    <div style="display:flex;justify-content:center;align-items:center;">
+      <!-- 未選択時：ボタン -->
+      <button class="btn-seal" id="seal-btn" onclick="selectSeal()" style="padding:12px 24px;">🔴 印鑑画像を選択</button>
+      <!-- 選択済時：画像のみ（クリックで変更） -->
+      <div class="seal-preview" id="seal-preview" style="display:none;cursor:pointer;width:80px;height:80px;" onclick="selectSeal()" title="クリックで変更">印鑑<br>未選択</div>
       <input type="file" id="seal-file" accept="image/png,image/jpeg" style="display:none" onchange="onSealSelected(event)">
-      <div style="font-size:.72rem;color:var(--text2);line-height:1.5;">PNG・JPEG対応<br>規定値に登録すると<br>毎月自動で押印</div>
+    </div>
+    <div id="seal-clear-wrap" style="display:none;text-align:center;margin-top:6px;">
+      <button class="btn-clear-seal" onclick="clearSeal()">✕ クリア</button>
     </div>
   </div>
   <div class="action-row">
@@ -798,9 +809,9 @@ function onSealSelected(event){
     preview.innerHTML = `<img src="${sealImageData}" alt="印鑑">`;
     preview.classList.remove('empty');
     // ボタン表示更新
-    document.getElementById('seal-btn').classList.add('selected');
-    document.getElementById('seal-btn').textContent = '🔴 印鑑選択済み（変更）';
-    document.getElementById('seal-clear').style.display = 'block';
+    document.getElementById('seal-btn').style.display = 'none';
+    document.getElementById('seal-preview').style.display = 'flex';
+    document.getElementById('seal-clear-wrap').style.display = 'block';
   };
   reader.readAsDataURL(file);
   event.target.value = '';
@@ -811,9 +822,11 @@ function clearSeal(){
   const preview = document.getElementById('seal-preview');
   preview.innerHTML = '印鑑<br>未選択';
   preview.classList.add('empty');
+  preview.style.display = 'none';
+  document.getElementById('seal-btn').style.display = '';
+  document.getElementById('seal-clear-wrap').style.display = 'none';
   document.getElementById('seal-btn').classList.remove('selected');
   document.getElementById('seal-btn').textContent = '🔴 印鑑画像を選択';
-  document.getElementById('seal-clear').style.display = 'none';
 }
 
 // 全角数字→半角変換
@@ -861,7 +874,14 @@ function init(){
     }
   }
   const today=new Date();
-  selYearMonth.value=`${today.getFullYear()}_${today.getMonth()+1}`;
+  // 7日までは前月をデフォルト表示
+  let defaultYear = today.getFullYear();
+  let defaultMonth = today.getMonth()+1;
+  if(today.getDate() <= 7){
+    defaultMonth--;
+    if(defaultMonth < 1){ defaultMonth = 12; defaultYear--; }
+  }
+  selYearMonth.value=`${defaultYear}_${defaultMonth}`;
   // 後方互換性のためsel-year/sel-monthも非表示で残す
   const selYear=document.createElement('select'); selYear.id='sel-year'; selYear.style.display='none'; document.body.appendChild(selYear);
   const selMonth=document.createElement('select'); selMonth.id='sel-month'; selMonth.style.display='none'; document.body.appendChild(selMonth);
@@ -1427,16 +1447,15 @@ function loadCurrentMonth(){
     const preview=document.getElementById('seal-preview');
     preview.innerHTML=`<img src="${sealSrc}" alt="印鑑">`;
     preview.classList.remove('empty');
-    document.getElementById('seal-btn').classList.add('selected');
-    document.getElementById('seal-btn').textContent='印鑑選択済み（変更）';
-    document.getElementById('seal-clear').style.display='block';
+    document.getElementById('seal-btn').style.display = 'none';
+    document.getElementById('seal-preview').style.display = 'flex';
+    document.getElementById('seal-clear-wrap').style.display = 'block';
   } else {
     sealImageData=null;
     const preview=document.getElementById('seal-preview');
     preview.innerHTML='印鑑<br>未選択'; preview.classList.add('empty');
     document.getElementById('seal-btn').classList.remove('selected');
     document.getElementById('seal-btn').textContent='印鑑画像を選択';
-    document.getElementById('seal-clear').style.display='none';
   }
 
   // コメント行復元
@@ -1803,7 +1822,7 @@ async function downloadPDF_OLD(){
     fieldMap.forEach((annot, name) => {
       try {
         annot.delete(PDFName.of('AP'));
-        annot.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+        annot.set(PDFName.of('DA'), PDFString.of('/MS-Gothic 10 Tf 0 g'));
       } catch(e){}
     });
 
@@ -1820,23 +1839,17 @@ async function downloadPDF_OLD(){
 
         // Printフラグ確実ON
         annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
-        // ReadOnlyフラグ（Ff bit1=1）で書き換え防止
-        annot.set(PDFName.of('Ff'), PDFLib.PDFNumber.of(1));
+
         // フォントサイズをDAから抽出（例：/MSPGothic 10.5 Tf → 10.5）
         const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
         const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
         // フォント名を使用フォントに置き換えてDAを再設定
-        const fontName = numericFields.has(name) ? 'Helvetica' : 'IPAexGothic';
+        const fontName = numericFields.has(name) ? 'Helvetica' : 'MS-Gothic';
         const newDA = `/${fontName} ${fontSize} Tf 0 g`;
         annot.set(PDFName.of('DA'), PDFString.of(newDA));
 
         // APを削除（updateAppearancesで再生成するため）
         annot.delete(PDFName.of('AP'));
-
-        // ReadOnlyをform APIで設定
-        try {
-          form.getTextField(name).enableReadOnly();
-        } catch(e){}
 
         if(str !== ''){
           // /VにHexStringで書き込み（WinAnsiチェックなし）
@@ -1853,8 +1866,9 @@ async function downloadPDF_OLD(){
               field.setAlignment(PDFLib.TextAlignment.Center);
             }
             field.updateAppearances(useFont);
-            // updateAppearances後にReadOnlyを設定
-            field.enableReadOnly();
+            // AP生成後にDAをMS-Gothicに強制上書き（編集時の文字化け防止）
+            const finalFontName = numericFields.has(name) ? 'Helvetica' : 'MS-Gothic';
+            annot.set(PDFName.of('DA'), PDFString.of(`/${finalFontName} ${fontSize} Tf 0 g`));
           } catch(e){
             console.warn('AP生成スキップ:', name, e.message);
           }
@@ -1947,6 +1961,9 @@ async function downloadPDF_OLD(){
     }
 
     // AcroForm・Annotsは削除しない（削除すると値も消えるため）
+
+    // フォームをflatten（全フィールド編集不可・文字化け解消）
+    try { form.flatten(); } catch(e){ console.warn('flatten:', e); }
 
     // ダウンロード
     const savedBytes=await pdfDoc.save();
@@ -2261,7 +2278,7 @@ async function generatePDFBytes(){
       const dr = acroForm ? acroForm.lookup(PDFName.of('DR')) : null;
       const fontDict = dr ? dr.lookup(PDFName.of('Font')) : null;
       if(fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
-      if(acroForm) acroForm.set(PDFName.of('DA'), PDFString.of('/IPAexGothic 10 Tf 0 g'));
+      if(acroForm) acroForm.set(PDFName.of('DA'), PDFString.of('/MS-Gothic 10 Tf 0 g'));
     }
   } catch(e){}
 
@@ -2338,7 +2355,7 @@ async function generatePDFBytes(){
       annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
       const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
       const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
-      const fontName = numericFields.has(name) ? 'Helvetica' : 'IPAexGothic';
+      const fontName = numericFields.has(name) ? 'Helvetica' : 'MS-Gothic';
       const newDA = `/${fontName} ${fontSize} Tf 0 g`;
       annot.set(PDFName.of('DA'), PDFString.of(newDA));
       annot.delete(PDFName.of('AP'));
@@ -2426,11 +2443,27 @@ async function generatePDFBytes(){
     }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
   }
 
+  // フォームをflatten
+  try { form.flatten(); } catch(e){ console.warn('flatten:', e); }
+
   return await pdfDoc.save();
 }
 
 // 起動
 init();
+
+// スマホでsection-headerのtopを動的に設定
+function fixSectionHeaderTop(){
+  if(window.innerWidth > 600) return;
+  const h = document.querySelector('header')?.offsetHeight || 88;
+  const top = (h + 2) + 'px';
+  document.querySelectorAll('.section-header').forEach(el=>{
+    el.style.top = top;
+  });
+}
+setTimeout(fixSectionHeaderTop, 300);
+window.addEventListener('resize', fixSectionHeaderTop);
+
 </script>
 </body>
 </html>
