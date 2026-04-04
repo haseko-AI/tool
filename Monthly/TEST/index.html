@@ -391,7 +391,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.35</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.36</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -806,11 +806,9 @@ function onSealSelected(event){
     preview.innerHTML = `<img src="${sealImageData}" alt="印鑑">`;
     preview.classList.remove('empty');
     // ボタン表示更新
-    document.getElementById('seal-btn').classList.add('selected');
     document.getElementById('seal-btn').style.display = 'none';
     document.getElementById('seal-preview').style.display = 'flex';
     document.getElementById('seal-clear-wrap').style.display = 'block';
-    document.getElementById('seal-clear').style.display = 'block';
   };
   reader.readAsDataURL(file);
   event.target.value = '';
@@ -826,7 +824,6 @@ function clearSeal(){
   document.getElementById('seal-clear-wrap').style.display = 'none';
   document.getElementById('seal-btn').classList.remove('selected');
   document.getElementById('seal-btn').textContent = '🔴 印鑑画像を選択';
-  document.getElementById('seal-clear').style.display = 'none';
 }
 
 // 全角数字→半角変換
@@ -1447,16 +1444,15 @@ function loadCurrentMonth(){
     const preview=document.getElementById('seal-preview');
     preview.innerHTML=`<img src="${sealSrc}" alt="印鑑">`;
     preview.classList.remove('empty');
-    document.getElementById('seal-btn').classList.add('selected');
-    document.getElementById('seal-btn').textContent='印鑑選択済み（変更）';
-    document.getElementById('seal-clear').style.display='block';
+    document.getElementById('seal-btn').style.display = 'none';
+    document.getElementById('seal-preview').style.display = 'flex';
+    document.getElementById('seal-clear-wrap').style.display = 'block';
   } else {
     sealImageData=null;
     const preview=document.getElementById('seal-preview');
     preview.innerHTML='印鑑<br>未選択'; preview.classList.add('empty');
     document.getElementById('seal-btn').classList.remove('selected');
     document.getElementById('seal-btn').textContent='印鑑画像を選択';
-    document.getElementById('seal-clear').style.display='none';
   }
 
   // コメント行復元
