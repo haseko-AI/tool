@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.43</title>
+<title>事務用品 注文シート v1.44</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -66,7 +66,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   display:grid;grid-template-columns:1fr 320px;gap:14px;}
 
 /* 注文日 常に2列 */
-.date-row-2col{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px;}
+.date-row-2col{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px;width:100%;}
+.date-row-2col .form-group{min-width:0;}
+.date-row-2col input[type="date"]{width:100%;min-width:0;box-sizing:border-box;}
 
 /* スマホ：サイドバーを注文欄の後に */
 @media(max-width:800px){
@@ -110,6 +112,7 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
 input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13);}
 .date-preview{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;padding-left:2px;margin-top:2px;}
+.ord-dlv-preview{display:none;}
 
 /* ─ Order table PC ─ */
 .order-table-wrap{overflow-x:auto;width:100%;}
@@ -246,7 +249,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.43</div>
+    <div class="app-subtitle">ナビリオン v1.44</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -280,12 +283,12 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
           <div class="form-group">
             <label>注文日 <span class="req">★</span></label>
             <input type="date" id="ORD_Date" onchange="onDateChange('ORD')">
-            <div class="date-preview" id="ORD_Preview">—</div>
+            <div class="date-preview ord-dlv-preview" id="ORD_Preview">—</div>
           </div>
           <div class="form-group">
             <label>配送指定日（任意）</label>
             <input type="date" id="DLV_Date" onchange="onDateChange('DLV')">
-            <div class="date-preview" id="DLV_Preview">—</div>
+            <div class="date-preview ord-dlv-preview" id="DLV_Preview">—</div>
           </div>
         </div>
       </div>
@@ -312,7 +315,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
           </div>
           <div class="form-group">
             <label>Maコード <span class="req">★</span> <span class="fn">ID_Code</span></label>
-            <input type="text" id="ID_Code" class="mono" placeholder="12345678" maxlength="10"
+            <input type="text" id="ID_Code" class="mono" placeholder="12345678" maxlength="10" inputmode="numeric"
               oninput="this.value=toHankaku(this.value).replace(/\D/g,''); autoSaveProfile();">
           </div>
         </div>
@@ -324,7 +327,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
           </div>
           <div class="form-group">
             <label>電話番号 <span class="req">★</span> <span class="fn">ID_Tel</span></label>
-            <input type="tel" id="ID_Tel" class="mono" placeholder="03-0000-0000"
+            <input type="tel" id="ID_Tel" class="mono" placeholder="03-0000-0000" inputmode="tel"
               oninput="this.value=toHankaku(this.value); autoSaveProfile();">
           </div>
           <div class="form-group" style="visibility:hidden;"></div><!-- spacing -->
@@ -359,12 +362,12 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
           </div>
           <div class="form-group">
             <label>電話番号 <span class="fn">BRC_Tel</span></label>
-            <input type="tel" id="BRC_Tel" class="mono" placeholder="00-0000-0000"
+            <input type="tel" id="BRC_Tel" class="mono" placeholder="00-0000-0000" inputmode="tel"
               oninput="this.value=toHankaku(this.value); autoSaveStaff();">
           </div>
           <div class="form-group">
             <label>FAX番号 <span class="fn">BRC_Fax</span></label>
-            <input type="tel" id="BRC_Fax" class="mono" placeholder="00-0000-0000"
+            <input type="tel" id="BRC_Fax" class="mono" placeholder="00-0000-0000" inputmode="tel"
               oninput="this.value=toHankaku(this.value); autoSaveStaff();">
           </div>
         </div>
@@ -678,11 +681,11 @@ function addRows(n) {
       <td style="text-align:center;color:var(--text3);font-weight:700;padding:0 2px;">-</td>
       <td><input type="text" id="ODNO_2_${i}" class="code-part code-p2" maxlength="4" placeholder="0000"
         oninput="onCodeInput(${i})" onblur="zeroPad(this,4)"></td>
-      <td><input type="number" id="ODSU_1_${i}" class="qty-input" min="1" placeholder="0"
+      <td><input type="number" id="ODSU_1_${i}" class="qty-input" min="1" inputmode="numeric" placeholder="0"
         oninput="this.value=toHankaku(this.value);onItemChange()"></td>
       <td><input type="text" id="ODNA_1_${i}" class="name-input" placeholder="商品名"
         oninput="onNameInput(${i})"></td>
-      <td><input type="number" id="ODPR_1_${i}" class="price-input" min="0" placeholder=""
+      <td><input type="number" id="ODPR_1_${i}" class="price-input" min="0" inputmode="numeric" placeholder=""
         oninput="this.value=toHankaku(this.value);onItemChange()"></td>
       <td><button class="pick-btn" onclick="openHistory(${i})" title="履歴">📋</button></td>
       <td><button class="clear-row-btn" onclick="clearRow(${i})">✕</button></td>`;
@@ -713,7 +716,7 @@ function addRows(n) {
           </div>
           <div style="width:80px;flex-shrink:0;">
             <label style="font-size:12px;display:block;">数量</label>
-            <input type="number" id="ODSU_1s_${i}" min="1" placeholder="0"
+            <input type="number" id="ODSU_1s_${i}" min="1" placeholder="0" inputmode="numeric"
               style="width:80px;text-align:right;"
               oninput="this.value=toHankaku(this.value);syncQty(${i},this.value);onItemChange()">
           </div>
@@ -721,7 +724,7 @@ function addRows(n) {
         <div style="display:flex;align-items:flex-end;gap:8px;width:100%;margin-top:0;">
           <div style="flex:1;min-width:0;overflow:hidden;">
             <label style="font-size:12px;display:block;">価格（任意）</label>
-            <input type="number" id="ODPR_1s_${i}" min="0" placeholder=""
+            <input type="number" id="ODPR_1s_${i}" min="0" placeholder="" inputmode="numeric"
               style="width:100%;box-sizing:border-box;text-align:right;font-family:'DM Mono',monospace;"
               oninput="this.value=toHankaku(this.value);syncPrice(${i},this.value);onItemChange()">
           </div>
