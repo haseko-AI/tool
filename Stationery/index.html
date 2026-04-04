@@ -3,177 +3,249 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.34</title>
+<title>事務用品 注文シート v1.40</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f8f9fb;
+  --border:#e2e6ea;--border2:#d0d5dd;
+  --text:#1a1f2e;--text2:#5a6072;--text3:#9aa0b0;
+  --accent-k:#1a56db;--accent-k-bg:#eff6ff;--accent-k-border:#93c5fd;
+  --accent-c:#0d9488;--accent-c-bg:#f0fdfa;--accent-c-border:#5eead4;
+  --danger:#dc2626;--success:#10b981;
+  --radius:10px;--radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.10);
+  --header-bg:var(--accent-k);/* ② 会社経費時に赤に変わる */
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
 
-  :root {
-    --bg:#f0f2f5; --surface:#fff; --surface2:#f8f9fb;
-    --border:#e2e6ea; --border2:#d0d5dd;
-    --text:#1a1f2e; --text2:#5a6072; --text3:#9aa0b0;
-    --accent-k:#1a56db; --accent-k-bg:#eff6ff; --accent-k-border:#93c5fd;
-    --accent-c:#0d9488; --accent-c-bg:#f0fdfa; --accent-c-border:#5eead4;
-    --danger:#dc2626; --success:#10b981;
-    --radius:10px; --radius-sm:6px;
-    --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
-    --shadow-md:0 4px 16px rgba(0,0,0,.10);
-  }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
+/* ─ Header ─ */
+.app-header{
+  background:var(--header-bg);
+  border-bottom:1px solid rgba(0,0,0,.1);
+  padding:10px 16px;
+  display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+  transition:background .3s;
+}
+.app-logo{font-size:17px;font-weight:700;letter-spacing:-.3px;color:#fff;}
+.app-logo .logo-sub{font-size:11px;font-weight:400;opacity:.8;margin-left:6px;}
+.app-subtitle{font-size:11px;color:rgba(255,255,255,.7);}
+.header-spacer{flex:1;}
+.backup-btns{display:flex;gap:6px;}
+.btn-header{padding:5px 11px;font-size:11px;font-family:inherit;font-weight:600;
+  border:1.5px solid rgba(255,255,255,.5);border-radius:var(--radius-sm);
+  background:rgba(255,255,255,.15);color:#fff;cursor:pointer;transition:all .15s;}
+.btn-header:hover{background:rgba(255,255,255,.3);}
 
-  /* Header */
-  .app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.06);}
-  .app-logo{font-size:18px;font-weight:700;letter-spacing:-.5px;}
-  .app-logo span{color:var(--accent-k);}
-  .app-subtitle{font-size:11px;color:var(--text3);}
-  .header-spacer{flex:1;}
-  .backup-btns{display:flex;gap:8px;}
+/* ─ Type toggle bar ─ */
+.type-toggle-bar{
+  background:var(--surface);border-bottom:3px solid var(--accent-k);
+  padding:8px 16px;display:flex;align-items:center;gap:10px;
+  transition:border-color .25s;flex-wrap:wrap;
+}
+.type-toggle-label{font-size:12px;color:var(--text2);font-weight:500;}
+.toggle-btns{display:flex;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border2);}
+.toggle-btn{padding:6px 18px;font-size:13px;font-family:inherit;font-weight:600;
+  border:none;cursor:pointer;transition:all .2s;background:var(--surface2);color:var(--text2);}
+.toggle-btn.active-k{background:var(--accent-k);color:#fff;}
+.toggle-btn.active-c{background:var(--danger);color:#fff;}
+.pdf-statuses{display:flex;gap:6px;margin-left:auto;}
+.pdf-status{font-size:10px;padding:2px 7px;border-radius:4px;}
+.pdf-status.ok{background:#d1fae5;color:#065f46;}
+.pdf-status.ng{background:#fee2e2;color:#991b1b;}
+.pdf-status.loading{background:#fef3c7;color:#92400e;}
 
-  /* Type toggle */
-  .type-toggle-bar{background:var(--surface);border-bottom:3px solid var(--accent-k);padding:10px 20px;display:flex;align-items:center;gap:12px;transition:border-color .25s;}
-  .type-toggle-label{font-size:12px;color:var(--text2);font-weight:500;}
-  .toggle-btns{display:flex;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border2);}
-  .toggle-btn{padding:7px 20px;font-size:13px;font-family:inherit;font-weight:600;border:none;cursor:pointer;transition:all .2s;background:var(--surface2);color:var(--text2);}
-  .toggle-btn.active-k{background:var(--accent-k);color:#fff;}
-  .toggle-btn.active-c{background:var(--accent-c);color:#fff;}
-  .type-badge{padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;}
-  .badge-k{background:var(--accent-k-bg);color:var(--accent-k);border:1px solid var(--accent-k-border);}
-  .badge-c{background:var(--accent-c-bg);color:var(--accent-c);border:1px solid var(--accent-c-border);}
+/* ─ Layout ─ */
+.main-wrap{max-width:1100px;margin:0 auto;padding:14px 14px 40px;
+  display:grid;grid-template-columns:1fr 320px;gap:14px;}
 
-  /* Layout */
-  .main-wrap{max-width:1100px;margin:0 auto;padding:16px 16px 40px;display:grid;grid-template-columns:1fr 340px;gap:16px;}
-  @media(max-width:860px){.main-wrap{grid-template-columns:1fr;}.sidebar{order:-1;}}
-
-  /* Cards */
-  .card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:14px;}
-  .card-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:var(--radius) var(--radius) 0 0;}
-  .card-header h3{font-size:13px;font-weight:700;}
-  .card-body{padding:14px 16px;}
-  .section-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--accent-k-bg);flex-shrink:0;}
-
-  /* Form */
-  .form-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:10px;}
-  .form-group{display:flex;flex-direction:column;gap:4px;}
-  label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.3px;}
-  label .req{color:var(--danger);margin-left:2px;}
-  label .fn{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);font-weight:400;margin-left:4px;}
+/* スマホ：サイドバーを注文欄の後に */
+@media(max-width:800px){
+  .main-wrap{grid-template-columns:1fr;}
+  .sidebar{order:10;}
+  body{font-size:16px;}
   input[type="text"],input[type="tel"],input[type="number"],input[type="date"]{
-    width:100%;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);
-    font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);
-    transition:border-color .15s,box-shadow .15s;outline:none;
-  }
-  /* ④ 数値スピナー非表示 */
-  input[type="number"]{-moz-appearance:textfield;}
-  input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
-  input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.15);}
-  .date-preview{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;padding-left:2px;margin-top:2px;}
+    font-size:16px;padding:10px 12px;}
+  label{font-size:13px;}
+  .card-header h3{font-size:15px;}
+  .btn{font-size:14px;padding:10px 16px;}
+  .btn-sm{font-size:13px;padding:8px 13px;}
+}
 
-  /* Order table */
-  .order-table-wrap{overflow-x:auto;width:100%;}
-  .order-table{width:100%;border-collapse:collapse;font-size:12.5px;}
-  .order-table th{background:var(--surface2);border:1px solid var(--border);padding:7px 8px;font-size:11px;font-weight:700;color:var(--text2);text-align:center;white-space:nowrap;}
-  .order-table td{border:1px solid var(--border);padding:4px 5px;vertical-align:middle;}
-  .order-table tr:hover td{background:var(--surface2);}
-  .order-table tr.active-row td{background:#fef9c3!important;}
-  .row-num{font-family:'DM Mono',monospace;font-weight:700;font-size:13px;color:var(--text3);text-align:center;width:28px;}
-  .code-part{font-family:'DM Mono',monospace;font-size:13px;text-align:center;letter-spacing:1px;}
-  .code-p1{width:56px;} .code-p2{width:66px;}
-  .qty-input{width:60px;text-align:right;}
-  .name-input{min-width:160px;}
-  .price-input{width:80px;text-align:right;font-family:'DM Mono',monospace;}
-  .pick-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;}
-  .pick-btn:hover{border-color:var(--accent-k);background:var(--accent-k-bg);transform:scale(1.1);}
-  .clear-row-btn{width:22px;height:22px;border-radius:50%;border:1px solid var(--border2);background:transparent;cursor:pointer;color:var(--text3);font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
-  .clear-row-btn:hover{border-color:var(--danger);color:var(--danger);background:#fef2f2;}
-  .name-autofilled{background:#f0fdf4!important;border-color:var(--success)!important;}
+/* ─ Cards ─ */
+.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);
+  box-shadow:var(--shadow);margin-bottom:12px;}
+.card-header{padding:10px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;background:var(--surface2);
+  border-radius:var(--radius) var(--radius) 0 0;}
+.card-header h3{font-size:13px;font-weight:700;}
+.card-body{padding:12px 14px;}
+.section-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;font-size:12px;background:var(--accent-k-bg);flex-shrink:0;}
 
-  /* Sidebar */
-  .info-summary{background:linear-gradient(135deg,var(--accent-k-bg) 0%,var(--surface) 100%);border:1px solid var(--accent-k-border);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
-  .info-line{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--border);}
-  .info-line:last-child{border-bottom:none;}
-  .info-key{color:var(--text2);}
-  .info-val{font-weight:600;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;}
+/* ─ Form ─ */
+.form-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-bottom:9px;}
+/* ③ PC版：管理員名から改行 */
+.form-row.profile-row{grid-template-columns:repeat(3,1fr);}
+@media(max-width:800px){.form-row.profile-row{grid-template-columns:1fr 1fr;}}
+.form-group{display:flex;flex-direction:column;gap:3px;}
+label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.3px;}
+label .req{color:var(--danger);margin-left:2px;}
+label .fn{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);font-weight:400;margin-left:3px;}
+input[type="text"],input[type="tel"],input[type="number"],input[type="date"]{
+  width:100%;padding:7px 9px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);
+  font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);
+  transition:border-color .15s,box-shadow .15s;outline:none;}
+input[type="number"]{-moz-appearance:textfield;}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13);}
+.date-preview{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;padding-left:2px;margin-top:1px;}
 
-  /* Buttons */
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;}
-  .btn-primary{background:var(--accent-k);color:#fff;box-shadow:0 2px 6px rgba(26,86,219,.3);}
-  .btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
-  .btn-primary.teal{background:var(--accent-c);box-shadow:0 2px 6px rgba(13,148,136,.3);}
-  .btn-secondary{background:var(--surface);color:var(--text2);border:1.5px solid var(--border2);}
-  .btn-secondary:hover{border-color:var(--accent-k);color:var(--accent-k);background:var(--accent-k-bg);}
-  .btn-sm{padding:5px 12px;font-size:12px;}
-  .btn-full{width:100%;}
-  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+/* ─ Order table PC ─ */
+.order-table-wrap{overflow-x:auto;width:100%;}
+.order-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.order-table th{background:var(--surface2);border:1px solid var(--border);
+  padding:6px 7px;font-size:11px;font-weight:700;color:var(--text2);text-align:center;white-space:nowrap;}
+.order-table td{border:1px solid var(--border);padding:3px 4px;vertical-align:middle;}
+.order-table tr:hover td{background:var(--surface2);}
+.order-table tr.active-row td{background:#fef9c3!important;}
+.row-num{font-family:'DM Mono',monospace;font-weight:700;font-size:13px;
+  color:var(--text3);text-align:center;width:26px;}
+.code-part{font-family:'DM Mono',monospace;font-size:13px;text-align:center;letter-spacing:1px;}
+.code-p1{width:52px;}.code-p2{width:60px;}
+.qty-input{width:56px;text-align:right;}
+.name-input{min-width:150px;}
+.price-input{width:78px;text-align:right;font-family:'DM Mono',monospace;}
+.pick-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border2);
+  background:var(--surface);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:14px;transition:all .15s;}
+.pick-btn:hover{border-color:var(--accent-k);background:var(--accent-k-bg);transform:scale(1.1);}
+.clear-row-btn{width:22px;height:22px;border-radius:50%;border:1px solid var(--border2);
+  background:transparent;cursor:pointer;color:var(--text3);font-size:12px;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.clear-row-btn:hover{border-color:var(--danger);color:var(--danger);background:#fef2f2;}
+.name-autofilled{background:#f0fdf4!important;border-color:var(--success)!important;}
 
-  /* Page count */
-  .page-count-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
-  .count-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--accent-k);}
+/* ─ スマホ用 明細カード ─ */
+.order-cards{display:none;flex-direction:column;gap:10px;}
+.order-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px;}
+.order-card.active-row{border-color:#f59e0b;background:#fef9c3;}
+.order-card-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.order-card-num{font-family:'DM Mono',monospace;font-weight:700;font-size:16px;
+  color:#fff;background:var(--accent-k);width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.order-card-code{display:flex;align-items:center;gap:4px;flex:1;}
+.order-card-code input{font-family:'DM Mono',monospace;font-size:15px;text-align:center;letter-spacing:2px;}
+.code-sp1{width:72px;}.code-sp2{width:80px;}
+.order-card-actions{display:flex;gap:6px;}
+.order-card-body{display:grid;grid-template-columns:1fr 100px;gap:8px;}
+.order-card-qty{display:flex;flex-direction:column;gap:3px;grid-column:2;}
+.order-card-qty input{text-align:right;font-size:16px;}
+@media(max-width:800px){
+  .order-table-wrap{display:none;}
+  .order-cards{display:flex;}
+}
 
-  /* Target indicator */
-  .target-indicator{background:#fef9c3;border:1px solid #fde68a;border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;color:#92400e;display:none;align-items:center;gap:6px;margin-bottom:10px;}
-  .target-indicator.show{display:flex;}
+/* ─ Sidebar ─ */
+.info-summary{background:linear-gradient(135deg,var(--accent-k-bg) 0%,var(--surface) 100%);
+  border:1px solid var(--accent-k-border);border-radius:var(--radius);padding:12px;margin-bottom:12px;}
+.info-summary.kaisha-summary{background:linear-gradient(135deg,#fee2e2 0%,var(--surface) 100%);
+  border-color:#fca5a5;}
+.info-line{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--border);}
+.info-line:last-child{border-bottom:none;}
+.info-key{color:var(--text2);}
+.info-val{font-weight:600;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;}
 
-  /* History modal */
-  .history-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px;}
-  .history-modal-overlay.open{display:flex;}
-  .history-modal{background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);width:100%;max-width:720px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
-  .history-modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
-  .history-modal-header h2{font-size:16px;font-weight:700;flex:1;}
-  .history-search{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
-  .history-search input{width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;outline:none;}
-  .history-search input:focus{border-color:var(--accent-k);}
-  .history-list{flex:1;overflow-y:auto;padding:10px 12px;}
-  .history-item{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px;}
-  .history-item:hover{border-color:var(--accent-k);background:var(--accent-k-bg);transform:translateX(2px);}
-  .history-code{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--text);flex-shrink:0;letter-spacing:1px;}
-  .history-info{flex:1;min-width:0;}
-  .history-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .history-meta{font-size:11px;color:var(--text3);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap;}
-  .history-count-badge{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:11px;color:var(--text2);flex-shrink:0;}
-  .history-del-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);background:transparent;cursor:pointer;color:var(--text3);font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
-  .history-del-btn:hover{background:#fef2f2;border-color:#fecaca;color:var(--danger);}
-  .history-empty{text-align:center;color:var(--text3);padding:40px;font-size:13px;}
-  .history-empty .icon{font-size:36px;margin-bottom:10px;}
+/* ─ Buttons ─ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 15px;border-radius:var(--radius-sm);border:none;font-family:inherit;
+  font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;}
+.btn-primary{background:var(--accent-k);color:#fff;box-shadow:0 2px 6px rgba(26,86,219,.3);}
+.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
+.btn-primary.kaisha{background:var(--danger);box-shadow:0 2px 6px rgba(220,38,38,.3);}
+.btn-secondary{background:var(--surface);color:var(--text2);border:1.5px solid var(--border2);}
+.btn-secondary:hover{border-color:var(--accent-k);color:var(--accent-k);background:var(--accent-k-bg);}
+.btn-sm{padding:5px 11px;font-size:12px;}
+.btn-full{width:100%;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
 
-  /* PDF status */
-  .pdf-status{display:flex;align-items:center;gap:6px;font-size:11px;padding:3px 8px;border-radius:4px;}
-  .pdf-status.ok{background:#d1fae5;color:#065f46;}
-  .pdf-status.ng{background:#fee2e2;color:#991b1b;}
-  .pdf-status.loading{background:#fef3c7;color:#92400e;}
+/* ─ Page count ─ */
+.page-count-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:9px 12px;display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+.count-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--accent-k);}
 
-  /* ② 勤務曜日こっそりエリア */
-  .work-time-wrap{margin-top:8px;padding:8px 12px;background:var(--surface2);border:1px dashed var(--border2);border-radius:var(--radius-sm);}
-  .work-time-toggle{font-size:11px;color:var(--text3);cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;}
-  .work-time-toggle:hover{color:var(--text2);}
-  .work-time-content{display:none;margin-top:8px;}
-  .work-time-content.open{display:block;}
+/* ─ Target indicator ─ */
+.target-indicator{background:#fef9c3;border:1px solid #fde68a;border-radius:var(--radius-sm);
+  padding:6px 12px;font-size:12px;color:#92400e;display:none;align-items:center;gap:6px;margin-bottom:9px;}
+.target-indicator.show{display:flex;}
 
-  /* Toast */
-  .toast-container{position:fixed;top:80px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
-  .toast{background:var(--text);color:#fff;padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;box-shadow:var(--shadow-md);animation:toastIn .25s ease;max-width:300px;}
-  .toast.success{background:var(--success);}
-  .toast.error{background:var(--danger);}
-  @keyframes toastIn{from{opacity:0;transform:translateY(-10px) scale(.95);}to{opacity:1;transform:none;}}
+/* ─ Work time ─ */
+.work-time-wrap{margin-top:8px;padding:7px 11px;background:var(--surface2);
+  border:1px dashed var(--border2);border-radius:var(--radius-sm);}
+.work-time-toggle{font-size:11px;color:var(--text3);cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;}
+.work-time-toggle:hover{color:var(--text2);}
+.work-time-content{display:none;margin-top:7px;}
+.work-time-content.open{display:block;}
 
-  .mono{font-family:'DM Mono',monospace;}
+/* ─ History modal ─ */
+.history-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:200;backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:16px;}
+.history-modal-overlay.open{display:flex;}
+.history-modal{background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);
+  width:100%;max-width:700px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;}
+.history-modal-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.history-modal-header h2{font-size:16px;font-weight:700;flex:1;}
+.history-search{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.history-search input{width:100%;padding:9px 12px;border:1.5px solid var(--border2);
+  border-radius:var(--radius-sm);font-family:inherit;font-size:14px;outline:none;}
+.history-search input:focus{border-color:var(--accent-k);}
+.history-list{flex:1;overflow-y:auto;padding:8px 10px;}
+.history-item{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;
+  margin-bottom:7px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px;}
+.history-item:hover{border-color:var(--accent-k);background:var(--accent-k-bg);transform:translateX(2px);}
+.history-code{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--text);flex-shrink:0;letter-spacing:1px;}
+.history-info{flex:1;min-width:0;}
+.history-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.history-meta{font-size:11px;color:var(--text3);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
+.history-count-badge{background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+  padding:2px 8px;font-size:11px;color:var(--text2);flex-shrink:0;}
+.history-del-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);
+  background:transparent;cursor:pointer;color:var(--text3);font-size:13px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.history-del-btn:hover{background:#fef2f2;border-color:#fecaca;color:var(--danger);}
+.history-empty{text-align:center;color:var(--text3);padding:36px;font-size:13px;}
+.history-empty .icon{font-size:34px;margin-bottom:9px;}
+
+/* ─ Toast ─ */
+.toast-container{position:fixed;top:72px;right:14px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+.toast{background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);
+  font-size:13px;box-shadow:var(--shadow-md);animation:toastIn .22s ease;max-width:290px;}
+.toast.success{background:var(--success);}
+.toast.error{background:var(--danger);}
+@keyframes toastIn{from{opacity:0;transform:translateY(-8px) scale(.95);}to{opacity:1;transform:none;}}
+
+.mono{font-family:'DM Mono',monospace;}
 </style>
 </head>
 <body>
-
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- Header -->
-<header class="app-header">
+<!-- ② Header：会社経費時に赤くなる -->
+<header class="app-header" id="appHeader">
   <div>
-    <div class="app-logo">📦 <span>事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ハセコーコミュニティ v1.34</div>
+    <div class="app-logo">📦 ナビリオン<span class="logo-sub">事務用品 注文シート</span></div>
+    <div class="app-subtitle">ハセコーコミュニティ v1.40</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
-    <button class="btn btn-secondary btn-sm" onclick="exportData()">⬇ データ保存</button>
-    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importFile').click()">⬆ データ読込</button>
+    <button class="btn-header" onclick="exportData()">⬇ 保存</button>
+    <button class="btn-header" onclick="document.getElementById('importFile').click()">⬆ 読込</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
   </div>
 </header>
@@ -185,28 +257,27 @@
     <button class="toggle-btn active-k" id="btnKanri" onclick="setType('kanri')">🏢 管理組合</button>
     <button class="toggle-btn" id="btnKaisha" onclick="setType('kaisha')">🏬 会社経費</button>
   </div>
-  <span class="type-badge badge-k" id="typeBadge">管理組合 → OrderSheet_v2.pdf</span>
-  <div class="header-spacer"></div>
-  <div id="pdfStatusK" class="pdf-status loading">⏳ OrderSheet読込中...</div>
-  <div id="pdfStatusC" class="pdf-status loading">⏳ RequestSheet読込中...</div>
+  <div class="pdf-statuses">
+    <div id="pdfStatusK" class="pdf-status loading">⏳ Order読込中</div>
+    <div id="pdfStatusC" class="pdf-status loading">⏳ Request読込中</div>
+  </div>
 </div>
 
-<!-- Main -->
 <div class="main-wrap">
   <div class="form-col">
 
-    <!-- ① 注文日・配送日 カレンダー入力 -->
+    <!-- 注文日・配送日 -->
     <div class="card">
       <div class="card-header"><div class="section-icon">📅</div><h3>注文日・配送指定日</h3></div>
       <div class="card-body">
         <div class="form-row">
           <div class="form-group">
-            <label>注文日 <span class="req">★</span> <span class="fn">ORD_Year/Month/Day</span></label>
+            <label>注文日 <span class="req">★</span></label>
             <input type="date" id="ORD_Date" onchange="onDateChange('ORD')">
             <div class="date-preview" id="ORD_Preview">—</div>
           </div>
           <div class="form-group">
-            <label>配送指定日（任意） <span class="fn">DLV_Year/Month/Day</span></label>
+            <label>配送指定日（任意）</label>
             <input type="date" id="DLV_Date" onchange="onDateChange('DLV')">
             <div class="date-preview" id="DLV_Preview">—</div>
           </div>
@@ -218,45 +289,48 @@
     <div class="card">
       <div class="card-header">
         <div class="section-icon">👤</div><h3>FAX送信者様（注文者情報）</h3>
-        <div class="header-spacer"></div>
-        <button class="btn btn-secondary btn-sm" onclick="saveProfile()">💾 記憶</button>
-        <button class="btn btn-secondary btn-sm" onclick="loadProfile()">📂 呼出</button>
       </div>
       <div class="card-body">
-        <div class="form-row">
-          <!-- ③ ログインID -->
+        <!-- 上段：ID・名称・Maコード -->
+        <div class="form-row profile-row">
           <div class="form-group">
-            <label>ログインID（5桁） <span class="req">★</span> <span class="fn">ID_No</span></label>
-            <input type="text" id="ID_No_base" class="mono" placeholder="12345" maxlength="5"
-              oninput="this.value=toHankaku(this.value).replace(/\D/g,''); updateIdPreview();">
+            <label>ログインID（7桁） <span class="req">★</span> <span class="fn">ID_No</span></label>
+            <input type="text" id="ID_No_base" class="mono" placeholder="12345-1" maxlength="7"
+              oninput="this.value=toHankaku(this.value); updateIdPreview(); autoSaveProfile();">
             <div class="date-preview" id="ID_No_preview">PDF記入値：—</div>
           </div>
           <div class="form-group">
             <label>ご登録名称 <span class="req">★</span> <span class="fn">ID_Name</span></label>
-            <input type="text" id="ID_Name" placeholder="マンション名 / 事務室" oninput="updateSummary()">
+            <input type="text" id="ID_Name" placeholder="マンション名 / 事務室"
+              oninput="updateSummary(); autoSaveProfile();">
           </div>
           <div class="form-group">
             <label>Maコード <span class="req">★</span> <span class="fn">ID_Code</span></label>
             <input type="text" id="ID_Code" class="mono" placeholder="12345678" maxlength="10"
-              oninput="this.value=toHankaku(this.value).replace(/\D/g,'');">
+              oninput="this.value=toHankaku(this.value).replace(/\D/g,''); autoSaveProfile();">
           </div>
+        </div>
+        <!-- ③ 下段：管理員名・電話番号（PC:横並び、スマホ:縦） -->
+        <div class="form-row profile-row">
           <div class="form-group">
             <label>管理員名 <span class="req">★</span> <span class="fn">ID_Staff</span></label>
-            <input type="text" id="ID_Staff" placeholder="氏名">
+            <input type="text" id="ID_Staff" placeholder="氏名" oninput="autoSaveProfile();">
           </div>
           <div class="form-group">
             <label>電話番号 <span class="req">★</span> <span class="fn">ID_Tel</span></label>
             <input type="tel" id="ID_Tel" class="mono" placeholder="03-0000-0000"
-              oninput="this.value=toHankaku(this.value);">
+              oninput="this.value=toHankaku(this.value); autoSaveProfile();">
           </div>
+          <div class="form-group" style="visibility:hidden;"></div><!-- spacing -->
         </div>
-        <!-- ② 勤務曜日 こっそり -->
+        <!-- 勤務曜日こっそり -->
         <div class="work-time-wrap">
           <div class="work-time-toggle" onclick="toggleWorkTime()">
             <span id="workTimeArrow">▶</span>&nbsp;勤務曜日・時間（任意）
           </div>
           <div class="work-time-content" id="workTimeContent">
-            <input type="text" id="WORK_Time" placeholder="例：月水金 9:00〜17:00" style="margin-top:4px;">
+            <input type="text" id="WORK_Time" placeholder="例：月水金 9:00〜17:00"
+              style="margin-top:4px;" oninput="autoSaveProfile();">
           </div>
         </div>
       </div>
@@ -266,29 +340,26 @@
     <div class="card">
       <div class="card-header">
         <div class="section-icon">🏢</div><h3>担当者情報（長谷エコミュニティ）</h3>
-        <div class="header-spacer"></div>
-        <button class="btn btn-secondary btn-sm" onclick="saveStaff()">💾 記憶</button>
-        <button class="btn btn-secondary btn-sm" onclick="loadStaff()">📂 呼出</button>
       </div>
       <div class="card-body">
         <div class="form-row">
           <div class="form-group">
             <label>担当支店・部署 <span class="fn">BRC_Name</span></label>
-            <input type="text" id="BRC_Name" placeholder="例：北関東支店">
+            <input type="text" id="BRC_Name" placeholder="例：北関東支店" oninput="autoSaveStaff();">
           </div>
           <div class="form-group">
             <label>フロント担当 <span class="fn">BRC_Front</span></label>
-            <input type="text" id="BRC_Front" placeholder="担当者名">
+            <input type="text" id="BRC_Front" placeholder="担当者名" oninput="autoSaveStaff();">
           </div>
           <div class="form-group">
             <label>電話番号 <span class="fn">BRC_Tel</span></label>
             <input type="tel" id="BRC_Tel" class="mono" placeholder="00-0000-0000"
-              oninput="this.value=toHankaku(this.value);">
+              oninput="this.value=toHankaku(this.value); autoSaveStaff();">
           </div>
           <div class="form-group">
             <label>FAX番号 <span class="fn">BRC_Fax</span></label>
             <input type="tel" id="BRC_Fax" class="mono" placeholder="00-0000-0000"
-              oninput="this.value=toHankaku(this.value);">
+              oninput="this.value=toHankaku(this.value); autoSaveStaff();">
           </div>
         </div>
       </div>
@@ -299,7 +370,7 @@
       <div class="card-header">
         <div class="section-icon">🛒</div><h3>ご注文記入欄</h3>
         <div class="header-spacer"></div>
-        <button class="btn btn-secondary btn-sm" onclick="openHistory(null)">📋 履歴から選ぶ</button>
+        <button class="btn btn-secondary btn-sm" onclick="openHistory(null)">📋 履歴</button>
         <button class="btn btn-secondary btn-sm" onclick="clearAllItems()">🗑 全クリア</button>
       </div>
       <div class="card-body">
@@ -307,23 +378,26 @@
           📍 <span id="targetRowLabel">行を選択中</span>
           <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="clearTargetRow()">解除</button>
         </div>
+
+        <!-- PC テーブル -->
         <div class="order-table-wrap">
           <table class="order-table">
             <thead>
               <tr>
                 <th>No.</th><th>前3桁</th><th>-</th><th>後4桁</th>
-                <th>数量<br><span style="font-weight:400;font-size:10px;">[右詰め]</span></th>
-                <th>★ 商品名</th>
-                <th>価格<br><span style="font-weight:400;font-size:10px;">(任意)</span></th>
-                <th>履歴</th><th></th>
+                <th>数量</th><th>★ 商品名</th><th>価格(任意)</th><th>履歴</th><th></th>
               </tr>
             </thead>
             <tbody id="orderBody"></tbody>
           </table>
         </div>
+
+        <!-- ④ スマホ カード -->
+        <div class="order-cards" id="orderCards"></div>
+
         <div class="page-count-box">
           <div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:2px;">送信枚数（PDF出力）</div>
+            <div style="font-size:12px;color:var(--text2);">送信枚数（PDF出力）</div>
             <div style="font-size:11px;color:var(--text3);">明細数に応じて自動計算</div>
           </div>
           <div style="text-align:center;">
@@ -337,12 +411,12 @@
 
   </div><!-- /form-col -->
 
-  <!-- Sidebar -->
+  <!-- Sidebar（スマホでは注文欄の後） -->
   <div class="sidebar">
     <div class="card">
       <div class="card-header"><div class="section-icon">📊</div><h3>入力サマリー</h3></div>
       <div class="card-body">
-        <div class="info-summary">
+        <div class="info-summary" id="infoSummary">
           <div class="info-line"><span class="info-key">経費区分</span><span class="info-val" id="sum-type">管理組合</span></div>
           <div class="info-line"><span class="info-key">注文日</span><span class="info-val" id="sum-date">-</span></div>
           <div class="info-line"><span class="info-key">マンション</span><span class="info-val" id="sum-name">-</span></div>
@@ -353,7 +427,7 @@
         <button class="btn btn-primary btn-full" id="downloadBtn" onclick="downloadPDF()">
           ⬇ PDF作成・ダウンロード
         </button>
-        <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px;" id="pdfFileName">
+        <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:5px;" id="pdfFileName">
           OrderSheet_v2.pdf に書き込み
         </div>
       </div>
@@ -365,8 +439,8 @@
         <div class="header-spacer"></div>
         <button class="btn btn-secondary btn-sm" onclick="openHistory(null)">全て見る</button>
       </div>
-      <div class="card-body" style="padding:8px;">
-        <div id="recentList"><div class="history-empty"><div class="icon">📭</div><div>まだ注文履歴がありません</div></div></div>
+      <div class="card-body" style="padding:7px;">
+        <div id="recentList"><div class="history-empty" style="padding:16px;"><div class="icon">📭</div><div>まだありません</div></div></div>
       </div>
     </div>
 
@@ -378,7 +452,7 @@
           <div>🔢 <b>番号入力</b>：3桁+4桁揃うと商品名を自動表示</div>
           <div>✏️ <b>商品名修正</b>：修正すると履歴も更新されます</div>
           <div>1️⃣ <b>数量</b>：番号入力時に「1」を自動セット</div>
-          <div>💾 <b>自動保存</b>：PDF作成時に情報・履歴を保存</div>
+          <div>💾 <b>自動保存</b>：送信者・担当者は入力即保存</div>
           <div>⬇ <b>データ保存</b>：全データをJSONで書き出し</div>
         </div>
       </div>
@@ -410,17 +484,13 @@
 
 // ─── STATE ───
 let currentType = 'kanri';
-let targetRow = null;
+let targetRow   = null;
+let totalRows   = 0;
 let pdfBytesKanri  = null;
 let pdfBytesKaisha = null;
-
 const PDF_FILE_KANRI  = 'OrderSheet_v2.pdf';
 const PDF_FILE_KAISHA = 'RequestSheet_v3.pdf';
-
-const SK = {
-  history:'stn_history_v1', profile:'stn_profile_v1',
-  staff:'stn_staff_v1', items:'stn_items_v1'
-};
+const SK = {history:'stn_history_v1',profile:'stn_profile_v1',staff:'stn_staff_v1',items:'stn_items_v1'};
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', () => {
@@ -432,24 +502,22 @@ document.addEventListener('DOMContentLoaded', () => {
   renderRecentList();
   updateSummary();
   loadPDFs();
+  document.getElementById('ID_Name').addEventListener('input', updateSummary);
 });
 
 function setToday() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth()+1).padStart(2,'0');
-  const d = String(now.getDate()).padStart(2,'0');
-  document.getElementById('ORD_Date').value = `${y}-${m}-${d}`;
+  const n = new Date();
+  const val = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+  document.getElementById('ORD_Date').value = val;
   onDateChange('ORD');
 }
 
-// ① カレンダー → プレビュー
 function onDateChange(prefix) {
-  const val = document.getElementById(prefix+'_Date').value;
+  const val  = document.getElementById(prefix+'_Date').value;
   const prev = document.getElementById(prefix+'_Preview');
   if (!val) { prev.textContent='—'; return; }
   const [y,m,d] = val.split('-');
-  prev.textContent = `PDF記入値：${y}年 ${parseInt(m)}月 ${parseInt(d)}日`;
+  prev.textContent = `${y}年 ${parseInt(m)}月 ${parseInt(d)}日`;
   updateSummary();
 }
 
@@ -472,67 +540,131 @@ async function loadOnePDF(filename, key) {
     const buf = await res.arrayBuffer();
     if (key==='K') pdfBytesKanri  = new Uint8Array(buf);
     else           pdfBytesKaisha = new Uint8Array(buf);
-    el.className='pdf-status ok'; el.textContent='✅ '+filename;
+    el.className='pdf-status ok'; el.textContent='✅ '+(key==='K'?'Order':'Request');
   } catch(e) {
-    el.className='pdf-status ng'; el.textContent='❌ '+filename;
-    console.warn('PDF load failed:',filename,e);
+    el.className='pdf-status ng'; el.textContent='❌ '+(key==='K'?'Order':'Request');
   }
 }
 
-// ─── TYPE TOGGLE ───
+// ─── ② TYPE TOGGLE ───
 function setType(type) {
   currentType = type;
-  const isK = type==='kanri';
-  document.getElementById('typeToggleBar').style.borderBottomColor = isK?'var(--accent-k)':'var(--accent-c)';
-  const badge = document.getElementById('typeBadge');
-  badge.className = 'type-badge '+(isK?'badge-k':'badge-c');
-  badge.textContent = isK ? '管理組合 → '+PDF_FILE_KANRI : '会社経費 → '+PDF_FILE_KAISHA;
-  document.getElementById('btnKanri').className = 'toggle-btn'+(isK?' active-k':'');
+  const isK = type === 'kanri';
+  // ② ヘッダー背景：管理組合=青、会社経費=赤
+  document.getElementById('appHeader').style.background = isK ? 'var(--accent-k)' : 'var(--danger)';
+  document.getElementById('typeToggleBar').style.borderBottomColor = isK ? 'var(--accent-k)' : 'var(--danger)';
+  document.getElementById('btnKanri').className  = 'toggle-btn'+(isK?' active-k':'');
   document.getElementById('btnKaisha').className = 'toggle-btn'+(!isK?' active-c':'');
   document.getElementById('pdfFileName').textContent = (isK?PDF_FILE_KANRI:PDF_FILE_KAISHA)+' に書き込み';
-  document.getElementById('downloadBtn').className = 'btn btn-primary btn-full'+(isK?'':' teal');
+  const dlBtn = document.getElementById('downloadBtn');
+  dlBtn.className = 'btn btn-primary btn-full'+(isK?'':' kaisha');
   document.getElementById('sum-type').textContent = isK?'管理組合':'会社経費';
+  // サマリーの背景も変える
+  const sumEl = document.getElementById('infoSummary');
+  sumEl.className = 'info-summary'+(isK?'':' kaisha-summary');
   updateIdPreview();
   updateSummary();
 }
 
-// ─── ③ ログインID ───
+// ─── ③ ログインID（7桁入力対応） ───
 function getLoginIdForPdf() {
-  const base = document.getElementById('ID_No_base').value.trim();
-  if (!base) return '';
-  const stripped = base.replace(/-[12]$/, '');
-  return currentType==='kanri' ? stripped+'-1' : stripped+'-2';
-}
-function updateIdPreview() {
-  const val = getLoginIdForPdf();
-  document.getElementById('ID_No_preview').textContent = 'PDF記入値：'+(val||'—');
+  const raw = document.getElementById('ID_No_base').value.trim();
+  if (!raw) return '';
+  // ハイフンで分割して判定
+  const parts = raw.split('-');
+  const base  = parts[0];             // 数字部分
+  const suffix = parts[1] || '';      // -1 or -2 or なし
+  if (currentType === 'kanri') {
+    // 管理組合：-1 であるべき。-2 なら強制修正
+    if (suffix === '2') return base + '-1';
+    return base + '-1';
+  } else {
+    // 会社経費：-2 であるべき。-1 なら強制修正
+    if (suffix === '1') return base + '-2';
+    return base + '-2';
+  }
 }
 
-// ─── ② 勤務曜日トグル ───
+function updateIdPreview() {
+  const val = getLoginIdForPdf();
+  const raw = document.getElementById('ID_No_base').value.trim();
+  const parts = raw.split('-');
+  const suffix = parts[1] || '';
+  let warning = '';
+  if (raw && suffix && currentType==='kanri' && suffix==='2') warning = ' ⚠ -1に修正';
+  if (raw && suffix && currentType==='kaisha'&& suffix==='1') warning = ' ⚠ -2に修正';
+  document.getElementById('ID_No_preview').textContent = 'PDF記入値：'+(val||'—')+warning;
+}
+
+// ─── ① 自動保存（入力即時） ───
+let autoSaveTimer = null;
+function autoSaveProfile() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    const data = {};
+    ['ID_No_base','ID_Name','ID_Code','ID_Staff','ID_Tel','WORK_Time'].forEach(id => {
+      const el = document.getElementById(id); if(el) data[id] = el.value;
+    });
+    localStorage.setItem(SK.profile, JSON.stringify(data));
+  }, 600); // 600ms後に保存
+}
+let autoSaveStaffTimer = null;
+function autoSaveStaff() {
+  clearTimeout(autoSaveStaffTimer);
+  autoSaveStaffTimer = setTimeout(() => {
+    const data = {};
+    ['BRC_Name','BRC_Front','BRC_Tel','BRC_Fax'].forEach(id => {
+      const el = document.getElementById(id); if(el) data[id] = el.value;
+    });
+    localStorage.setItem(SK.staff, JSON.stringify(data));
+  }, 600);
+}
+
+function loadProfile() {
+  try {
+    const data = JSON.parse(localStorage.getItem(SK.profile));
+    if (!data) return;
+    ['ID_No_base','ID_Name','ID_Code','ID_Staff','ID_Tel','WORK_Time'].forEach(id => {
+      const el = document.getElementById(id); if(el && data[id]!==undefined) el.value = data[id];
+    });
+    updateIdPreview(); updateSummary();
+  } catch(e) {}
+}
+function loadStaff() {
+  try {
+    const data = JSON.parse(localStorage.getItem(SK.staff));
+    if (!data) return;
+    ['BRC_Name','BRC_Front','BRC_Tel','BRC_Fax'].forEach(id => {
+      const el = document.getElementById(id); if(el && data[id]!==undefined) el.value = data[id];
+    });
+  } catch(e) {}
+}
+
+// ─── 勤務曜日トグル ───
 function toggleWorkTime() {
   const c = document.getElementById('workTimeContent');
   const a = document.getElementById('workTimeArrow');
-  const open = c.classList.toggle('open');
-  a.textContent = open?'▼':'▶';
+  a.textContent = c.classList.toggle('open') ? '▼' : '▶';
 }
 
 // ─── ORDER ROWS ───
-let totalRows = 0; // 現在の行数
-
 function buildOrderRows() {
   totalRows = 0;
-  document.getElementById('orderBody').innerHTML = '';
-  addRows(5); // 初期5行
+  document.getElementById('orderBody').innerHTML  = '';
+  document.getElementById('orderCards').innerHTML = '';
+  addRows(5);
 }
 
-// n行追加する
 function addRows(n) {
   const tbody = document.getElementById('orderBody');
+  const cards = document.getElementById('orderCards');
   for (let k = 0; k < n; k++) {
     totalRows++;
     const i = totalRows;
+
+    // PC テーブル行
     const tr = document.createElement('tr');
-    tr.id = 'row_' + i;
+    tr.id = 'row_'+i;
     tr.innerHTML = `
       <td class="row-num">${i}</td>
       <td><input type="text" id="ODNO_1_${i}" class="code-part code-p1" maxlength="3" placeholder="000"
@@ -546,85 +678,120 @@ function addRows(n) {
         oninput="onNameInput(${i})"></td>
       <td><input type="number" id="ODPR_1_${i}" class="price-input" min="0" placeholder=""
         oninput="this.value=toHankaku(this.value);onItemChange()"></td>
-      <td><button class="pick-btn" onclick="openHistory(${i})" title="履歴から選ぶ">📋</button></td>
-      <td><button class="clear-row-btn" onclick="clearRow(${i})" title="クリア">✕</button></td>
-    `;
+      <td><button class="pick-btn" onclick="openHistory(${i})" title="履歴">📋</button></td>
+      <td><button class="clear-row-btn" onclick="clearRow(${i})">✕</button></td>`;
     tbody.appendChild(tr);
+
+    // ④ スマホ カード
+    const card = document.createElement('div');
+    card.className = 'order-card';
+    card.id = 'card_'+i;
+    card.innerHTML = `
+      <div class="order-card-header">
+        <div class="order-card-num">${i}</div>
+        <div class="order-card-code">
+          <input type="text" id="ODNO_1s_${i}" class="code-part code-sp1" maxlength="3" placeholder="000"
+            oninput="syncCode(${i},'1',this.value);onCodeInput(${i})" onblur="zeroPad(this,3)">
+          <span style="color:var(--text3);font-weight:700;font-size:16px;">-</span>
+          <input type="text" id="ODNO_2s_${i}" class="code-part code-sp2" maxlength="4" placeholder="0000"
+            oninput="syncCode(${i},'2',this.value);onCodeInput(${i})" onblur="zeroPad(this,4)">
+        </div>
+        <div class="order-card-actions">
+          <button class="pick-btn" onclick="openHistory(${i})">📋</button>
+          <button class="clear-row-btn" onclick="clearRow(${i})">✕</button>
+        </div>
+      </div>
+      <div class="order-card-body">
+        <div class="form-group" style="grid-column:1;">
+          <label style="font-size:12px;">商品名</label>
+          <input type="text" id="ODNA_1s_${i}" placeholder="商品名" oninput="syncName(${i},this.value);onNameInput(${i})">
+        </div>
+        <div class="form-group order-card-qty">
+          <label style="font-size:12px;">数量</label>
+          <input type="number" id="ODSU_1s_${i}" min="1" placeholder="0" class="qty-input"
+            oninput="this.value=toHankaku(this.value);syncQty(${i},this.value);onItemChange()">
+        </div>
+        <div class="form-group" style="grid-column:1;">
+          <label style="font-size:12px;">価格（任意）</label>
+          <input type="number" id="ODPR_1s_${i}" min="0" placeholder="" class="price-input" style="width:100%;"
+            oninput="this.value=toHankaku(this.value);syncPrice(${i},this.value);onItemChange()">
+        </div>
+      </div>`;
+    cards.appendChild(card);
   }
 }
 
-// 末尾行（5の倍数）に入力があれば5行追加
+// スマホ↔PCの値を同期
+function syncCode(i,part,v){ const el=document.getElementById('ODNO_'+part+'_'+i); if(el)el.value=v; }
+function syncName(i,v){ const el=document.getElementById('ODNA_1_'+i); if(el)el.value=v; }
+function syncQty(i,v){ const el=document.getElementById('ODSU_1_'+i); if(el)el.value=v; }
+function syncPrice(i,v){ const el=document.getElementById('ODPR_1_'+i); if(el)el.value=v; }
+// PC→スマホ同期
+function syncToCard(i){
+  const get=(id)=>document.getElementById(id)?.value||'';
+  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+  s('ODNO_1s_'+i, get('ODNO_1_'+i));
+  s('ODNO_2s_'+i, get('ODNO_2_'+i));
+  s('ODNA_1s_'+i, get('ODNA_1_'+i));
+  s('ODSU_1s_'+i, get('ODSU_1_'+i));
+  s('ODPR_1s_'+i, get('ODPR_1_'+i));
+}
+
 function checkExpandRows() {
-  if (totalRows >= 20) return; // 最大20行
-  // 現在の末尾5行ブロックの最後の行に入力があるか
-  const lastBlockEnd = totalRows;
-  const lastBlockStart = totalRows - 4;
-  let hasInputInLastBlock = false;
-  for (let i = lastBlockStart; i <= lastBlockEnd; i++) {
-    const c1 = (document.getElementById('ODNO_1_' + i)?.value || '').trim();
-    const c2 = (document.getElementById('ODNO_2_' + i)?.value || '').trim();
-    if (c1 || c2) { hasInputInLastBlock = true; break; }
+  if (totalRows >= 20) return;
+  let hasInput = false;
+  for (let i = totalRows-4; i <= totalRows; i++) {
+    if ((document.getElementById('ODNO_1_'+i)?.value||'').trim() ||
+        (document.getElementById('ODNO_2_'+i)?.value||'').trim()) { hasInput=true; break; }
   }
-  if (hasInputInLastBlock) {
-    addRows(5);
-    toast(`📋 ${totalRows}行目まで追加しました`, '');
-  }
+  if (hasInput) { addRows(5); toast(`📋 ${totalRows}行目まで追加しました`,''); }
 }
 
 function pad2(n){return n<10?'0'+n:''+n;}
-
-function zeroPad(el,len){
-  const v=el.value.replace(/\D/g,'');
-  el.value = v ? v.padStart(len,'0') : '';
-}
-
+function zeroPad(el,len){const v=el.value.replace(/\D/g,'');el.value=v?v.padStart(len,'0'):'';}
 function toHankaku(str){
-  return (str||'')
-    .replace(/[！-～]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
-    .replace(/　/g,' ');
+  return (str||'').replace(/[！-～]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/　/g,' ');
 }
 
-// ⑥ コード入力 → 数量1 + ⑨ 商品名自動補完
 function onCodeInput(i) {
   ['ODNO_1_','ODNO_2_'].forEach(f=>{
-    const el=document.getElementById(f+i);
-    if(el) el.value=toHankaku(el.value).replace(/\D/g,'');
+    const el=document.getElementById(f+i); if(el) el.value=toHankaku(el.value).replace(/\D/g,'');
+  });
+  // スマホ側に同期
+  ['1','2'].forEach(p=>{
+    const src=document.getElementById('ODNO_'+p+'_'+i);
+    const dst=document.getElementById('ODNO_'+p+'s_'+i);
+    if(src&&dst) dst.value=src.value;
   });
   const c1=(document.getElementById('ODNO_1_'+i)?.value||'').trim();
   const c2=(document.getElementById('ODNO_2_'+i)?.value||'').trim();
-
-  // ⑥ 数量が空なら1セット
   const qtyEl=document.getElementById('ODSU_1_'+i);
-  if((c1||c2)&&qtyEl&&!qtyEl.value) qtyEl.value='1';
-
-  // ⑨ 3桁+4桁が揃ったら商品名を自動補完
+  if((c1||c2)&&qtyEl&&!qtyEl.value){ qtyEl.value='1'; syncQty(i,'1'); }
   if(c1.length===3&&c2.length===4){
     const code=c1+'-'+c2;
     const found=getHistory().find(p=>p.code===code);
     const nameEl=document.getElementById('ODNA_1_'+i);
     const priceEl=document.getElementById('ODPR_1_'+i);
     if(found&&nameEl&&!nameEl.classList.contains('user-edited')){
-      nameEl.value=found.name||'';
-      if(priceEl) priceEl.value=found.price||'';
-      nameEl.classList.add('name-autofilled');
-      nameEl.dataset.autoCode=code;
+      nameEl.value=found.name||''; if(priceEl) priceEl.value=found.price||'';
+      nameEl.classList.add('name-autofilled'); nameEl.dataset.autoCode=code;
+      syncToCard(i);
     }
   }
   checkExpandRows();
   onItemChange();
 }
 
-// ⑨ 商品名手動修正 → 履歴も更新
 function onNameInput(i){
   const nameEl=document.getElementById('ODNA_1_'+i);
   const priceEl=document.getElementById('ODPR_1_'+i);
   if(!nameEl) return;
-  nameEl.classList.remove('name-autofilled');
-  nameEl.classList.add('user-edited');
+  // スマホ→PC同期
+  const sns=document.getElementById('ODNA_1s_'+i); if(sns) sns.value=nameEl.value;
+  nameEl.classList.remove('name-autofilled'); nameEl.classList.add('user-edited');
   const autoCode=nameEl.dataset.autoCode;
   if(autoCode){
-    const hist=getHistory();
-    const idx=hist.findIndex(p=>p.code===autoCode);
+    const hist=getHistory(); const idx=hist.findIndex(p=>p.code===autoCode);
     if(idx>=0){hist[idx].name=nameEl.value;if(priceEl)hist[idx].price=priceEl.value;saveHistory(hist);}
   }
   onItemChange();
@@ -632,12 +799,10 @@ function onNameInput(i){
 
 function clearRow(i){
   ['ODNO_1_','ODNO_2_','ODSU_1_','ODNA_1_','ODPR_1_'].forEach(f=>{
-    const el=document.getElementById(f+i);
-    if(!el) return;
-    el.value='';
-    el.classList.remove('name-autofilled','user-edited');
-    delete el.dataset.autoCode;
+    const el=document.getElementById(f+i); if(!el)return;
+    el.value=''; el.classList.remove('name-autofilled','user-edited'); delete el.dataset.autoCode;
   });
+  syncToCard(i);
   onItemChange();
 }
 function clearAllItems(){for(let i=1;i<=totalRows;i++)clearRow(i);}
@@ -662,183 +827,8 @@ function updateSummary(){
   document.getElementById('sum-pages').textContent=pages+' 枚';
   document.getElementById('totalPages').textContent=pages;
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('ID_Name').addEventListener('input',updateSummary);
-});
 
-// ─── HISTORY ───
-function getHistory(){try{return JSON.parse(localStorage.getItem(SK.history))||[];}catch(e){return[];}}
-function saveHistory(hist){localStorage.setItem(SK.history,JSON.stringify(hist));}
-
-function computeScore(product){
-  const now=Date.now();
-  const entries=product.orders||[];
-  const n=entries.length;
-  if(!n)return 0;
-  const sumDays=entries.reduce((acc,o)=>acc+Math.floor((now-new Date(o.date).getTime())/86400000),0);
-  return sumDays*n;
-}
-
-function getSortedHistory(q){
-  let h=getHistory();
-  if(q){const ql=q.toLowerCase();h=h.filter(p=>p.code.toLowerCase().includes(ql)||p.name.toLowerCase().includes(ql));}
-  return h.sort((a,b)=>computeScore(b)-computeScore(a));
-}
-
-function addToHistory(item){
-  const hist=getHistory();
-  const today=new Date().toISOString().slice(0,10);
-  const code=item.code1.padStart(3,'0')+'-'+item.code2.padStart(4,'0');
-  const idx=hist.findIndex(p=>p.code===code);
-  if(idx>=0){
-    hist[idx].name=item.name; hist[idx].price=item.price;
-    (hist[idx].orders=hist[idx].orders||[]).push({date:today,qty:item.qty});
-  } else {
-    hist.push({code,code1:item.code1,code2:item.code2,name:item.name,price:item.price,
-      orders:[{date:today,qty:item.qty}]});
-  }
-  saveHistory(hist);
-}
-
-// ─── HISTORY MODAL ───
-function openHistory(rowIndex){
-  targetRow=rowIndex;
-  document.getElementById('historyOverlay').classList.add('open');
-  document.getElementById('historySearchInput').value='';
-  document.getElementById('historyTargetLabel').textContent=rowIndex!==null?`→ ${rowIndex}行目に挿入`:'（空き行に自動挿入）';
-  if(rowIndex!==null){
-    document.querySelectorAll('.order-table tr').forEach(r=>r.classList.remove('active-row'));
-    const tr=document.getElementById('row_'+rowIndex);
-    if(tr)tr.classList.add('active-row');
-    document.getElementById('targetIndicator').classList.add('show');
-    document.getElementById('targetRowLabel').textContent=`${rowIndex}行目を選択中 — クリックで挿入`;
-  }
-  setTimeout(()=>document.getElementById('historySearchInput').focus(),80);
-  renderHistory();
-}
-function closeHistory(){
-  document.getElementById('historyOverlay').classList.remove('open');
-  document.querySelectorAll('.order-table tr').forEach(r=>r.classList.remove('active-row'));
-}
-function clearTargetRow(){
-  targetRow=null;
-  document.getElementById('targetIndicator').classList.remove('show');
-  document.querySelectorAll('.order-table tr').forEach(r=>r.classList.remove('active-row'));
-}
-
-function renderHistory(){
-  const q=document.getElementById('historySearchInput').value.trim();
-  const sorted=getSortedHistory(q);
-  const container=document.getElementById('historyList');
-  if(!sorted.length){
-    container.innerHTML=`<div class="history-empty"><div class="icon">${q?'🔍':'📭'}</div><div>${q?'該当なし':'まだ注文履歴がありません'}</div></div>`;
-    return;
-  }
-  container.innerHTML='';
-  sorted.forEach(product=>{
-    const n=(product.orders||[]).length;
-    const lastDate=n?(product.orders[n-1].date||''):'';
-    const daysAgo=lastDate?Math.floor((Date.now()-new Date(lastDate).getTime())/86400000):'?';
-    const div=document.createElement('div');
-    div.className='history-item';
-    div.innerHTML=`
-      <div class="history-code">${product.code}</div>
-      <div class="history-info">
-        <div class="history-name">${product.name||'（商品名未登録）'}</div>
-        <div class="history-meta">
-          <span>📅 ${daysAgo}日前</span><span>🔁 ${n}回</span>
-          ${product.price?`<span>¥${Number(product.price).toLocaleString()}</span>`:''}
-        </div>
-      </div>
-      <div class="history-count-badge">${n}回注文</div>
-      <button class="history-del-btn" onclick="deleteHistory(event,'${product.code}')" title="削除">🗑</button>
-    `;
-    div.addEventListener('click',(e)=>{if(e.target.closest('.history-del-btn'))return;selectHistoryItem(product);});
-    container.appendChild(div);
-  });
-}
-
-function selectHistoryItem(product){
-  let row=targetRow;
-  if(row===null){
-    for(let i=1;i<=totalRows;i++){
-      if(!(document.getElementById('ODNO_1_'+i)?.value||'').trim()&&!(document.getElementById('ODNO_2_'+i)?.value||'').trim()){row=i;break;}
-    }
-  }
-  if(row===null){toast('空き行がありません','error');return;}
-  const s=pad2(row);
-  document.getElementById('ODNO_1_'+row).value=product.code1.padStart(3,'0');
-  document.getElementById('ODNO_2_'+row).value=product.code2.padStart(4,'0');
-  document.getElementById('ODNA_1_'+row).value=product.name||'';
-  document.getElementById('ODPR_1_'+row).value=product.price||'';
-  document.getElementById('ODSU_1_'+row).value='1'; // ⑥
-  onItemChange();
-  closeHistory();clearTargetRow();
-  setTimeout(()=>{const el=document.getElementById('ODSU_1_'+row);if(el){el.focus();el.select();}},50);
-  toast(`${row}行目に「${product.name||product.code}」を挿入しました`,'success');
-}
-
-function deleteHistory(e,code){
-  e.stopPropagation();
-  if(!confirm(`「${code}」の履歴を削除しますか？`))return;
-  saveHistory(getHistory().filter(p=>p.code!==code));
-  renderHistory();renderRecentList();
-  toast('履歴を削除しました');
-}
-
-function renderRecentList(){
-  const sorted=getSortedHistory('').slice(0,5);
-  const container=document.getElementById('recentList');
-  if(!sorted.length){
-    container.innerHTML=`<div class="history-empty" style="padding:16px;"><div class="icon">📭</div><div>まだありません</div></div>`;
-    return;
-  }
-  container.innerHTML='';
-  sorted.forEach(product=>{
-    const n=(product.orders||[]).length;
-    const div=document.createElement('div');
-    div.style.cssText='padding:6px 4px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);cursor:pointer;';
-    div.innerHTML=`
-      <span style="font-family:DM Mono,monospace;font-size:12px;font-weight:700;">${product.code}</span>
-      <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${product.name||''}</span>
-      <span style="font-size:10px;color:var(--text3);">${n}回</span>
-    `;
-    div.addEventListener('click',()=>selectHistoryItem(product));
-    container.appendChild(div);
-  });
-}
-
-// ─── PROFILE / STAFF ───
-const PROFILE_FIELDS=['ID_No_base','ID_Name','ID_Code','ID_Staff','ID_Tel','WORK_Time'];
-const STAFF_FIELDS=['BRC_Name','BRC_Front','BRC_Tel','BRC_Fax'];
-
-function saveProfile(){
-  const data={};
-  PROFILE_FIELDS.forEach(id=>{const el=document.getElementById(id);if(el)data[id]=el.value;});
-  localStorage.setItem(SK.profile,JSON.stringify(data));
-  toast('注文者情報を記憶しました','success');
-}
-function loadProfile(){
-  try{
-    const data=JSON.parse(localStorage.getItem(SK.profile));
-    if(!data)return;
-    PROFILE_FIELDS.forEach(id=>{const el=document.getElementById(id);if(el&&data[id]!==undefined)el.value=data[id];});
-    updateIdPreview();updateSummary();
-  }catch(e){}
-}
-function saveStaff(){
-  const data={};
-  STAFF_FIELDS.forEach(id=>{const el=document.getElementById(id);if(el)data[id]=el.value;});
-  localStorage.setItem(SK.staff,JSON.stringify(data));
-  toast('担当者情報を記憶しました','success');
-}
-function loadStaff(){
-  try{
-    const data=JSON.parse(localStorage.getItem(SK.staff));
-    if(!data)return;
-    STAFF_FIELDS.forEach(id=>{const el=document.getElementById(id);if(el&&data[id]!==undefined)el.value=data[id];});
-  }catch(e){}
-}
+// ─── ITEMS save/load ───
 function saveItems(){
   const items=[];
   for(let i=1;i<=totalRows;i++){
@@ -856,36 +846,128 @@ function loadItems(){
   try{
     const items=JSON.parse(localStorage.getItem(SK.items));
     if(!items)return;
-    // 必要な行数を確保
-    while(totalRows < items.length && totalRows < 20) addRows(5);
+    while(totalRows<items.length&&totalRows<20) addRows(5);
     items.forEach((item,idx)=>{
       const i=idx+1;
-      const el1=document.getElementById('ODNO_1_'+i);
-      if(!el1) return;
-      el1.value=item.code1||'';
-      document.getElementById('ODNO_2_'+i).value=item.code2||'';
-      document.getElementById('ODSU_1_'+i).value=item.qty||'';
-      document.getElementById('ODNA_1_'+i).value=item.name||'';
-      document.getElementById('ODPR_1_'+i).value=item.price||'';
+      const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+      s('ODNO_1_'+i,item.code1||''); s('ODNO_2_'+i,item.code2||'');
+      s('ODSU_1_'+i,item.qty||'');   s('ODNA_1_'+i,item.name||'');
+      s('ODPR_1_'+i,item.price||'');
+      syncToCard(i);
     });
     updateSummary();
   }catch(e){}
 }
 
+// ─── HISTORY ───
+function getHistory(){try{return JSON.parse(localStorage.getItem(SK.history))||[];}catch(e){return[];}}
+function saveHistory(h){localStorage.setItem(SK.history,JSON.stringify(h));}
+function computeScore(p){
+  const now=Date.now(); const n=(p.orders||[]).length; if(!n)return 0;
+  return p.orders.reduce((a,o)=>a+Math.floor((now-new Date(o.date).getTime())/86400000),0)*n;
+}
+function getSortedHistory(q){
+  let h=getHistory();
+  if(q){const ql=q.toLowerCase();h=h.filter(p=>p.code.toLowerCase().includes(ql)||p.name.toLowerCase().includes(ql));}
+  return h.sort((a,b)=>computeScore(b)-computeScore(a));
+}
+function addToHistory(item){
+  const hist=getHistory(); const today=new Date().toISOString().slice(0,10);
+  const code=item.code1.padStart(3,'0')+'-'+item.code2.padStart(4,'0');
+  const idx=hist.findIndex(p=>p.code===code);
+  if(idx>=0){hist[idx].name=item.name;hist[idx].price=item.price;(hist[idx].orders=hist[idx].orders||[]).push({date:today,qty:item.qty});}
+  else{hist.push({code,code1:item.code1,code2:item.code2,name:item.name,price:item.price,orders:[{date:today,qty:item.qty}]});}
+  saveHistory(hist);
+}
+
+// ─── HISTORY MODAL ───
+function openHistory(rowIndex){
+  targetRow=rowIndex;
+  document.getElementById('historyOverlay').classList.add('open');
+  document.getElementById('historySearchInput').value='';
+  document.getElementById('historyTargetLabel').textContent=rowIndex!==null?`→ ${rowIndex}行目`:' ';
+  if(rowIndex!==null){
+    document.querySelectorAll('.order-table tr,.order-card').forEach(r=>r.classList.remove('active-row'));
+    document.getElementById('row_'+rowIndex)?.classList.add('active-row');
+    document.getElementById('card_'+rowIndex)?.classList.add('active-row');
+    document.getElementById('targetIndicator').classList.add('show');
+    document.getElementById('targetRowLabel').textContent=`${rowIndex}行目を選択中`;
+  }
+  setTimeout(()=>document.getElementById('historySearchInput').focus(),80);
+  renderHistory();
+}
+function closeHistory(){
+  document.getElementById('historyOverlay').classList.remove('open');
+  document.querySelectorAll('.order-table tr,.order-card').forEach(r=>r.classList.remove('active-row'));
+}
+function clearTargetRow(){
+  targetRow=null;
+  document.getElementById('targetIndicator').classList.remove('show');
+  document.querySelectorAll('.order-table tr,.order-card').forEach(r=>r.classList.remove('active-row'));
+}
+function renderHistory(){
+  const q=document.getElementById('historySearchInput').value.trim();
+  const sorted=getSortedHistory(q);
+  const container=document.getElementById('historyList');
+  if(!sorted.length){container.innerHTML=`<div class="history-empty"><div class="icon">${q?'🔍':'📭'}</div><div>${q?'該当なし':'まだ注文履歴がありません'}</div></div>`;return;}
+  container.innerHTML='';
+  sorted.forEach(product=>{
+    const n=(product.orders||[]).length;
+    const lastDate=n?(product.orders[n-1].date||''):'';
+    const daysAgo=lastDate?Math.floor((Date.now()-new Date(lastDate).getTime())/86400000):'?';
+    const div=document.createElement('div'); div.className='history-item';
+    div.innerHTML=`
+      <div class="history-code">${product.code}</div>
+      <div class="history-info">
+        <div class="history-name">${product.name||'（商品名未登録）'}</div>
+        <div class="history-meta"><span>📅 ${daysAgo}日前</span><span>🔁 ${n}回</span>${product.price?`<span>¥${Number(product.price).toLocaleString()}</span>`:''}</div>
+      </div>
+      <div class="history-count-badge">${n}回</div>
+      <button class="history-del-btn" onclick="deleteHistory(event,'${product.code}')">🗑</button>`;
+    div.addEventListener('click',(e)=>{if(e.target.closest('.history-del-btn'))return;selectHistoryItem(product);});
+    container.appendChild(div);
+  });
+}
+function selectHistoryItem(product){
+  let row=targetRow;
+  if(row===null){for(let i=1;i<=totalRows;i++){if(!(document.getElementById('ODNO_1_'+i)?.value||'').trim()&&!(document.getElementById('ODNO_2_'+i)?.value||'').trim()){row=i;break;}}}
+  if(row===null){toast('空き行がありません','error');return;}
+  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+  s('ODNO_1_'+row,product.code1.padStart(3,'0')); s('ODNO_2_'+row,product.code2.padStart(4,'0'));
+  s('ODNA_1_'+row,product.name||'');               s('ODPR_1_'+row,product.price||'');
+  s('ODSU_1_'+row,'1');
+  syncToCard(row);
+  onItemChange(); closeHistory(); clearTargetRow();
+  setTimeout(()=>{const el=document.getElementById('ODSU_1_'+row)||document.getElementById('ODSU_1s_'+row);if(el){el.focus();el.select();}},50);
+  toast(`${row}行目に「${product.name||product.code}」を挿入`,'success');
+}
+function deleteHistory(e,code){
+  e.stopPropagation();
+  if(!confirm(`「${code}」の履歴を削除しますか？`))return;
+  saveHistory(getHistory().filter(p=>p.code!==code));
+  renderHistory();renderRecentList();toast('履歴を削除しました');
+}
+function renderRecentList(){
+  const sorted=getSortedHistory('').slice(0,5);
+  const c=document.getElementById('recentList');
+  if(!sorted.length){c.innerHTML=`<div class="history-empty" style="padding:14px;"><div class="icon">📭</div><div>まだありません</div></div>`;return;}
+  c.innerHTML='';
+  sorted.forEach(p=>{
+    const n=(p.orders||[]).length;
+    const div=document.createElement('div');
+    div.style.cssText='padding:6px 4px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);cursor:pointer;';
+    div.innerHTML=`<span style="font-family:DM Mono,monospace;font-size:12px;font-weight:700;">${p.code}</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name||''}</span><span style="font-size:10px;color:var(--text3);">${n}回</span>`;
+    div.addEventListener('click',()=>selectHistoryItem(p));
+    c.appendChild(div);
+  });
+}
+
 // ─── EXPORT / IMPORT ───
 function exportData(){
-  const data={
-    profile:JSON.parse(localStorage.getItem(SK.profile)||'{}'),
-    staff:JSON.parse(localStorage.getItem(SK.staff)||'{}'),
-    history:getHistory(),
-    items:JSON.parse(localStorage.getItem(SK.items)||'[]'),
-    exported:new Date().toISOString()
-  };
+  const data={profile:JSON.parse(localStorage.getItem(SK.profile)||'{}'),staff:JSON.parse(localStorage.getItem(SK.staff)||'{}'),history:getHistory(),items:JSON.parse(localStorage.getItem(SK.items)||'[]'),exported:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='stationery_backup_'+new Date().toISOString().slice(0,10)+'.json';
-  a.click();URL.revokeObjectURL(url);
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download='stationery_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);
   toast('バックアップを保存しました','success');
 }
 function importData(event){
@@ -900,80 +982,46 @@ function importData(event){
       if(data.items)localStorage.setItem(SK.items,JSON.stringify(data.items));
       loadProfile();loadStaff();loadItems();renderRecentList();updateSummary();
       toast('データを読み込みました ✅','success');
-    }catch(err){toast('読み込み失敗：JSONファイルを確認してください','error');}
+    }catch(err){toast('読み込み失敗','error');}
     event.target.value='';
   };
   reader.readAsText(file);
 }
 
-// ─── PDF GENERATION v1.34 ───
-// UTF-16BE PDFHexString方式でANSIエラーを回避
-// setText()を使わず辞書に直接書き込む（月報・カレンダーと同じ解決策）
-
-async function downloadPDF(){
-  const btn=document.getElementById('downloadBtn');
-  btn.disabled=true;btn.textContent='⏳ 作成中...';
-  try{await generateAndDownload();}
-  catch(err){console.error(err);toast('PDF作成エラー：'+err.message,'error');}
-  btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
-}
-
 // ─── PDF書き込み（getForm/getTextField を一切使わない低レベル方式）───
-// pdf-lib の getTextField() を呼ぶと PDFTextField オブジェクトが dirty になり
-// save() 時に defaultUpdateAppearances() が自動実行されて WinAnsiエラー爆発。
-// 解決：AcroFieldsを生のPDFDictとして直接操作し、Vに UTF-16BE HexString を書く。
-
-function toUtf16Hex(str) {
-  // 文字列を UTF-16BE HexString に変換（BOM付き）
-  if (!str) return '';
-  let hex = 'FEFF';
-  for (let i = 0; i < str.length; i++) {
-    hex += str.charCodeAt(i).toString(16).padStart(4, '0').toUpperCase();
-  }
+function toUtf16Hex(str){
+  if(!str)return'';let hex='FEFF';
+  for(let i=0;i<str.length;i++)hex+=str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
   return hex;
 }
-
-// AcroFormフィールド辞書一覧を低レベルで取得（getForm()を使わない）
-function getRawAcroFields(pdfDoc) {
-  const {PDFName, PDFDict, PDFArray} = PDFLib;
-  const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
-  if (!acroFormRef) return {};
-  const acroForm = pdfDoc.context.lookup(acroFormRef);
-  if (!acroForm) return {};
-
-  const fieldMap = {};
-
-  function collectFields(arr) {
-    if (!arr) return;
-    for (let i = 0; i < arr.size(); i++) {
-      try {
-        const ref = arr.get(i);
-        const dict = pdfDoc.context.lookup(ref);
-        if (!dict) continue;
-        // フィールド名を取得
-        const tObj = dict.get(PDFName.of('T'));
-        const name = tObj ? tObj.decodeText() : null;
-        if (name) fieldMap[name] = {dict, ref};
-        // Kids（子フィールド）を再帰処理
-        const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
-        if (kids) collectFields(kids);
-      } catch(e) {}
+function getRawAcroFields(pdfDoc){
+  const{PDFName,PDFArray}=PDFLib;
+  const fieldMap={};
+  try{
+    const acroFormRef=pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
+    const acroForm=pdfDoc.context.lookup(acroFormRef);
+    if(!acroForm)return fieldMap;
+    function collect(arr){
+      if(!arr)return;
+      for(let i=0;i<arr.size();i++){
+        try{
+          const ref=arr.get(i);const dict=pdfDoc.context.lookup(ref);if(!dict)continue;
+          const tObj=dict.get(PDFName.of('T'));
+          const name=tObj?tObj.decodeText():null;
+          if(name)fieldMap[name]={dict,ref};
+          const kids=dict.lookupMaybe(PDFName.of('Kids'),PDFArray);
+          if(kids)collect(kids);
+        }catch(e){}
+      }
     }
-  }
-
-  const fields = acroForm.lookupMaybe(PDFName.of('Fields'), PDFArray);
-  collectFields(fields);
+    collect(acroForm.lookupMaybe(PDFName.of('Fields'),PDFArray));
+  }catch(e){}
   return fieldMap;
 }
-
-// フィールドに値をUTF-16BE HexStringで書き込む（getTextField不使用）
-function writeFieldValue(fieldMap, pdfDoc, name, value) {
-  const {PDFName, PDFHexString} = PDFLib;
-  const entry = fieldMap[name];
-  if (!entry) return;
-  const hexStr = toUtf16Hex(String(value || ''));
-  entry.dict.set(PDFName.of('V'), PDFHexString.of(hexStr));
-  // AP（外観キャッシュ）を削除してビューア再描画を促す
+function writeFieldValue(fieldMap,pdfDoc,name,value){
+  const{PDFName,PDFHexString}=PDFLib;
+  const entry=fieldMap[name];if(!entry)return;
+  entry.dict.set(PDFName.of('V'),PDFHexString.of(toUtf16Hex(String(value||''))));
   entry.dict.delete(PDFName.of('AP'));
 }
 
@@ -982,14 +1030,19 @@ function collectFilledItems(){
   for(let i=1;i<=totalRows;i++){
     const c1=(document.getElementById('ODNO_1_'+i)?.value||'').trim();
     const c2=(document.getElementById('ODNO_2_'+i)?.value||'').trim();
-    items.push({
-      code1:c1,code2:c2,
-      qty:(document.getElementById('ODSU_1_'+i)?.value||'').trim(),
-      name:(document.getElementById('ODNA_1_'+i)?.value||'').trim(),
-      price:(document.getElementById('ODPR_1_'+i)?.value||'').trim(),
-    });
+    items.push({code1:c1,code2:c2,qty:(document.getElementById('ODSU_1_'+i)?.value||'').trim(),name:(document.getElementById('ODNA_1_'+i)?.value||'').trim(),price:(document.getElementById('ODPR_1_'+i)?.value||'').trim()});
   }
   return items.filter(it=>it.code1||it.code2);
+}
+
+async function downloadMultiplePages(pageBytesList,baseFilename){
+  for(let pi=0;pi<pageBytesList.length;pi++){
+    const blob=new Blob([pageBytesList[pi]],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');
+    a.href=url;a.download=baseFilename+'_'+(pi+1)+'of'+pageBytesList.length+'.pdf';
+    a.click();URL.revokeObjectURL(url);
+    if(pi<pageBytesList.length-1)await new Promise(r=>setTimeout(r,400));
+  }
 }
 
 async function downloadPDF(){
@@ -1000,135 +1053,79 @@ async function downloadPDF(){
   btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
 }
 
-// 複数ページ：ページごとに個別ダウンロード
-// flatten/getForm/copyPagesを一切使わない究極シンプル方式
-async function downloadMultiplePages(pageBytesList, baseFilename) {
-  for (let pi = 0; pi < pageBytesList.length; pi++) {
-    const blob = new Blob([pageBytesList[pi]], {type: 'application/pdf'});
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = baseFilename + '_' + (pi+1) + 'of' + pageBytesList.length + '.pdf';
-    a.click();
-    URL.revokeObjectURL(url);
-    if (pi < pageBytesList.length - 1) {
-      await new Promise(r => setTimeout(r, 400));
-    }
-  }
-}
-
 async function generateAndDownload(){
-  const {PDFDocument, PDFName, PDFBool} = PDFLib;
-  const ord = parseDateField('ORD');
-  const dlv = parseDateField('DLV');
+  const{PDFDocument,PDFName,PDFBool}=PDFLib;
+  const ord=parseDateField('ORD');const dlv=parseDateField('DLV');
+  if(!ord.y){toast('注文日を入力してください','error');return;}
+  const templateBytes=currentType==='kanri'?pdfBytesKanri:pdfBytesKaisha;
+  if(!templateBytes){toast('PDFテンプレートが読み込まれていません','error');return;}
+  const filledItems=collectFilledItems();
+  if(!filledItems.length){toast('注文明細を1件以上入力してください','error');return;}
+  const totalPages=Math.max(1,Math.ceil(filledItems.length/10));
 
-  if (!ord.y) { toast('注文日を入力してください','error'); return; }
+  // ① PDF作成時も自動保存（念のため）
+  autoSaveProfile(); autoSaveStaff();
 
-  const templateBytes = currentType==='kanri' ? pdfBytesKanri : pdfBytesKaisha;
-  if (!templateBytes) { toast('PDFテンプレートが読み込まれていません','error'); return; }
-
-  const filledItems = collectFilledItems();
-  if (!filledItems.length) { toast('注文明細を1件以上入力してください','error'); return; }
-
-  const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
-
-  // ⑦ PDF作成時に送信者・担当者情報を自動保存
-  saveProfile(); saveStaff();
-
-  // 共通フィールド値
-  const commonFields = {
-    ORD_Year:  ord.y, ORD_Month: ord.m, ORD_Day: ord.d,
-    DLV_Year:  dlv.y, DLV_Month: dlv.m, DLV_Day: dlv.d,
-    NUM_All:   String(totalPages),
-    ID_No:     getLoginIdForPdf(),
-    ID_Name:   document.getElementById('ID_Name').value.trim(),
-    ID_Code:   document.getElementById('ID_Code').value.trim(),
-    ID_Staff:  document.getElementById('ID_Staff').value.trim(),
-    ID_Tel:    document.getElementById('ID_Tel').value.trim(),
-    WORK_Time: document.getElementById('WORK_Time').value.trim(),
-    BRC_Name:  document.getElementById('BRC_Name').value.trim(),
-    BRC_Front: document.getElementById('BRC_Front').value.trim(),
-    BRC_Tel:   document.getElementById('BRC_Tel').value.trim(),
-    BRC_Fax:   document.getElementById('BRC_Fax').value.trim(),
+  const commonFields={
+    ORD_Year:ord.y,ORD_Month:ord.m,ORD_Day:ord.d,
+    DLV_Year:dlv.y,DLV_Month:dlv.m,DLV_Day:dlv.d,
+    NUM_All:String(totalPages),
+    ID_No:getLoginIdForPdf(),
+    ID_Name:document.getElementById('ID_Name').value.trim(),
+    ID_Code:document.getElementById('ID_Code').value.trim(),
+    ID_Staff:document.getElementById('ID_Staff').value.trim(),
+    ID_Tel:document.getElementById('ID_Tel').value.trim(),
+    WORK_Time:document.getElementById('WORK_Time').value.trim(),
+    BRC_Name:document.getElementById('BRC_Name').value.trim(),
+    BRC_Front:document.getElementById('BRC_Front').value.trim(),
+    BRC_Tel:document.getElementById('BRC_Tel').value.trim(),
+    BRC_Fax:document.getElementById('BRC_Fax').value.trim(),
   };
 
-  const pageBytesList = [];
-
-  for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
-    // テンプレートを毎回クリーンにロード
-    const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption: true});
-
-    // NeedAppearances=true をAcroFormに直接セット（getForm()不使用）
-    try {
-      const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
-      const acroForm    = pdfDoc.context.lookup(acroFormRef);
-      if (acroForm) acroForm.set(PDFName.of('NeedAppearances'), PDFBool.True);
-    } catch(e) {}
-
-    // フィールド辞書マップを低レベルで取得
-    const fieldMap = getRawAcroFields(pdfDoc);
-    const set = (name, val) => writeFieldValue(fieldMap, pdfDoc, name, val);
-
-    // 共通フィールド書き込み
-    Object.entries(commonFields).forEach(([k, v]) => set(k, v));
-    set('NUM_Page', String(pageIdx + 1));
-
-    // 明細（このページ分10行）
-    const pageItems = filledItems.slice(pageIdx * 10, (pageIdx + 1) * 10);
-    for (let i = 1; i <= 10; i++) {
-      const s   = pad2(i);
-      const item = pageItems[i - 1] || {};
-      set('ODNO_1' + s, item.code1 ? item.code1.padStart(3, '0') : '');
-      set('ODNO_2' + s, item.code2 ? item.code2.padStart(4, '0') : '');
-      set('ODSU_1' + s, item.qty   || '');
-      set('ODNA_1' + s, item.name  || '');
-      set('ODPR_1' + s, item.price || '');
+  const pageBytesList=[];
+  for(let pageIdx=0;pageIdx<totalPages;pageIdx++){
+    const pdfDoc=await PDFDocument.load(templateBytes.slice(),{ignoreEncryption:true});
+    try{
+      const acroFormRef=pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
+      const acroForm=pdfDoc.context.lookup(acroFormRef);
+      if(acroForm)acroForm.set(PDFName.of('NeedAppearances'),PDFBool.True);
+    }catch(e){}
+    const fieldMap=getRawAcroFields(pdfDoc);
+    const set=(name,val)=>writeFieldValue(fieldMap,pdfDoc,name,val);
+    Object.entries(commonFields).forEach(([k,v])=>set(k,v));
+    set('NUM_Page',String(pageIdx+1));
+    const pageItems=filledItems.slice(pageIdx*10,(pageIdx+1)*10);
+    for(let i=1;i<=10;i++){
+      const s=pad2(i);const item=pageItems[i-1]||{};
+      set('ODNO_1'+s,item.code1?item.code1.padStart(3,'0'):'');
+      set('ODNO_2'+s,item.code2?item.code2.padStart(4,'0'):'');
+      set('ODSU_1'+s,item.qty||'');set('ODNA_1'+s,item.name||'');set('ODPR_1'+s,item.price||'');
     }
-
-    // getForm()を呼んでいないので defaultUpdateAppearances は発動しない
-    // updateFieldAppearances:false も念のため指定
-    const bytes = await pdfDoc.save({updateFieldAppearances: false});
+    const bytes=await pdfDoc.save({updateFieldAppearances:false});
     pageBytesList.push(bytes);
   }
 
-  // ─── ダウンロード ───
-  const ord3 = parseDateField('ORD');
-  const fname3 = currentType === 'kanri' ? PDF_FILE_KANRI : PDF_FILE_KAISHA;
-  const baseName = fname3.replace('.pdf','') + '_'
-    + ord3.y + ord3.m.padStart(2,'0') + ord3.d.padStart(2,'0');
+  const fname=currentType==='kanri'?PDF_FILE_KANRI:PDF_FILE_KAISHA;
+  const baseName=fname.replace('.pdf','')+'_'+ord.y+ord.m.padStart(2,'0')+ord.d.padStart(2,'0');
 
-  if (pageBytesList.length === 1) {
-    // 1ページ：そのまま1ファイルダウンロード
-    const blob = new Blob([pageBytesList[0]], {type: 'application/pdf'});
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = baseName + '.pdf';
-    a.click();
-    URL.revokeObjectURL(url);
-  } else {
-    // 複数ページ：ページごとに個別ファイルでダウンロード
-    // flatten()/getForm()を一切使わない完全安全方式
-    toast('📄 ' + pageBytesList.length + 'ページ分を順番にダウンロードします', '');
-    await downloadMultiplePages(pageBytesList, baseName);
+  if(pageBytesList.length===1){
+    const blob=new Blob([pageBytesList[0]],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');
+    a.href=url;a.download=baseName+'.pdf';a.click();URL.revokeObjectURL(url);
+  }else{
+    toast('📄 '+pageBytesList.length+'ページ分をダウンロードします','');
+    await downloadMultiplePages(pageBytesList,baseName);
   }
 
-
-
-  // 履歴保存
-  for (const item of filledItems) {
-    if (item.code1 || item.code2) addToHistory(item);
-  }
+  for(const item of filledItems){if(item.code1||item.code2)addToHistory(item);}
   renderRecentList();
-  toast('PDF作成完了 ✅', 'success');
+  toast('PDF作成完了 ✅','success');
 }
+
 // ─── TOAST ───
 function toast(msg,type=''){
-  const el=document.createElement('div');
-  el.className='toast'+(type?' '+type:'');
-  el.textContent=msg;
-  document.getElementById('toastContainer').appendChild(el);
-  setTimeout(()=>el.remove(),3500);
+  const el=document.createElement('div');el.className='toast'+(type?' '+type:'');el.textContent=msg;
+  document.getElementById('toastContainer').appendChild(el);setTimeout(()=>el.remove(),3500);
 }
 </script>
 </body>
