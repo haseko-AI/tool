@@ -384,7 +384,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.23</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.24</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -1833,6 +1833,11 @@ async function downloadPDF_OLD(){
         // APを削除（updateAppearancesで再生成するため）
         annot.delete(PDFName.of('AP'));
 
+        // ReadOnlyをform APIで設定
+        try {
+          form.getTextField(name).enableReadOnly();
+        } catch(e){}
+
         if(str !== ''){
           // /VにHexStringで書き込み（WinAnsiチェックなし）
           let hex = 'FEFF';
@@ -1848,13 +1853,11 @@ async function downloadPDF_OLD(){
               field.setAlignment(PDFLib.TextAlignment.Center);
             }
             field.updateAppearances(useFont);
-            // updateAppearances後にReadOnlyフラグを再設定
-            annot.set(PDFName.of('Ff'), PDFLib.PDFNumber.of(1));
+            // updateAppearances後にReadOnlyを設定
+            field.enableReadOnly();
           } catch(e){
             console.warn('AP生成スキップ:', name, e.message);
           }
-          // 値がない場合もReadOnlyに
-          annot.set(PDFName.of('Ff'), PDFLib.PDFNumber.of(1));
         }
       } catch(e) {
         console.warn(`field ${name}:`, e);
