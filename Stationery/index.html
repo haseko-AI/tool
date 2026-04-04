@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.42</title>
+<title>事務用品 注文シート v1.43</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -109,7 +109,7 @@ input[type="number"]{-moz-appearance:textfield;}
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
 input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13);}
-.date-preview{display:none;}
+.date-preview{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;padding-left:2px;margin-top:2px;}
 
 /* ─ Order table PC ─ */
 .order-table-wrap{overflow-x:auto;width:100%;}
@@ -121,7 +121,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 .order-table tr.active-row td{background:#fef9c3!important;}
 .row-num{font-family:'DM Mono',monospace;font-weight:700;font-size:13px;
   color:var(--text3);text-align:center;width:26px;}
-.code-part{font-family:'DM Mono',monospace;font-size:13px;text-align:center;letter-spacing:1px;}
+.code-part{font-family:'DM Mono',monospace;font-size:16px;text-align:center;letter-spacing:2px;font-weight:600;}
 .code-p1{width:52px;}.code-p2{width:60px;}
 .qty-input{width:56px;text-align:right;}
 .name-input{min-width:150px;}
@@ -145,10 +145,10 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
   color:#fff;background:var(--accent-k);width:28px;height:28px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .order-card-code{display:flex;align-items:center;gap:4px;flex:1;}
-.order-card-code input{font-family:'DM Mono',monospace;font-size:15px;text-align:center;letter-spacing:2px;}
-.code-sp1{width:72px;}.code-sp2{width:80px;}
+.order-card-code input{font-family:'DM Mono',monospace;font-size:18px;text-align:center;letter-spacing:3px;font-weight:600;}
+.code-sp1{width:80px;}.code-sp2{width:90px;}
 .order-card-actions{display:flex;gap:6px;flex-shrink:0;}
-.order-card-body{display:grid;grid-template-columns:1fr 100px;gap:8px;}
+.order-card-body{display:flex;flex-direction:column;gap:8px;}
 .order-card-row3{display:flex;align-items:flex-end;gap:8px;grid-column:1/-1;}
 .order-card-row3 .form-group{flex:1;}
 .order-card-qty{display:flex;flex-direction:column;gap:3px;grid-column:2;}
@@ -246,7 +246,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.42</div>
+    <div class="app-subtitle">ナビリオン v1.43</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -704,28 +704,31 @@ function addRows(n) {
         </div>
       </div>
       <div class="order-card-body">
-        <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:8px;">
-          <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:flex-end;gap:8px;width:100%;">
+          <div style="flex:1;min-width:0;overflow:hidden;">
             <label style="font-size:12px;display:block;">商品名</label>
-            <input type="text" id="ODNA_1s_${i}" placeholder="商品名" style="width:100%;"
+            <input type="text" id="ODNA_1s_${i}" placeholder="商品名"
+              style="width:100%;box-sizing:border-box;"
               oninput="syncName(${i},this.value);onNameInput(${i})">
           </div>
-          <div style="width:76px;flex-shrink:0;">
+          <div style="width:80px;flex-shrink:0;">
             <label style="font-size:12px;display:block;">数量</label>
             <input type="number" id="ODSU_1s_${i}" min="1" placeholder="0"
-              style="width:100%;text-align:right;"
+              style="width:80px;text-align:right;"
               oninput="this.value=toHankaku(this.value);syncQty(${i},this.value);onItemChange()">
           </div>
         </div>
-        <div style="display:flex;align-items:flex-end;gap:8px;">
-          <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:flex-end;gap:8px;width:100%;margin-top:0;">
+          <div style="flex:1;min-width:0;overflow:hidden;">
             <label style="font-size:12px;display:block;">価格（任意）</label>
             <input type="number" id="ODPR_1s_${i}" min="0" placeholder=""
-              style="width:100%;text-align:right;font-family:'DM Mono',monospace;"
+              style="width:100%;box-sizing:border-box;text-align:right;font-family:'DM Mono',monospace;"
               oninput="this.value=toHankaku(this.value);syncPrice(${i},this.value);onItemChange()">
           </div>
-          <button class="pick-btn" onclick="openHistory(${i})" style="flex-shrink:0;width:40px;height:40px;font-size:16px;">📋</button>
-          <button class="clear-row-btn" onclick="clearRow(${i})" style="flex-shrink:0;width:40px;height:40px;font-size:16px;border-radius:8px;">✕</button>
+          <button class="pick-btn" onclick="openHistory(${i})"
+            style="flex-shrink:0;width:44px;height:44px;font-size:18px;">📋</button>
+          <button class="clear-row-btn" onclick="clearRow(${i})"
+            style="flex-shrink:0;width:44px;height:44px;font-size:18px;border-radius:8px;border:1.5px solid var(--border2);">✕</button>
         </div>
       </div>`;
     cards.appendChild(card);
