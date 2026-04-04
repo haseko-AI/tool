@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.48</title>
+<title>事務用品 注文シート v1.49</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -137,10 +137,10 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
   background:var(--surface);cursor:pointer;display:flex;align-items:center;
   justify-content:center;font-size:14px;transition:all .15s;}
 .pick-btn:hover{border-color:var(--accent-k);background:var(--accent-k-bg);transform:scale(1.1);}
-.clear-row-btn{width:22px;height:22px;border-radius:50%;border:1px solid var(--border2);
-  background:transparent;cursor:pointer;color:var(--text3);font-size:12px;
+.clear-row-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid #fca5a5;
+  background:transparent;cursor:pointer;color:var(--danger);font-size:14px;font-weight:700;
   display:flex;align-items:center;justify-content:center;transition:all .15s;}
-.clear-row-btn:hover{border-color:var(--danger);color:var(--danger);background:#fef2f2;}
+.clear-row-btn:hover{border-color:var(--danger);color:#fff;background:var(--danger);}
 .name-autofilled{background:#f0fdf4!important;border-color:var(--success)!important;}
 
 /* ─ スマホ用 明細カード ─ */
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.48</div>
+    <div class="app-subtitle">ナビリオン v1.49</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -759,10 +759,10 @@ function addRows(n) {
               oninput="this.value=toHankaku(this.value);syncPrice(${i},this.value);onItemChange()">
           </div>
           <button class="pick-btn" onclick="openHistory(${i})"
-            style="flex-shrink:0;width:44px;height:44px;font-size:18px;">📋</button>
+            style="flex-shrink:0;width:48px;height:48px;font-size:22px;">📋</button>
           <div style="flex-shrink:0;width:20px;"></div>
           <button class="clear-row-btn" onclick="clearRow(${i})"
-            style="flex-shrink:0;width:48px;height:48px;font-size:22px;border-radius:8px;border:2px solid #fca5a5;color:#dc2626;">✕</button>
+            style="flex-shrink:0;width:44px;height:44px;font-size:22px;border-radius:8px;">✕</button>
         </div>
       </div>`;
     cards.appendChild(card);
