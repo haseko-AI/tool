@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.47</title>
+<title>事務用品 注文シート v1.48</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -131,7 +131,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 .code-part{font-family:'DM Mono',monospace;font-size:16px;text-align:center;letter-spacing:2px;font-weight:600;}
 .code-p1{width:52px;}.code-p2{width:60px;}
 .qty-input{width:56px;text-align:right;}
-.name-input{min-width:150px;}
+.name-input{min-width:230px;}
 .price-input{width:78px;text-align:right;font-family:'DM Mono',monospace;}
 .pick-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border2);
   background:var(--surface);cursor:pointer;display:flex;align-items:center;
@@ -220,7 +220,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 .history-search input:focus{border-color:var(--accent-k);}
 .history-list{flex:1;overflow-y:auto;padding:8px 10px;}
 .history-item{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;
-  margin-bottom:7px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px;}
+  margin-bottom:7px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:2px;}
 .history-item:hover{border-color:var(--accent-k);background:var(--accent-k-bg);transform:translateX(2px);}
 .history-code{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--text);flex-shrink:0;letter-spacing:1px;}
 .history-info{flex:1;min-width:0;}
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.47</div>
+    <div class="app-subtitle">ナビリオン v1.48</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -402,7 +402,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
           <table class="order-table">
             <thead>
               <tr>
-                <th>No.</th><th>前3桁</th><th>-</th><th>後4桁</th>
+                <th>No.</th><th>3桁コード</th><th>-</th><th>4桁コード</th>
                 <th>数量</th><th>★ 商品名</th><th>価格(任意)</th><th>履歴</th><th></th>
               </tr>
             </thead>
@@ -760,8 +760,9 @@ function addRows(n) {
           </div>
           <button class="pick-btn" onclick="openHistory(${i})"
             style="flex-shrink:0;width:44px;height:44px;font-size:18px;">📋</button>
+          <div style="flex-shrink:0;width:20px;"></div>
           <button class="clear-row-btn" onclick="clearRow(${i})"
-            style="flex-shrink:0;width:44px;height:44px;font-size:18px;border-radius:8px;border:1.5px solid var(--border2);">✕</button>
+            style="flex-shrink:0;width:48px;height:48px;font-size:22px;border-radius:8px;border:2px solid #fca5a5;color:#dc2626;">✕</button>
         </div>
       </div>`;
     cards.appendChild(card);
@@ -964,13 +965,16 @@ function renderHistory(){
     const daysAgo=lastDate?Math.floor((Date.now()-new Date(lastDate).getTime())/86400000):'?';
     const div=document.createElement('div'); div.className='history-item';
     div.innerHTML=`
-      <div class="history-code">${product.code}</div>
-      <div class="history-info">
-        <div class="history-name">${product.name||'（商品名未登録）'}</div>
-        <div class="history-meta"><span>📅 ${daysAgo}日前</span><span>🔁 ${n}回</span>${product.price?`<span>¥${Number(product.price).toLocaleString()}</span>`:''}</div>
+      <div style="display:flex;align-items:center;gap:10px;width:100%;min-width:0;">
+        <div class="history-code" style="flex-shrink:0;">${product.code}</div>
+        <div class="history-meta" style="flex:1;min-width:0;display:flex;gap:8px;flex-wrap:nowrap;overflow:hidden;">
+          <span style="white-space:nowrap;">📅 ${daysAgo}日前</span>
+          <span style="white-space:nowrap;">🔁 ${n}回</span>
+          ${product.price?`<span style="white-space:nowrap;">¥${Number(product.price).toLocaleString()}</span>`:''}
+        </div>
+        <button class="history-del-btn" onclick="deleteHistory(event,'${product.code}')" style="flex-shrink:0;">🗑</button>
       </div>
-      <div class="history-count-badge">${n}回</div>
-      <button class="history-del-btn" onclick="deleteHistory(event,'${product.code}')">🗑</button>`;
+      <div class="history-name" style="width:100%;padding-top:3px;">${product.name||'（商品名未登録）'}</div>`;
     div.addEventListener('click',(e)=>{if(e.target.closest('.history-del-btn'))return;selectHistoryItem(product);});
     container.appendChild(div);
   });
