@@ -304,7 +304,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     margin-bottom:6px;padding:8px 10px;
     background:var(--surface);
   }
-  .section-header{position:sticky;top:88px;z-index:50;box-shadow:0 2px 4px rgba(0,0,0,.06);}
+  .section-header{position:sticky;top:var(--header-h, 88px);z-index:50;box-shadow:0 2px 4px rgba(0,0,0,.06);}
   .form-table tr.tr-hidden{display:none;}
   /* スマホ：セクションヘッダーをスクロール時に上部固定 */
   .section-header{
@@ -392,7 +392,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.38</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.39</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -2447,6 +2447,14 @@ async function generatePDFBytes(){
 
   return await pdfDoc.save();
 }
+
+// ヘッダー高さをCSS変数に設定（sticky用）
+function updateHeaderHeight(){
+  const h = document.querySelector('header')?.offsetHeight || 64;
+  document.documentElement.style.setProperty('--header-h', h + 'px');
+}
+updateHeaderHeight();
+window.addEventListener('resize', updateHeaderHeight);
 
 // 起動
 init();
