@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.41</title>
+<title>事務用品 注文シート v1.42</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -33,7 +33,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text
   transition:background .3s;
 }
 .app-logo{font-size:17px;font-weight:700;letter-spacing:-.3px;color:#fff;}
-.app-logo .logo-blue{color:#bfdbfe;}
+.app-logo .logo-blue{color:#fde68a;}
 .app-logo .logo-sub{font-size:11px;font-weight:400;opacity:.8;margin-left:6px;}
 .app-subtitle{font-size:11px;color:rgba(255,255,255,.7);}
 .header-spacer{flex:1;}
@@ -109,7 +109,7 @@ input[type="number"]{-moz-appearance:textfield;}
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
 input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13);}
-.date-preview{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;padding-left:2px;margin-top:1px;}
+.date-preview{display:none;}
 
 /* ─ Order table PC ─ */
 .order-table-wrap{overflow-x:auto;width:100%;}
@@ -246,7 +246,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.41</div>
+    <div class="app-subtitle">ナビリオン v1.42</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -704,25 +704,28 @@ function addRows(n) {
         </div>
       </div>
       <div class="order-card-body">
-        <div class="form-group" style="grid-column:1 / -1;display:flex;align-items:flex-end;gap:8px;">
-          <div style="flex:1;">
-            <label style="font-size:12px;">商品名</label>
-            <input type="text" id="ODNA_1s_${i}" placeholder="商品名" oninput="syncName(${i},this.value);onNameInput(${i})">
+        <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:8px;">
+          <div style="flex:1;min-width:0;">
+            <label style="font-size:12px;display:block;">商品名</label>
+            <input type="text" id="ODNA_1s_${i}" placeholder="商品名" style="width:100%;"
+              oninput="syncName(${i},this.value);onNameInput(${i})">
           </div>
-          <div style="width:80px;">
-            <label style="font-size:12px;">数量</label>
-            <input type="number" id="ODSU_1s_${i}" min="1" placeholder="0" class="qty-input" style="width:100%;"
+          <div style="width:76px;flex-shrink:0;">
+            <label style="font-size:12px;display:block;">数量</label>
+            <input type="number" id="ODSU_1s_${i}" min="1" placeholder="0"
+              style="width:100%;text-align:right;"
               oninput="this.value=toHankaku(this.value);syncQty(${i},this.value);onItemChange()">
           </div>
         </div>
-        <div class="form-group" style="grid-column:1 / -1;display:flex;align-items:flex-end;gap:8px;">
-          <div style="flex:1;">
-            <label style="font-size:12px;">価格（任意）</label>
-            <input type="number" id="ODPR_1s_${i}" min="0" placeholder="" class="price-input" style="width:100%;"
+        <div style="display:flex;align-items:flex-end;gap:8px;">
+          <div style="flex:1;min-width:0;">
+            <label style="font-size:12px;display:block;">価格（任意）</label>
+            <input type="number" id="ODPR_1s_${i}" min="0" placeholder=""
+              style="width:100%;text-align:right;font-family:'DM Mono',monospace;"
               oninput="this.value=toHankaku(this.value);syncPrice(${i},this.value);onItemChange()">
           </div>
-          <button class="pick-btn" onclick="openHistory(${i})" style="flex-shrink:0;">📋</button>
-          <button class="clear-row-btn" onclick="clearRow(${i})" style="flex-shrink:0;width:36px;height:36px;font-size:16px;">✕</button>
+          <button class="pick-btn" onclick="openHistory(${i})" style="flex-shrink:0;width:40px;height:40px;font-size:16px;">📋</button>
+          <button class="clear-row-btn" onclick="clearRow(${i})" style="flex-shrink:0;width:40px;height:40px;font-size:16px;border-radius:8px;">✕</button>
         </div>
       </div>`;
     cards.appendChild(card);
@@ -975,7 +978,7 @@ function exportData(){
   const data={profile:JSON.parse(localStorage.getItem(SK.profile)||'{}'),staff:JSON.parse(localStorage.getItem(SK.staff)||'{}'),history:getHistory(),items:JSON.parse(localStorage.getItem(SK.items)||'[]'),exported:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');
-  a.href=url;a.download='stationery_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);
+  a.href=url;a.download='事務用品データ_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);
   toast('バックアップを保存しました','success');
 }
 function importData(event){
