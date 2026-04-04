@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.49</title>
+<title>事務用品 注文シート v1.50</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.49</div>
+    <div class="app-subtitle">ナビリオン v1.50</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -737,21 +737,19 @@ function addRows(n) {
         </div>
       </div>
       <div class="order-card-body">
+        <div style="width:100%;margin-bottom:4px;">
+          <label style="font-size:12px;display:block;">商品名</label>
+          <input type="text" id="ODNA_1s_${i}" placeholder="商品名"
+            style="width:100%;box-sizing:border-box;font-size:18px;font-weight:600;"
+            oninput="syncName(${i},this.value);onNameInput(${i})">
+        </div>
         <div style="display:flex;align-items:flex-end;gap:8px;width:100%;">
-          <div style="flex:1;min-width:0;overflow:hidden;">
-            <label style="font-size:12px;display:block;">商品名</label>
-            <input type="text" id="ODNA_1s_${i}" placeholder="商品名"
-              style="width:100%;box-sizing:border-box;"
-              oninput="syncName(${i},this.value);onNameInput(${i})">
-          </div>
-          <div style="width:80px;flex-shrink:0;">
+          <div style="width:86px;flex-shrink:0;">
             <label style="font-size:12px;display:block;">数量</label>
             <input type="number" id="ODSU_1s_${i}" min="1" placeholder="0" inputmode="numeric"
-              style="width:80px;text-align:right;"
+              style="width:86px;text-align:right;font-size:16px;"
               oninput="this.value=toHankaku(this.value);syncQty(${i},this.value);onItemChange()">
           </div>
-        </div>
-        <div style="display:flex;align-items:flex-end;gap:8px;width:100%;margin-top:0;">
           <div style="flex:1;min-width:0;overflow:hidden;">
             <label style="font-size:12px;display:block;">価格（任意）</label>
             <input type="number" id="ODPR_1s_${i}" min="0" placeholder="" inputmode="numeric"
