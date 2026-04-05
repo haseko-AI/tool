@@ -265,9 +265,15 @@ textarea.fi{resize:vertical;min-height:36px;}
 input[type="date"].meter-date-input.empty,input[type="date"].date-input.empty{
   color: transparent !important;
 }
+input[type="time"].date-input.empty::-webkit-datetime-edit,
 input[type="date"].date-input.empty::-webkit-datetime-edit,
+input[type="time"].date-input.empty::-webkit-datetime-edit-fields-wrapper,
 input[type="date"].date-input.empty::-webkit-datetime-edit-fields-wrapper,
+input[type="time"].date-input.empty::-webkit-datetime-edit-text,
 input[type="date"].date-input.empty::-webkit-datetime-edit-text,
+input[type="time"].date-input.empty::-webkit-datetime-edit-hours-field,
+input[type="time"].date-input.empty::-webkit-datetime-edit-minutes-field,
+input[type="time"].date-input.empty::-webkit-datetime-edit-ampm-field,
 input[type="date"].date-input.empty::-webkit-datetime-edit-month-field,
 input[type="date"].date-input.empty::-webkit-datetime-edit-day-field,
 input[type="date"].date-input.empty::-webkit-datetime-edit-year-field,
@@ -393,7 +399,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.48</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.49</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -680,8 +686,16 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
           oninput="checkCapacity('Cycle_NOW','Cycle_ALL')" onchange="checkCapacity('Cycle_NOW','Cycle_ALL')">
       </div>
       <div class="fixed-item full">
-        <span class="fixed-label">フロントメールアドレス</span>
+        <span class="fixed-label">フロントメールアドレス（送信先）</span>
         <input class="fi" type="email" id="Front_Add" placeholder="mail@example.com">
+      </div>
+      <div class="fixed-item full">
+        <span class="fixed-label">CC　相手に見える（任意）</span>
+        <input class="fi" type="email" id="send-cc" placeholder="自分のアドレスなど">
+      </div>
+      <div class="fixed-item full">
+        <span class="fixed-label">BCC　相手に見えない（任意）</span>
+        <input class="fi" type="email" id="send-bcc" placeholder="自分のアドレスなど">
       </div>
     </div>
   </div>
@@ -712,15 +726,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <!-- 送信エリア -->
   <div class="send-area">
     <div class="send-row" style="font-size:.78rem;color:var(--text2);">
-      📨 送信先：フロントメールアドレス欄のアドレスに送信します
-    </div>
-    <div class="send-row">
-      <span class="send-label" style="width:auto;white-space:nowrap;font-size:.78rem;">相手に見える（任意）</span>
-      <input class="send-input" type="email" id="send-cc" placeholder="CC（自分のアドレスなど）">
-    </div>
-    <div class="send-row">
-      <span class="send-label" style="width:auto;white-space:nowrap;font-size:.78rem;">相手に見えない（任意）</span>
-      <input class="send-input" type="email" id="send-bcc" placeholder="BCC（自分のアドレスなど）">
+      📨 送信先・CC・BCCは規定値欄で設定してください
     </div>
     <div class="send-row" style="justify-content:flex-end;">
       <button class="btn-send" id="btn-send" onclick="sendPDF()">
@@ -740,6 +746,10 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
     <div class="note">ℹ️ 規定値・メーター先月値・前年値は保存済みデータから自動引継ぎされます</div>
     <div class="note">⚠️ データはこのブラウザのlocalStorageに保存されます。定期的に「データを書き出し」でバックアップしてください</div>
   </div>
+  <div style="text-align:center;padding:20px 0 8px;opacity:.5;font-size:.7rem;letter-spacing:.12em;color:var(--text2);">
+    ─── Powered by <span style="font-weight:700;letter-spacing:.05em;">Claude</span> <span style="opacity:.6;">/ Anthropic</span> ───
+  </div>
+  <div style="display:none;"><!-- Programmed by Claude (Anthropic) - 2026 --><!-- Directed by A.I. --></div>
 </div>
 
 <!-- データ一覧 -->
@@ -772,7 +782,7 @@ const YEAR_START_AD  = 2021;
 const YEAR_END_AD    = 2045;
 
 // 規定値フィールド（前月から自動引継ぎ対象）
-const FIXED_FIELDS = ['Ma_Name','MaCD','TOTAL','Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL','Front_Add'];
+const FIXED_FIELDS = ['Ma_Name','MaCD','TOTAL','Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL','Front_Add','send-cc','send-bcc'];
 
 // 鍵確認・ラジオ状態
 const circleState = { KEY:'', CHANGE:'' };
@@ -905,7 +915,7 @@ function init(){
     else { el.classList.remove('empty'); }
   }
   function initDateInputEmpty(){
-    document.querySelectorAll('input[type="date"].date-input, input[type="date"].meter-date-input').forEach(el=>{
+    document.querySelectorAll('input[type="date"].date-input, input[type="date"].meter-date-input, input[type="time"].date-input').forEach(el=>{
       updateDateInputEmpty(el);
       if(!el._emptyListenerAdded){
         el.addEventListener('change', ()=>updateDateInputEmpty(el));
@@ -2219,7 +2229,7 @@ async function sendPDF(){
     const subject = `${macd}-管理業務月報${currentADYear}年${currentMonth}月`;
 
     // ファイル名
-    const filename = `管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
+    const filename = `${macd}-管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
 
     // FormDataで送信
     const fd = new FormData();
@@ -2227,7 +2237,20 @@ async function sendPDF(){
     fd.append('cc',         ccEl.value.trim());
     fd.append('bcc',        bccEl.value.trim());
     fd.append('subject',    subject);
-    fd.append('body',       `${subject}\nPDFファイルを添付いたしました。\nご確認よろしくお願いいたします。\n\n─────────────────────────\nこのメールは送信専用アドレスから自動送信されています。\nご返信いただいてもお答えできませんのでご了承ください。\nなお、送信履歴はサーバーには保存されません。\n─────────────────────────AI`);
+    const maName = document.getElementById('Ma_Name')?.value || '';
+    const bodyText = [
+      `${macd}-${maName}`,
+      `管理業務月報${currentADYear}年${currentMonth}月の`,
+      `PDFファイルを添付いたしました。`,
+      `ご確認よろしくお願いいたします。`,
+      ``,``,``,``,``,``,``,``,``,``,
+      `─────────────────────────`,
+      `このメールは送信専用アドレスから自動送信されています。`,
+      `ご返信いただいてもお答えできませんのでご了承ください。`,
+      `なお、送信履歴はサーバーには保存されません。`,
+      `─────────────────────────AI`
+    ].join('\n');
+    fd.append('body', bodyText);
     fd.append('filename',   filename);
     fd.append('pdf_base64', base64);
 
