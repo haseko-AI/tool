@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.61</title>
+<title>事務用品 注文シート v1.62</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -258,7 +258,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.61</div>
+    <div class="app-subtitle">ナビリオン v1.62</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1039,10 +1039,9 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.61 ───
-// 方針：APストリームを自前生成してIPAフォントで描画
-// updateFieldAppearances:false のままで印刷対応を実現
-// フィールドのRect・Q・DAサイズを参照して正確に配置
+// ─── PDF書き込み v1.62 ───
+// 方針：ipaexg.ttf でAPストリームを生成 → flatten でページに焼き付け
+// flatten後はフィールド編集不可だが、どのビューア・印刷でも確実に表示
 
 let _fontBytes = null;
 async function loadFont() {
@@ -1051,6 +1050,14 @@ async function loadFont() {
   if (!res.ok) throw new Error('ipaexg.ttf が読み込めません: HTTP ' + res.status);
   _fontBytes = await res.arrayBuffer();
   return _fontBytes;
+}
+
+function toUtf16Hex(str) {
+  if (!str) return '';
+  let hex = 'FEFF';
+  for (let i = 0; i < str.length; i++)
+    hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
+  return hex;
 }
 
 function collectFilledItems(){
@@ -1087,109 +1094,56 @@ async function downloadPDF(){
   if(btnTop){btnTop.disabled=false;btnTop.innerHTML='⬇ PDF';}
 }
 
-// APストリームをIPAフォントで自前生成する
-function buildAPStream(pdfDoc, ipaFontRef, ipaFontObj, value, rect, fontSize, quadding) {
-  const {PDFStream, PDFName, PDFDict, PDFArray, PDFNumber, PDFString} = PDFLib;
+// APストリームをIPAフォントで生成
+function buildAPStream(pdfDoc, ipaFontRef, value, rect, quadding) {
+  const {PDFNumber, PDFName} = PDFLib;
+  const w = rect[2] - rect[0];
+  const h = rect[3] - rect[1];
+  const fs = Math.max(7, Math.floor(h * 0.62));
 
-  const x1 = rect[0], y1 = rect[1], x2 = rect[2], y2 = rect[3];
-  const w = x2 - x1, h = y2 - y1;
-
-  // フォントサイズが0なら自動計算（フィールド高さの0.7倍）
-  const fs = fontSize > 0 ? fontSize : Math.max(7, Math.floor(h * 0.65));
-
-  // テキスト幅を概算（IPAフォントは等幅でないが近似）
-  const charW = fs * 0.6;
-  const textW = value.length * charW;
-
-  // quadding: 0=左, 1=中央, 2=右
+  // 文字幅概算でX座標計算
+  const approxCharW = fs * 0.55;
+  const textW = value.length * approxCharW;
   let tx;
-  if (quadding === 2) {
-    tx = w - textW - 2;
-  } else if (quadding === 1) {
-    tx = (w - textW) / 2;
-  } else {
-    tx = 2;
-  }
-  tx = Math.max(2, tx);
+  if (quadding === 2)      tx = Math.max(2, w - textW - 2); // 右寄せ
+  else if (quadding === 1) tx = Math.max(2, (w - textW) / 2); // 中央
+  else                     tx = 2; // 左寄せ
 
-  // Y座標：ベースライン（フィールド高さの中央付近）
-  const ty = (h - fs) / 2 + 1;
+  const ty = Math.max(2, (h - fs) / 2);
 
-  // PDFコンテンツストリーム
   const stream =
-    `/Tx BMC\n` +
-    `q\n` +
+    `/Tx BMC\nq\n` +
     `0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n\n` +
-    `BT\n` +
-    `/IPAG ${fs} Tf\n` +
-    `0 g\n` +
+    `BT\n/IPAG ${fs} Tf\n0 g\n` +
     `${tx.toFixed(2)} ${ty.toFixed(2)} Td\n` +
     `<${toUtf16Hex(value)}> Tj\n` +
-    `ET\n` +
-    `Q\n` +
-    `EMC`;
+    `ET\nQ\nEMC`;
 
   const streamBytes = new TextEncoder().encode(stream);
-
-  // APストリーム辞書
   const apDict = pdfDoc.context.obj({
-    Type:     PDFName.of('XObject'),
-    Subtype:  PDFName.of('Form'),
+    Type:    PDFName.of('XObject'),
+    Subtype: PDFName.of('Form'),
     FormType: PDFNumber.of(1),
-    BBox:     pdfDoc.context.obj([0, 0, w, h]),
+    BBox:    pdfDoc.context.obj([0, 0, w, h]),
     Resources: pdfDoc.context.obj({
       Font: pdfDoc.context.obj({ IPAG: ipaFontRef })
     }),
   });
-
   return pdfDoc.context.stream(streamBytes, apDict.dict);
 }
 
-// UTF-16BE HexString変換
-function toUtf16Hex(str) {
-  if (!str) return '';
-  let hex = 'FEFF';
-  for (let i = 0; i < str.length; i++)
-    hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
-  return hex;
-}
-
-// フィールドのRect/Q/DAサイズを低レベルで取得
-function getFieldRect(dict, pdfDoc) {
-  const {PDFName, PDFArray} = PDFLib;
-  try {
-    const rect = dict.lookupMaybe(PDFName.of('Rect'), PDFArray);
-    if (!rect) return null;
-    return [
-      rect.get(0).asNumber(), rect.get(1).asNumber(),
-      rect.get(2).asNumber(), rect.get(3).asNumber()
-    ];
-  } catch(e) { return null; }
-}
-
-function getFieldQ(dict) {
-  const {PDFName, PDFNumber} = PDFLib;
-  try {
-    const q = dict.get(PDFName.of('Q'));
-    if (q && q.asNumber) return q.asNumber();
-  } catch(e) {}
-  return 0; // デフォルト左寄せ
-}
-
 async function generateAndDownload(){
-  const {PDFDocument, PDFName, PDFBool, PDFHexString, PDFString, PDFArray} = PDFLib;
+  const {PDFDocument, PDFName, PDFBool, PDFHexString, PDFArray, PDFNumber} = PDFLib;
   const ord = parseDateField('ORD');
   const dlv = parseDateField('DLV');
 
   if (!ord.y) { toast('注文日を入力してください','error'); return; }
-
   const templateBytes = currentType==='kanri' ? pdfBytesKanri : pdfBytesKaisha;
   if (!templateBytes) { toast('PDFテンプレートが読み込まれていません','error'); return; }
-
   const filledItems = collectFilledItems();
   if (!filledItems.length) { toast('注文明細を1件以上入力してください','error'); return; }
 
-  const fontBytes = await loadFont();
+  const fontBytes  = await loadFont();
   const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
   autoSaveProfile(); autoSaveStaff();
 
@@ -1212,14 +1166,12 @@ async function generateAndDownload(){
   const pageBytesList = [];
 
   for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+    // Step1: テンプレートをロードしてフィールドに値を書き込む
     const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption:true});
-
-    // fontkitを登録してIPAフォントを埋め込む
     pdfDoc.registerFontkit(fontkit);
     const ipaFont    = await pdfDoc.embedFont(fontBytes);
     const ipaFontRef = ipaFont.ref;
 
-    // このページの全フィールド値
     const pageItems = filledItems.slice(pageIdx*10,(pageIdx+1)*10);
     const allFields = {...commonFields, NUM_Page: String(pageIdx+1)};
     for (let i=1;i<=10;i++){
@@ -1231,7 +1183,7 @@ async function generateAndDownload(){
       allFields['ODPR_1'+s]=item.price||'';
     }
 
-    // 全フィールドを走査してV値書き込み＋AP生成
+    // フィールドを走査：V値書き込み＋APストリーム生成
     function processFields(arr) {
       if (!arr) return;
       for (let fi = 0; fi < arr.size(); fi++) {
@@ -1244,26 +1196,34 @@ async function generateAndDownload(){
           const name = tObj ? tObj.decodeText() : null;
 
           if (name && allFields[name] !== undefined) {
-            const value = allFields[name];
+            const value = String(allFields[name] || '');
 
             // V値をUTF-16BEで書き込む
-            dict.set(PDFName.of('V'),
-              PDFHexString.of(toUtf16Hex(value)));
+            dict.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(value)));
 
-            // APストリームを自前生成（印刷時に確実に表示）
+            // Qフラグ取得（右寄せ=2, 中央=1, 左=0）
+            let q = 0;
+            try {
+              const qObj = dict.get(PDFName.of('Q'));
+              if (qObj && qObj.asNumber) q = qObj.asNumber();
+            } catch(e) {}
+
+            // Rectを取得してAPストリーム生成
             if (value) {
-              const rect = getFieldRect(dict, pdfDoc);
-              if (rect) {
-                const q  = getFieldQ(dict);
-                const ap = buildAPStream(pdfDoc, ipaFontRef, ipaFont,
-                                         value, rect, 0, q);
-                const apRef = pdfDoc.context.register(ap);
-                // AP/N に設定
-                const apDict = pdfDoc.context.obj({ N: apRef });
-                dict.set(PDFName.of('AP'), apDict);
-              }
+              try {
+                const rectArr = dict.lookupMaybe(PDFName.of('Rect'), PDFArray);
+                if (rectArr) {
+                  const rect = [
+                    rectArr.get(0).asNumber(), rectArr.get(1).asNumber(),
+                    rectArr.get(2).asNumber(), rectArr.get(3).asNumber()
+                  ];
+                  const ap    = buildAPStream(pdfDoc, ipaFontRef, value, rect, q);
+                  const apRef = pdfDoc.context.register(ap);
+                  dict.set(PDFName.of('AP'),
+                    pdfDoc.context.obj({ N: apRef }));
+                }
+              } catch(e) { console.warn('AP build error:', name, e); }
             } else {
-              // 空値のときはAPを削除
               dict.delete(PDFName.of('AP'));
             }
           }
@@ -1271,20 +1231,24 @@ async function generateAndDownload(){
           // Kids を再帰処理
           const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
           if (kids) processFields(kids);
-        } catch(e) { console.warn('field error:', e); }
+        } catch(e) {}
       }
     }
 
-    try {
-      const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
-      const acroForm    = pdfDoc.context.lookup(acroFormRef);
-      // NeedAppearances=false（AP自前生成するので不要）
-      acroForm?.set(PDFName.of('NeedAppearances'), PDFBool.False);
-      const fields = acroForm?.lookupMaybe(PDFName.of('Fields'), PDFArray);
-      processFields(fields);
-    } catch(e) { console.warn('processFields error:', e); }
+    const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
+    const acroForm    = pdfDoc.context.lookup(acroFormRef);
+    const fields      = acroForm?.lookupMaybe(PDFName.of('Fields'), PDFArray);
+    processFields(fields);
 
-    const bytes = await pdfDoc.save({updateFieldAppearances: false});
+    // Step2: いったん保存してから再ロードしてflatten
+    // → flattenはgetForm()を呼ぶが、この時点でAPが焼き付いているので
+    //   日本語フォントでのレンダリングが不要（APをそのままページに転写）
+    const tmpBytes = await pdfDoc.save({updateFieldAppearances: false});
+
+    // Step3: 再ロードしてflatten（APをページコンテンツに焼き付け）
+    const pdfDoc2 = await PDFDocument.load(tmpBytes, {ignoreEncryption:true});
+    pdfDoc2.getForm().flatten();
+    const bytes = await pdfDoc2.save();
     pageBytesList.push(bytes);
   }
 
@@ -1307,7 +1271,7 @@ async function generateAndDownload(){
     if (item.code1 || item.code2) addToHistory(item);
   }
   renderRecentList();
-  toast('PDF作成完了 ✅ スマホはDLして開いて印刷を', 'success');
+  toast('PDF作成完了 ✅', 'success');
 }
 
 // ─── TOAST ───
