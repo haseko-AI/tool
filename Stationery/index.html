@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.66</title>
+<title>事務用品 注文シート v1.67</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.66</div>
+    <div class="app-subtitle">ナビリオン v1.67</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,7 +1038,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.66 ───
+// ─── PDF書き込み v1.67 ───
 // 方針：
 // 1. V値をUTF-16BE HexStringで書き込む
 // 2. NeedAppearances=true（ビューアが既存MSPGothicで描画）
@@ -1143,10 +1143,20 @@ async function generateAndDownload(){
     // NeedAppearances=true（既存MSPGothicで画面表示）
     acroForm?.set(PDFName.of('NeedAppearances'), PDFBool.True);
 
-    // 全フィールドにV値をUTF-16BEで書き込む（getTextField不使用）
-    // Combフラグ(bit25=16777216)があるフィールドはAPを維持
-    // CombなしフィールドはAPを削除してNeedAppearancesで再描画
-    const COMB_BIT = 16777216;
+    // 全フィールドにV値を書き込む
+    // DAフォントで処理を分岐：
+    //   Helv系（数字）→ PDFStringで書いてupdateFieldAppearances:trueでOK
+    //   MSPGothic系（日本語）→ UTF-16BEで書いてNeedAppearancesに任せる
+    function getDAStr(dict) {
+      try {
+        const da = dict.get(PDFName.of('DA'));
+        if (da) return da.decodeText ? da.decodeText() : da.toString();
+      } catch(e) {}
+      return '';
+    }
+    function isJpFont(da) {
+      return /MSPGothic|MSGothic|HeBo/i.test(da);
+    }
     function writeFields(arr) {
       if (!arr) return;
       for (let fi = 0; fi < arr.size(); fi++) {
@@ -1157,30 +1167,24 @@ async function generateAndDownload(){
           const tObj = dict.get(PDFName.of('T'));
           const name = tObj ? tObj.decodeText() : null;
           if (name && allFields[name] !== undefined) {
-            // V値をUTF-16BEで書き込む
-            dict.set(PDFName.of('V'),
-              PDFHexString.of(toUtf16Hex(String(allFields[name]||''))));
-
-            // CombフラグをチェックしてAP処理を分岐
-            let ff = 0;
-            try {
-              const ffObj = dict.get(PDFName.of('Ff'));
-              if (ffObj && ffObj.asNumber) ff = ffObj.asNumber();
-            } catch(e) {}
-            const hasComb = (ff & COMB_BIT) !== 0;
-
-            // Comb・非Comb問わず全フィールドのAPを削除
-            // NeedAppearances=trueでビューアが既存フォント（MSPGothic等）で再描画
-            // CombフラグはFfに残っているのでビューアが均等割り付けを再現する
-            dict.delete(PDFName.of('AP'));
+            const value  = String(allFields[name] || '');
+            const da     = getDAStr(dict);
+            const jpFont = isJpFont(da);
+            if (jpFont) {
+              // 日本語フォント：UTF-16BE HexString + AP削除でNeedAppearancesに任せる
+              dict.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(value)));
+              dict.delete(PDFName.of('AP'));
+            } else {
+              // Helvetica（数字・英数字）：PDFStringで書いてpdf-libに外観生成させる
+              dict.set(PDFName.of('V'), PDFLib.PDFString.of(value));
+              dict.delete(PDFName.of('AP'));
+            }
           }
           const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
           if (kids) writeFields(kids);
         } catch(e) {}
       }
     }
-
-    const fields = acroForm?.lookupMaybe(PDFName.of('Fields'), PDFArray);
     writeFields(fields);
 
     // ★ 核心：getForm()/flatten()を使わずにフィールドを「読み取り専用」にする
@@ -1203,7 +1207,9 @@ async function generateAndDownload(){
 
     // updateFieldAppearances:false で保存
     // getForm()を一切呼んでいないのでWinAnsiエラーは発生しない
-    const bytes = await pdfDoc.save({updateFieldAppearances: false});
+    // Helv系フィールドはpdf-libに外観生成させる（数字なのでWinAnsiOK）
+    // MSPGothic系はNeedAppearances=trueでビューアに任せる
+    const bytes = await pdfDoc.save({updateFieldAppearances: true});
     pageBytesList.push(bytes);
   }
 
