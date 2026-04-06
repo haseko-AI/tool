@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.68</title>
+<title>事務用品 注文シート v1.69</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.68</div>
+    <div class="app-subtitle">ナビリオン v1.69</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,15 +1038,10 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.68 ───
-// 方針：
-// 1. V値をUTF-16BE HexStringで書き込む
-// 2. NeedAppearances=true（ビューアが既存MSPGothicで描画）
-// 3. flatten()は使わず、AcroFormをcatalogから切り離して保存
-//    → フィールドがページコンテンツとして残り、印刷でも表示される
-//    → WinAnsiエラーが出ない（外観生成を一切しない）
-
-let _pdfLibReady = true; // fontkit不要
+// ─── PDF書き込み v1.69 ───
+// PDFのCombフィールドを1桁ずつ分割済み（OrderSheet_v2.pdf / RequestSheet_v3.pdf）
+// 各桁に対応するフィールド名 例：ODNO_101_d1, ODNO_101_d2, ODNO_101_d3
+// MSPGothicフィールド（ODNA, BRC_Name, BRC_Front等）はUTF-16BEで書き込み
 
 function toUtf16Hex(str) {
   if (!str) return '';
@@ -1054,6 +1049,64 @@ function toUtf16Hex(str) {
   for (let i = 0; i < str.length; i++)
     hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
   return hex;
+}
+
+// 文字列を1桁ずつフィールドにセット
+// fieldMap: {name: dict} の辞書
+// baseName: 'ODNO_101', value: '345', digits: 3
+// → ODNO_101_d1='3', ODNO_101_d2='4', ODNO_101_d3='5'
+function setDigitFields(fieldMap, pdfDoc, baseName, value, digits) {
+  const {PDFName, PDFString} = PDFLib;
+  const padded = String(value||'').padStart(digits, '');
+  // 右詰め（空白は空のまま）
+  const chars = padded.split('');
+  // 空白文字を除いて右詰め
+  const filled = String(value||'');
+  const offset = digits - filled.length;
+  for (let d = 0; d < digits; d++) {
+    const subName = baseName + '_d' + (d+1);
+    const entry = fieldMap[subName];
+    if (!entry) continue;
+    const ch = d >= offset ? filled[d - offset] : '';
+    entry.dict.set(PDFName.of('V'), PDFString.of(ch));
+    entry.dict.delete(PDFName.of('AP'));
+  }
+}
+
+function setTextField(fieldMap, pdfDoc, name, value) {
+  const {PDFName, PDFHexString} = PDFLib;
+  const entry = fieldMap[name];
+  if (!entry) return;
+  entry.dict.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(String(value||''))));
+  entry.dict.delete(PDFName.of('AP'));
+}
+
+// AcroFormフィールド辞書一覧を低レベルで取得
+function getRawAcroFields(pdfDoc) {
+  const {PDFName, PDFArray} = PDFLib;
+  const fieldMap = {};
+  try {
+    const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
+    const acroForm    = pdfDoc.context.lookup(acroFormRef);
+    if (!acroForm) return fieldMap;
+    function collect(arr) {
+      if (!arr) return;
+      for (let i = 0; i < arr.size(); i++) {
+        try {
+          const ref  = arr.get(i);
+          const dict = pdfDoc.context.lookup(ref);
+          if (!dict) continue;
+          const tObj = dict.get(PDFName.of('T'));
+          const name = tObj ? tObj.decodeText() : null;
+          if (name) fieldMap[name] = {dict, ref};
+          const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
+          if (kids) collect(kids);
+        } catch(e) {}
+      }
+    }
+    collect(acroForm.lookupMaybe(PDFName.of('Fields'), PDFArray));
+  } catch(e) {}
+  return fieldMap;
 }
 
 function collectFilledItems(){
@@ -1091,7 +1144,7 @@ async function downloadPDF(){
 }
 
 async function generateAndDownload(){
-  const {PDFDocument, PDFName, PDFBool, PDFHexString, PDFArray} = PDFLib;
+  const {PDFDocument, PDFName, PDFBool} = PDFLib;
   const ord = parseDateField('ORD');
   const dlv = parseDateField('DLV');
 
@@ -1104,109 +1157,67 @@ async function generateAndDownload(){
   const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
   autoSaveProfile(); autoSaveStaff();
 
-  const commonFields = {
-    ORD_Year:ord.y, ORD_Month:ord.m, ORD_Day:ord.d,
-    DLV_Year:dlv.y, DLV_Month:dlv.m, DLV_Day:dlv.d,
-    NUM_All:String(totalPages),
-    ID_No:    getLoginIdForPdf(),
-    ID_Name:  document.getElementById('ID_Name').value.trim(),
-    ID_Code:  document.getElementById('ID_Code').value.trim(),
-    ID_Staff: document.getElementById('ID_Staff').value.trim(),
-    ID_Tel:   document.getElementById('ID_Tel').value.trim(),
-    WORK_Time:document.getElementById('WORK_Time').value.trim(),
-    BRC_Name: document.getElementById('BRC_Name').value.trim(),
-    BRC_Front:document.getElementById('BRC_Front').value.trim(),
-    BRC_Tel:  document.getElementById('BRC_Tel').value.trim(),
-    BRC_Fax:  document.getElementById('BRC_Fax').value.trim(),
-  };
-
   const pageBytesList = [];
 
   for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
     const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption:true});
 
+    // NeedAppearances=true
+    try {
+      const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
+      const acroForm    = pdfDoc.context.lookup(acroFormRef);
+      acroForm?.set(PDFName.of('NeedAppearances'), PDFBool.True);
+    } catch(e) {}
+
+    // フィールドマップ取得
+    const fm = getRawAcroFields(pdfDoc);
+    const set1 = (name, val) => setTextField(fm, pdfDoc, name, val);
+
     const pageItems = filledItems.slice(pageIdx*10,(pageIdx+1)*10);
-    const allFields = {...commonFields, NUM_Page: String(pageIdx+1)};
-    for (let i=1;i<=10;i++){
-      const s=pad2(i); const item=pageItems[i-1]||{};
-      allFields['ODNO_1'+s]=item.code1?item.code1.padStart(3,'0'):'';
-      allFields['ODNO_2'+s]=item.code2?item.code2.padStart(4,'0'):'';
-      allFields['ODSU_1'+s]=item.qty||'';
-      allFields['ODNA_1'+s]=item.name||'';
-      allFields['ODPR_1'+s]=item.price||'';
+
+    // 注文日・配送日（通常テキスト）
+    set1('ORD_Year',  ord.y);
+    set1('ORD_Month', ord.m);
+    set1('ORD_Day',   ord.d);
+    set1('DLV_Year',  dlv.y);
+    set1('DLV_Month', dlv.m);
+    set1('DLV_Day',   dlv.d);
+    set1('NUM_Page',  String(pageIdx+1));
+    set1('NUM_All',   String(totalPages));
+
+    // 送信者情報（Comb分割済み or 通常テキスト）
+    // ID_No: 元は10桁Comb → _d1〜_d10 に1文字ずつ
+    const idVal = getLoginIdForPdf();
+    setDigitFields(fm, pdfDoc, 'ID_No',   idVal, 10);
+    set1('ID_Name',  document.getElementById('ID_Name').value.trim());
+    setDigitFields(fm, pdfDoc, 'ID_Code', document.getElementById('ID_Code').value.trim(), 10);
+    set1('ID_Staff', document.getElementById('ID_Staff').value.trim());
+    setDigitFields(fm, pdfDoc, 'ID_Tel',  document.getElementById('ID_Tel').value.trim(), 12);
+    set1('WORK_Time',document.getElementById('WORK_Time').value.trim());
+
+    // 担当者情報
+    set1('BRC_Name',  document.getElementById('BRC_Name').value.trim());
+    set1('BRC_Front', document.getElementById('BRC_Front').value.trim());
+    setDigitFields(fm, pdfDoc, 'BRC_Tel', document.getElementById('BRC_Tel').value.trim(), 12);
+    setDigitFields(fm, pdfDoc, 'BRC_Fax', document.getElementById('BRC_Fax').value.trim(), 12);
+
+    // 明細10行
+    for (let i = 1; i <= 10; i++) {
+      const s    = pad2(i);
+      const item = pageItems[i-1] || {};
+      const c1   = item.code1 ? item.code1.padStart(3,'0') : '';
+      const c2   = item.code2 ? item.code2.padStart(4,'0') : '';
+      const qty  = item.qty   || '';
+      const name = item.name  || '';
+      const price= item.price || '';
+
+      setDigitFields(fm, pdfDoc, 'ODNO_1'+s, c1,  3);
+      setDigitFields(fm, pdfDoc, 'ODNO_2'+s, c2,  4);
+      setDigitFields(fm, pdfDoc, 'ODSU_1'+s, qty, 3);
+      set1('ODNA_1'+s, name);
+      setDigitFields(fm, pdfDoc, 'ODPR_1'+s, price, 5);
     }
 
-    // AcroFormを取得
-    const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
-    const acroForm    = pdfDoc.context.lookup(acroFormRef);
-
-    // NeedAppearances=true（既存MSPGothicで画面表示）
-    acroForm?.set(PDFName.of('NeedAppearances'), PDFBool.True);
-
-    // 全フィールドにV値を書き込む
-    // DAフォントで処理を分岐：
-    //   Helv系（数字）→ PDFStringで書いてupdateFieldAppearances:trueでOK
-    //   MSPGothic系（日本語）→ UTF-16BEで書いてNeedAppearancesに任せる
-    function getDAStr(dict) {
-      try {
-        const da = dict.get(PDFName.of('DA'));
-        if (da) return da.decodeText ? da.decodeText() : da.toString();
-      } catch(e) {}
-      return '';
-    }
-    function isJpFont(da) {
-      return /MSPGothic|MSGothic|HeBo/i.test(da);
-    }
-    function writeFields(arr) {
-      if (!arr) return;
-      for (let fi = 0; fi < arr.size(); fi++) {
-        try {
-          const ref  = arr.get(fi);
-          const dict = pdfDoc.context.lookup(ref);
-          if (!dict) continue;
-          const tObj = dict.get(PDFName.of('T'));
-          const name = tObj ? tObj.decodeText() : null;
-          if (name && allFields[name] !== undefined) {
-            const value  = String(allFields[name] || '');
-            const da     = getDAStr(dict);
-            const jpFont = isJpFont(da);
-            if (jpFont) {
-              // 日本語フォント：UTF-16BE HexString + AP削除でNeedAppearancesに任せる
-              dict.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(value)));
-              dict.delete(PDFName.of('AP'));
-            } else {
-              // Helvetica（数字・英数字）：PDFStringで書いてpdf-libに外観生成させる
-              dict.set(PDFName.of('V'), PDFLib.PDFString.of(value));
-              dict.delete(PDFName.of('AP'));
-            }
-          }
-          const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
-          if (kids) writeFields(kids);
-        } catch(e) {}
-      }
-    }
-    writeFields(fields);
-
-    // ★ 核心：getForm()/flatten()を使わずにフィールドを「読み取り専用」にする
-    // 全フィールドにReadOnly flagを立てる（Ff の bit1 = 0x00000001）
-    function setReadOnly(arr) {
-      if (!arr) return;
-      for (let fi = 0; fi < arr.size(); fi++) {
-        try {
-          const ref  = arr.get(fi);
-          const dict = pdfDoc.context.lookup(ref);
-          if (!dict) continue;
-          // Ff（Field Flags）の ReadOnly bit (bit 1) を立てる
-          dict.set(PDFName.of('Ff'), PDFLib.PDFNumber.of(1));
-          const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
-          if (kids) setReadOnly(kids);
-        } catch(e) {}
-      }
-    }
-    setReadOnly(fields);
-
-    // updateFieldAppearances:false で保存
-    // getForm()を一切呼んでいないのでWinAnsiエラーは発生しない
     const bytes = await pdfDoc.save({updateFieldAppearances: false});
     pageBytesList.push(bytes);
   }
