@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.63</title>
+<title>事務用品 注文シート v1.64</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.63</div>
+    <div class="app-subtitle">ナビリオン v1.64</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,7 +1038,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.63 ───
+// ─── PDF書き込み v1.64 ───
 // 方針：
 // 1. V値をUTF-16BE HexStringで書き込む
 // 2. NeedAppearances=true（ビューアが既存MSPGothicで描画）
@@ -1156,8 +1156,9 @@ async function generateAndDownload(){
           if (name && allFields[name] !== undefined) {
             dict.set(PDFName.of('V'),
               PDFHexString.of(toUtf16Hex(String(allFields[name]||''))));
-            // APキャッシュを削除してビューアに再描画させる
-            dict.delete(PDFName.of('AP'));
+            // APは削除しない！
+            // CombフラグやQ設定が入ったAPをそのまま維持することで
+            // 商品コードの均等割り付けが保持される
           }
           const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
           if (kids) writeFields(kids);
