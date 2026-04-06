@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.53</title>
+<title>事務用品 注文シート v1.54</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/fontkit/1.9.0/fontkit.min.js"></script>
+<script src="https://unpkg.com/fontkit@1.1.1/fontkit.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -258,7 +258,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.53-</div>
+    <div class="app-subtitle">ナビリオン v1.54</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1039,7 +1039,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.53 ───
+// ─── PDF書き込み v1.54 ───
 // 印刷時も確実に表示されるよう ipaexg.ttf を埋め込んでページに直接描画する方式
 // NeedAppearances に頼らず、フォームフィールドの上に文字を直接ページ描画する
 
