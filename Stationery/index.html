@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.65</title>
+<title>事務用品 注文シート v1.66</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.65</div>
+    <div class="app-subtitle">ナビリオン v1.66</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,7 +1038,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.65 ───
+// ─── PDF書き込み v1.66 ───
 // 方針：
 // 1. V値をUTF-16BE HexStringで書き込む
 // 2. NeedAppearances=true（ビューアが既存MSPGothicで描画）
@@ -1169,15 +1169,10 @@ async function generateAndDownload(){
             } catch(e) {}
             const hasComb = (ff & COMB_BIT) !== 0;
 
-            if (hasComb) {
-              // Combあり（商品コード・数量・価格・ID系）
-              // → APをそのまま維持して均等割り付けを保持
-              // → ただしV値は更新済みなのでNeedAppearancesで再描画される
-            } else {
-              // Combなし（商品名・担当者名・日付など）
-              // → APを削除してNeedAppearancesでビューアに再描画させる
-              dict.delete(PDFName.of('AP'));
-            }
+            // Comb・非Comb問わず全フィールドのAPを削除
+            // NeedAppearances=trueでビューアが既存フォント（MSPGothic等）で再描画
+            // CombフラグはFfに残っているのでビューアが均等割り付けを再現する
+            dict.delete(PDFName.of('AP'));
           }
           const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
           if (kids) writeFields(kids);
