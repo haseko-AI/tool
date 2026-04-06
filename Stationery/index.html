@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.69-</title>
+<title>事務用品 注文シート v1.70</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.69</div>
+    <div class="app-subtitle">ナビリオン v1.70</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,10 +1038,9 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.69 ───
-// PDFのCombフィールドを1桁ずつ分割済み（OrderSheet_v2.pdf / RequestSheet_v3.pdf）
-// 各桁に対応するフィールド名 例：ODNO_101_d1, ODNO_101_d2, ODNO_101_d3
-// MSPGothicフィールド（ODNA, BRC_Name, BRC_Front等）はUTF-16BEで書き込み
+// ─── PDF書き込み v1.70 ───
+// 既存フォント（MSPGothic/Helv）を使ってAPストリームを自前生成
+// ipaexg.ttf不要・fontkit不要・WinAnsiエラーなし・印刷OK
 
 function toUtf16Hex(str) {
   if (!str) return '';
@@ -1051,37 +1050,7 @@ function toUtf16Hex(str) {
   return hex;
 }
 
-// 文字列を1桁ずつフィールドにセット
-// fieldMap: {name: dict} の辞書
-// baseName: 'ODNO_101', value: '345', digits: 3
-// → ODNO_101_d1='3', ODNO_101_d2='4', ODNO_101_d3='5'
-function setDigitFields(fieldMap, pdfDoc, baseName, value, digits) {
-  const {PDFName, PDFString} = PDFLib;
-  const padded = String(value||'').padStart(digits, '');
-  // 右詰め（空白は空のまま）
-  const chars = padded.split('');
-  // 空白文字を除いて右詰め
-  const filled = String(value||'');
-  const offset = digits - filled.length;
-  for (let d = 0; d < digits; d++) {
-    const subName = baseName + '_d' + (d+1);
-    const entry = fieldMap[subName];
-    if (!entry) continue;
-    const ch = d >= offset ? filled[d - offset] : '';
-    entry.dict.set(PDFName.of('V'), PDFString.of(ch));
-    entry.dict.delete(PDFName.of('AP'));
-  }
-}
-
-function setTextField(fieldMap, pdfDoc, name, value) {
-  const {PDFName, PDFHexString} = PDFLib;
-  const entry = fieldMap[name];
-  if (!entry) return;
-  entry.dict.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(String(value||''))));
-  entry.dict.delete(PDFName.of('AP'));
-}
-
-// AcroFormフィールド辞書一覧を低レベルで取得
+// フィールド辞書マップを低レベルで取得
 function getRawAcroFields(pdfDoc) {
   const {PDFName, PDFArray} = PDFLib;
   const fieldMap = {};
@@ -1107,6 +1076,106 @@ function getRawAcroFields(pdfDoc) {
     collect(acroForm.lookupMaybe(PDFName.of('Fields'), PDFArray));
   } catch(e) {}
   return fieldMap;
+}
+
+// APストリームを既存フォントで生成
+// fontName: '/MSPGothic' or '/Helv'
+// value: 書き込む文字列
+// w,h: フィールドの幅と高さ
+// fs: フォントサイズ
+// q: quadding (0=左, 1=中, 2=右)
+// isJp: 日本語フォントならUTF-16BEで書く
+function makeAPStream(pdfDoc, fontName, value, w, h, fs, q, isJp) {
+  const {PDFName, PDFNumber} = PDFLib;
+
+  // フォントサイズが0なら自動計算
+  const actualFs = fs > 0 ? fs : Math.max(6, Math.floor(h * 0.6));
+
+  // テキスト幅の概算
+  const charW   = actualFs * (isJp ? 1.0 : 0.55);
+  const textW   = value.length * charW;
+  let tx;
+  if (q === 2)      tx = Math.max(1, w - textW - 2);
+  else if (q === 1) tx = Math.max(1, (w - textW) / 2);
+  else              tx = 2;
+  const ty = Math.max(1, (h - actualFs) / 2);
+
+  // 値のPDF表現（日本語はHexString、英数字はリテラル）
+  const pdfVal = isJp
+    ? `<${toUtf16Hex(value)}>`
+    : `(${value.replace(/[()\\]/g, c => '\\' + c)})`;
+
+  const stream =
+    `/Tx BMC\nq\n` +
+    `0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n\n` +
+    `BT\n` +
+    `${fontName} ${actualFs} Tf\n` +
+    `0 g\n` +
+    `${tx.toFixed(2)} ${ty.toFixed(2)} Td\n` +
+    `${pdfVal} Tj\n` +
+    `ET\nQ\nEMC`;
+
+  const bytes = new TextEncoder().encode(stream);
+
+  // APストリーム辞書（フォントリソースはAcroFormのDRを継承）
+  const apDict = pdfDoc.context.obj({
+    Type:     PDFName.of('XObject'),
+    Subtype:  PDFName.of('Form'),
+    FormType: PDFNumber.of(1),
+    BBox:     pdfDoc.context.obj([0, 0, w, h]),
+    // Resourcesは親(AcroForm DR)から継承させる
+  });
+  return pdfDoc.context.stream(bytes, apDict.dict);
+}
+
+// フィールドにV値書き込み＋AP生成
+function writeField(fieldMap, pdfDoc, name, value) {
+  const {PDFName, PDFHexString, PDFString, PDFArray, PDFNumber} = PDFLib;
+  const entry = fieldMap[name];
+  if (!entry || value === undefined) return;
+  const dict = entry.dict;
+  const val  = String(value || '');
+
+  // DAからフォント名とサイズを取得
+  let fontName = '/Helv', fs = 0, isJp = false;
+  try {
+    const daObj = dict.get(PDFName.of('DA'));
+    if (daObj) {
+      const daStr = daObj.decodeText ? daObj.decodeText() : daObj.toString();
+      const m = daStr.match(/(\S+)\s+([\d.]+)\s+Tf/);
+      if (m) { fontName = m[1]; fs = parseFloat(m[2]); }
+      isJp = /MSPGothic|MSGothic|HeBo/i.test(fontName);
+    }
+  } catch(e) {}
+
+  // V値書き込み
+  if (isJp) {
+    dict.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(val)));
+  } else {
+    dict.set(PDFName.of('V'), PDFString.of(val));
+  }
+
+  // APストリーム生成（値がある場合）
+  if (val) {
+    try {
+      const rectArr = dict.lookupMaybe(PDFName.of('Rect'), PDFArray);
+      if (rectArr) {
+        let x1=rectArr.get(0).asNumber(), y1=rectArr.get(1).asNumber();
+        let x2=rectArr.get(2).asNumber(), y2=rectArr.get(3).asNumber();
+        if (x1>x2)[x1,x2]=[x2,x1];
+        if (y1>y2)[y1,y2]=[y2,y1];
+        const w = x2-x1, h = y2-y1;
+        let q = 0;
+        try{ const qo=dict.get(PDFName.of('Q')); if(qo&&qo.asNumber) q=qo.asNumber(); }catch(e){}
+
+        const ap    = makeAPStream(pdfDoc, fontName, val, w, h, fs, q, isJp);
+        const apRef = pdfDoc.context.register(ap);
+        dict.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef}));
+      }
+    } catch(e) { console.warn('AP error:', name, e); }
+  } else {
+    dict.delete(PDFName.of('AP'));
+  }
 }
 
 function collectFilledItems(){
@@ -1157,65 +1226,51 @@ async function generateAndDownload(){
   const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
   autoSaveProfile(); autoSaveStaff();
 
+  const commonFields = {
+    ORD_Year:ord.y, ORD_Month:ord.m, ORD_Day:ord.d,
+    DLV_Year:dlv.y, DLV_Month:dlv.m, DLV_Day:dlv.d,
+    NUM_All:String(totalPages),
+    ID_No:    getLoginIdForPdf(),
+    ID_Name:  document.getElementById('ID_Name').value.trim(),
+    ID_Code:  document.getElementById('ID_Code').value.trim(),
+    ID_Staff: document.getElementById('ID_Staff').value.trim(),
+    ID_Tel:   document.getElementById('ID_Tel').value.trim(),
+    WORK_Time:document.getElementById('WORK_Time').value.trim(),
+    BRC_Name: document.getElementById('BRC_Name').value.trim(),
+    BRC_Front:document.getElementById('BRC_Front').value.trim(),
+    BRC_Tel:  document.getElementById('BRC_Tel').value.trim(),
+    BRC_Fax:  document.getElementById('BRC_Fax').value.trim(),
+  };
+
   const pageBytesList = [];
 
   for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+    // 元のPDF（分割なし）をロード
     const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption:true});
 
-    // NeedAppearances=true
+    // NeedAppearances=false（APを自前生成するので不要）
     try {
       const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
       const acroForm    = pdfDoc.context.lookup(acroFormRef);
-      acroForm?.set(PDFName.of('NeedAppearances'), PDFBool.True);
+      acroForm?.set(PDFName.of('NeedAppearances'), PDFBool.False);
     } catch(e) {}
 
-    // フィールドマップ取得
     const fm = getRawAcroFields(pdfDoc);
-    const set1 = (name, val) => setTextField(fm, pdfDoc, name, val);
+    const set = (name, val) => writeField(fm, pdfDoc, name, val);
 
+    // 共通フィールド
+    Object.entries(commonFields).forEach(([k,v]) => set(k, v));
+    set('NUM_Page', String(pageIdx+1));
+
+    // 明細
     const pageItems = filledItems.slice(pageIdx*10,(pageIdx+1)*10);
-
-    // 注文日・配送日（通常テキスト）
-    set1('ORD_Year',  ord.y);
-    set1('ORD_Month', ord.m);
-    set1('ORD_Day',   ord.d);
-    set1('DLV_Year',  dlv.y);
-    set1('DLV_Month', dlv.m);
-    set1('DLV_Day',   dlv.d);
-    set1('NUM_Page',  String(pageIdx+1));
-    set1('NUM_All',   String(totalPages));
-
-    // 送信者情報（Comb分割済み or 通常テキスト）
-    // ID_No: 元は10桁Comb → _d1〜_d10 に1文字ずつ
-    const idVal = getLoginIdForPdf();
-    setDigitFields(fm, pdfDoc, 'ID_No',   idVal, 10);
-    set1('ID_Name',  document.getElementById('ID_Name').value.trim());
-    setDigitFields(fm, pdfDoc, 'ID_Code', document.getElementById('ID_Code').value.trim(), 10);
-    set1('ID_Staff', document.getElementById('ID_Staff').value.trim());
-    setDigitFields(fm, pdfDoc, 'ID_Tel',  document.getElementById('ID_Tel').value.trim(), 12);
-    set1('WORK_Time',document.getElementById('WORK_Time').value.trim());
-
-    // 担当者情報
-    set1('BRC_Name',  document.getElementById('BRC_Name').value.trim());
-    set1('BRC_Front', document.getElementById('BRC_Front').value.trim());
-    setDigitFields(fm, pdfDoc, 'BRC_Tel', document.getElementById('BRC_Tel').value.trim(), 12);
-    setDigitFields(fm, pdfDoc, 'BRC_Fax', document.getElementById('BRC_Fax').value.trim(), 12);
-
-    // 明細10行
-    for (let i = 1; i <= 10; i++) {
-      const s    = pad2(i);
-      const item = pageItems[i-1] || {};
-      const c1   = item.code1 ? item.code1.padStart(3,'0') : '';
-      const c2   = item.code2 ? item.code2.padStart(4,'0') : '';
-      const qty  = item.qty   || '';
-      const name = item.name  || '';
-      const price= item.price || '';
-
-      setDigitFields(fm, pdfDoc, 'ODNO_1'+s, c1,  3);
-      setDigitFields(fm, pdfDoc, 'ODNO_2'+s, c2,  4);
-      setDigitFields(fm, pdfDoc, 'ODSU_1'+s, qty, 3);
-      set1('ODNA_1'+s, name);
-      setDigitFields(fm, pdfDoc, 'ODPR_1'+s, price, 5);
+    for (let i=1;i<=10;i++){
+      const s=pad2(i); const item=pageItems[i-1]||{};
+      set('ODNO_1'+s, item.code1?item.code1.padStart(3,'0'):'');
+      set('ODNO_2'+s, item.code2?item.code2.padStart(4,'0'):'');
+      set('ODSU_1'+s, item.qty||'');
+      set('ODNA_1'+s, item.name||'');
+      set('ODPR_1'+s, item.price||'');
     }
 
     const bytes = await pdfDoc.save({updateFieldAppearances: false});
