@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.67</title>
+<title>事務用品 注文シート v1.68</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.67</div>
+    <div class="app-subtitle">ナビリオン v1.68</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,7 +1038,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.67 ───
+// ─── PDF書き込み v1.68 ───
 // 方針：
 // 1. V値をUTF-16BE HexStringで書き込む
 // 2. NeedAppearances=true（ビューアが既存MSPGothicで描画）
@@ -1207,9 +1207,7 @@ async function generateAndDownload(){
 
     // updateFieldAppearances:false で保存
     // getForm()を一切呼んでいないのでWinAnsiエラーは発生しない
-    // Helv系フィールドはpdf-libに外観生成させる（数字なのでWinAnsiOK）
-    // MSPGothic系はNeedAppearances=trueでビューアに任せる
-    const bytes = await pdfDoc.save({updateFieldAppearances: true});
+    const bytes = await pdfDoc.save({updateFieldAppearances: false});
     pageBytesList.push(bytes);
   }
 
