@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.73</title>
+<title>事務用品 注文シート v1.74</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.73</div>
+    <div class="app-subtitle">ナビリオン v1.74</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,7 +1038,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.73 ───
+// ─── PDF書き込み v1.74 ───
 // 方針を整理：
 // ・日本語フィールド(MSPGothic)→ APなし＋NeedAppearances=true（ビューアのMSPGothicで描画）
 // ・数字Combフィールド(Helv) → APを自前生成（均等表示）＋印刷OK
@@ -1372,7 +1372,13 @@ async function generateAndDownload(){
     if (item.code1 || item.code2) addToHistory(item);
   }
   renderRecentList();
-  toast('PDF作成完了 ✅', 'success');
+  // スマホの場合はダウンロードして印刷するよう案内
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    toast('PDF作成完了 ✅ ダウンロードファイルを開いて印刷してください', 'success');
+  } else {
+    toast('PDF作成完了 ✅', 'success');
+  }
 }
 
 // ─── TOAST ───
