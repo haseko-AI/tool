@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.71</title>
+<title>事務用品 注文シート v1.73</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.71</div>
+    <div class="app-subtitle">ナビリオン v1.73</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,7 +1038,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.71 ───
+// ─── PDF書き込み v1.73 ───
 // 方針を整理：
 // ・日本語フィールド(MSPGothic)→ APなし＋NeedAppearances=true（ビューアのMSPGothicで描画）
 // ・数字Combフィールド(Helv) → APを自前生成（均等表示）＋印刷OK
@@ -1078,6 +1078,65 @@ function getRawAcroFields(pdfDoc) {
     collect(acroForm.lookupMaybe(PDFName.of('Fields'), PDFArray));
   } catch(e) {}
   return fieldMap;
+}
+
+// 日本語フィールドのAPストリームをMSPGothicで生成
+// MSPGothicはAcroFormのDRに登録済みなのでリソース参照が可能
+function makeJpAP(pdfDoc, value, w, h, fs, q) {
+  const {PDFName, PDFNumber} = PDFLib;
+  const actualFs = fs > 0 ? fs : Math.max(6, Math.floor(h * 0.6));
+
+  // テキスト幅の概算（MSPGothicは全角）
+  const textW = value.length * actualFs;
+  let tx;
+  if (q === 2)      tx = Math.max(1, w - textW - 2);
+  else if (q === 1) tx = Math.max(1, (w - textW) / 2);
+  else              tx = 2;
+  const ty = Math.max(1, (h - actualFs) / 2);
+
+  // UTF-16BEでHexStringとして書く
+  const hexVal = '<' + 'FEFF' +
+    Array.from(value).map(c =>
+      c.charCodeAt(0).toString(16).padStart(4,'0').toUpperCase()
+    ).join('') + '>';
+
+  const stream =
+    `/Tx BMC
+q
+` +
+    `0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n
+` +
+    `BT
+/MSPGothic ${actualFs} Tf
+0 g
+` +
+    `${tx.toFixed(2)} ${ty.toFixed(2)} Td
+` +
+    `${hexVal} Tj
+` +
+    `ET
+Q
+EMC`;
+
+  const bytes = new TextEncoder().encode(stream);
+  // ResourcesにMSPGothicを明示的に含める
+  const apDict = pdfDoc.context.obj({
+    Type:    PDFName.of('XObject'),
+    Subtype: PDFName.of('Form'),
+    FormType: PDFNumber.of(1),
+    BBox:    pdfDoc.context.obj([0, 0, w, h]),
+    Resources: pdfDoc.context.obj({
+      Font: pdfDoc.context.obj({
+        MSPGothic: pdfDoc.context.obj({
+          Type:    PDFName.of('Font'),
+          Subtype: PDFName.of('Type0'),
+          BaseFont: PDFName.of('MSPGothic'),
+          Encoding: PDFName.of('UniJIS-UTF16-H'),
+        })
+      })
+    }),
+  });
+  return pdfDoc.context.stream(bytes, apDict.dict);
 }
 
 // CombフィールドのAPストリームをHelveticaで生成
@@ -1242,8 +1301,25 @@ async function generateAndDownload(){
       // V値を書き込む
       if (isJp) {
         dict.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(val)));
-        // 日本語はAPなし＋NeedAppearancesでビューアに任せる
-        dict.delete(PDFName.of('AP'));
+        // 日本語もAPを生成（スマホビューア対応）
+        if (val) {
+          try {
+            const rectArr = dict.lookupMaybe(PDFName.of('Rect'), PDFArray);
+            if (rectArr) {
+              let x1=rectArr.get(0).asNumber(), y1=rectArr.get(1).asNumber();
+              let x2=rectArr.get(2).asNumber(), y2=rectArr.get(3).asNumber();
+              if(x1>x2)[x1,x2]=[x2,x1]; if(y1>y2)[y1,y2]=[y2,y1];
+              const w=x2-x1, h=y2-y1;
+              let q=0;
+              try{const qo=dict.get(PDFName.of('Q'));if(qo&&qo.asNumber)q=qo.asNumber();}catch(e){}
+              const ap    = makeJpAP(pdfDoc, val, w, h, fs, q);
+              const apRef = pdfDoc.context.register(ap);
+              dict.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef}));
+            }
+          } catch(e) { dict.delete(PDFName.of('AP')); }
+        } else {
+          dict.delete(PDFName.of('AP'));
+        }
       } else {
         dict.set(PDFName.of('V'), PDFString.of(val));
         // 数字CombフィールドはAPを自前生成
@@ -1265,12 +1341,12 @@ async function generateAndDownload(){
         }
       }
 
-      // ReadOnly化（Ffのbit0を立てる）
-      try {
-        const ffObj = dict.get(PDFName.of('Ff'));
-        const ff = ffObj && ffObj.asNumber ? ffObj.asNumber() : 0;
-        dict.set(PDFName.of('Ff'), PDFNumber.of(ff | READONLY_BIT));
-      } catch(e) {}
+      // ReadOnly化（必要なら有効化）
+      // try {
+      //   const ffObj = dict.get(PDFName.of('Ff'));
+      //   const ff = ffObj && ffObj.asNumber ? ffObj.asNumber() : 0;
+      //   dict.set(PDFName.of('Ff'), PDFNumber.of(ff | READONLY_BIT));
+      // } catch(e) {}
     }
 
     const bytes = await pdfDoc.save({updateFieldAppearances: false});
