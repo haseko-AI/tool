@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.75</title>
+<title>事務用品 注文シート v1.76</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -273,7 +273,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.75</div>
+    <div class="app-subtitle">ナビリオン v1.76</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -524,7 +524,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
   <div class="dl-modal">
     <div class="dl-modal-icon">📄</div>
     <h3>PDFを保存して印刷</h3>
-    <p>下のボタンを長押し（または右タップ）して<br>「ダウンロード」を選択してください。<br>保存したファイルを開いて印刷すると<br>きれいに印刷できます。</p>
+    <p id="dlModalMsg">下のボタンをタップして保存し<br>保存したファイルを開いて印刷してください。</p>
     <a id="dlModalLink" href="#" download class="dl-modal-link" id="dlModalLink">
       ⬇ PDFをダウンロード
     </a>
@@ -1067,7 +1067,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.75 ───
+// ─── PDF書き込み v1.76 ───
 // 方針を整理：
 // ・日本語フィールド(MSPGothic)→ APなし＋NeedAppearances=true（ビューアのMSPGothicで描画）
 // ・数字Combフィールド(Helv) → APを自前生成（均等表示）＋印刷OK
@@ -1392,7 +1392,7 @@ async function generateAndDownload(){
     const url  = URL.createObjectURL(blob);
     if (isMobile) {
       // スマホ：モーダルでダウンロードリンクを表示
-      showDlModal(url, baseName+'.pdf');
+      showDlModal(url, baseName+'.pdf', pageBytesList[0]);
     } else {
       // PC：そのままダウンロード
       const a = document.createElement('a');
@@ -1412,15 +1412,27 @@ async function generateAndDownload(){
 }
 
 // ─── スマホ用ダウンロードモーダル ───
-function showDlModal(url, filename) {
+function showDlModal(blobUrl, filename, pdfBytes) {
   const overlay = document.getElementById('dlModalOverlay');
   const link    = document.getElementById('dlModalLink');
-  link.href     = url;
-  link.download = filename;
+  const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
+
   link.className = 'dl-modal-link' + (currentType==='kaisha' ? ' kaisha-btn' : '');
+  link.download = filename;
+
+  if (isSafari) {
+    // Safari：Base64 data URLに変換してダウンロードを強制
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      link.href = e.target.result;
+    };
+    fetch(blobUrl).then(r=>r.blob()).then(b=>reader.readAsDataURL(b));
+    overlay._blobUrl = blobUrl;
+  } else {
+    link.href = blobUrl;
+    overlay._blobUrl = blobUrl;
+  }
   overlay.classList.add('open');
-  // 古いURLを後でクリーンアップ
-  overlay._blobUrl = url;
 }
 function closeDlModal() {
   const overlay = document.getElementById('dlModalOverlay');
