@@ -3,1276 +3,2490 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.58</title>
+<meta name="robots" content="noindex, nofollow">
+<!-- Programmed by Claude (Anthropic) - 2026 -->
+<!-- Directed by A.I. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>管理業務月報-</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
-:root{
-  --bg:#f0f2f5;--surface:#fff;--surface2:#f8f9fb;
-  --border:#e2e6ea;--border2:#d0d5dd;
-  --text:#1a1f2e;--text2:#5a6072;--text3:#9aa0b0;
-  --accent-k:#1a56db;--accent-k-bg:#eff6ff;--accent-k-border:#93c5fd;
-  --accent-c:#0d9488;--accent-c-bg:#f0fdfa;--accent-c-border:#5eead4;
-  --danger:#dc2626;--success:#10b981;
-  --radius:10px;--radius-sm:6px;
-  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
-  --shadow-md:0 4px 16px rgba(0,0,0,.10);
-  --header-bg:var(--accent-k);/* ② 会社経費時に赤に変わる */
+:root {
+  --bg:#f0f2f5; --surface:#fff; --surface2:#f8f9fb; --border:#dde1e8;
+  --accent:#1a5fa8; --accent2:#e8f0fb; --text:#1a1d23; --text2:#5a6070;
+  --elec:#e67e22; --elec-bg:#fef6ed; --elec-border:#f5cfa0;
+  --water:#2980b9; --water-bg:#edf5fc; --water-border:#a8d4ef;
+  --success:#27ae60; --radius:10px; --shadow:0 2px 8px rgba(0,0,0,.08);
+  --green:#27ae60; --green-bg:#edfaf2; --green-border:#b2e8c9;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+header{background:var(--accent);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.15);position:sticky;top:0;z-index:100;}
+header h1{font-size:1.15rem;font-weight:700;letter-spacing:.05em;flex:1;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#7fd17f;box-shadow:0 0 0 2px rgba(127,209,127,.3);}
+.container{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
 
-/* ─ Header ─ */
-.app-header{
-  background:var(--header-bg);
-  border-bottom:1px solid rgba(0,0,0,.1);
-  padding:10px 16px;
-  display:flex;align-items:center;gap:12px;
-  position:sticky;top:0;z-index:100;
-  box-shadow:0 2px 8px rgba(0,0,0,.15);
-  transition:background .3s;
+/* トースト */
+.toast{position:fixed;top:62px;left:50%;transform:translateX(-50%) translateY(-12px);border-radius:8px;padding:10px 20px;font-size:.88rem;font-weight:600;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.15);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:999;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.saved{background:#edfaf2;color:var(--success);border:1px solid #b2e8c9;}
+.toast.error{background:#fff0f0;color:#c0392b;border:1px solid #f5c0bc;}
+
+/* 月選択カード */
+.month-card{background:var(--surface);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.month-card>label{font-size:.8rem;font-weight:700;color:var(--text2);}
+.month-selectors{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.select-wrap{display:flex;align-items:center;gap:6px;}
+.select-wrap span{font-size:.85rem;color:var(--text2);}
+select{border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:.92rem;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;}
+select:focus{border-color:var(--accent);}
+.month-info{margin-left:auto;font-size:.78rem;color:var(--text2);text-align:right;line-height:1.7;}
+.btn-month-nav{border:1.5px solid var(--border);border-radius:6px;padding:6px 12px;font-size:.9rem;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--accent);font-family:inherit;transition:all .15s;}
+.btn-month-nav:hover{background:var(--accent);color:#fff;}
+.month-info .main-month{font-size:.95rem;font-weight:700;color:var(--accent);}
+
+/* セクションカード共通 */
+.section-card{background:var(--surface);border-radius:var(--radius);margin-bottom:14px;box-shadow:var(--shadow);overflow:hidden;}
+.section-body.required-alert-body,.meter-grid.required-alert-body{background:#fff8f8;border-top:2px solid #e74c3c;}
+.section-header{padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid var(--border);background:var(--surface2);}
+.section-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--accent);color:#fff;}
+.section-title{font-size:.93rem;font-weight:700;color:var(--accent);flex:1;}
+.btn-past{border:1.5px solid currentColor;border-radius:6px;padding:4px 10px;font-size:.75rem;font-weight:700;cursor:pointer;background:transparent;color:inherit;font-family:inherit;opacity:.8;transition:opacity .15s;margin-left:auto;}
+.btn-past:hover{opacity:1;}
+.section-body{padding:14px 18px;}
+
+/* 汎用テーブル */
+.form-table{width:100%;border-collapse:collapse;}
+.form-table th{font-size:.78rem;font-weight:700;color:var(--text2);padding:5px 6px;border-bottom:1.5px solid var(--border);text-align:center;background:var(--surface2);}
+.form-table td{padding:4px 4px;border-bottom:1px solid #f0f2f5;vertical-align:middle;}
+.form-table tr:last-child td{border-bottom:none;}
+/* PC：備考欄を全幅で下段に（予約） */
+
+.row-num{font-size:.75rem;color:var(--text2);text-align:center;width:24px;}
+
+/* 汎用インプット */
+.fi{border:1.5px solid var(--border);border-radius:6px;padding:7px 8px;font-size:.88rem;width:100%;background:var(--surface);color:var(--text);outline:none;transition:border-color .15s;font-family:inherit;}
+/* iOSでtype=date/timeが親幅を超えて膨張するのを防ぐ */
+input[type="date"],input[type="time"]{
+  max-width:100% !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+  min-width:0 !important;
 }
-.app-logo{font-size:17px;font-weight:700;letter-spacing:-.3px;color:#fff;}
-.app-logo .logo-blue{color:#fde68a;}
-.app-logo .logo-sub{font-size:11px;font-weight:400;opacity:.8;margin-left:6px;}
-.app-subtitle{font-size:11px;color:rgba(255,255,255,.7);}
-.header-spacer{flex:1;}
-.backup-btns{display:flex;gap:6px;}
-.btn-header{padding:5px 11px;font-size:11px;font-family:inherit;font-weight:600;
-  border:1.5px solid rgba(255,255,255,.5);border-radius:var(--radius-sm);
-  background:rgba(255,255,255,.15);color:#fff;cursor:pointer;transition:all .15s;}
-.btn-header:hover{background:rgba(255,255,255,.3);}
-
-/* ─ Type toggle bar ─ */
-.type-toggle-bar{
-  background:var(--surface);border-bottom:3px solid var(--accent-k);
-  padding:8px 16px;display:flex;align-items:center;gap:10px;
-  transition:border-color .25s;flex-wrap:wrap;
+/* テーブル内の日付欄が枠から飛び出さないように */
+.form-table td input[type="date"],
+.form-table td input[type="time"]{
+  max-width:100% !important;
+  width:100% !important;
 }
-.type-toggle-label{font-size:12px;color:var(--text2);font-weight:500;}
-.toggle-btns{display:flex;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border2);}
-.toggle-btn{padding:6px 18px;font-size:13px;font-family:inherit;font-weight:600;
-  border:none;cursor:pointer;transition:all .2s;background:var(--surface2);color:var(--text2);}
-.toggle-btn.active-k{background:var(--accent-k);color:#fff;}
-.toggle-btn.active-c{background:var(--danger);color:#fff;}
-.pdf-statuses{display:flex;gap:6px;margin-left:auto;}
-.pdf-status{font-size:10px;padding:2px 7px;border-radius:4px;}
-.pdf-status.ok{background:#d1fae5;color:#065f46;}
-.pdf-status.ng{background:#fee2e2;color:#991b1b;}
-.pdf-status.loading{background:#fef3c7;color:#92400e;}
+.fi:focus{border-color:var(--accent);background:#fafcff;}
+.fi.date-input{text-align:center;}
+.fi.date-input.invalid{border-color:#c0392b;background:#fff0f0;}
+.fi.invalid{border-color:#c0392b;background:#fff0f0;}
+/* number inputのスピナー非表示 */
+input[type="number"].fi::-webkit-outer-spin-button,
+input[type="number"].fi::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+input[type="number"].fi{-moz-appearance:textfield;}
 
-/* ─ Layout ─ */
-.main-wrap{max-width:1100px;margin:0 auto;padding:14px 14px 40px;
-  display:grid;grid-template-columns:1fr 320px;gap:14px;}
+/* 動的行追加：最初は非表示 */
+.tr-hidden{display:none;}
+.fi.auto-today{background:var(--surface2);}
+textarea.fi{resize:vertical;min-height:36px;}
 
-/* 注文日 常に2列 */
-.date-row-2col{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px;width:100%;}
-.date-row-2col .form-group{min-width:0;}
-.date-row-2col input[type="date"]{width:100%;min-width:0;box-sizing:border-box;}
+/* ○ラジオ風トグル */
+.circle-wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.circle-btn{border:2px solid var(--border);border-radius:7px;padding:6px 14px;font-size:.82rem;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--text2);transition:all .15s;font-family:inherit;}
+.circle-btn.selected{border-color:var(--accent);background:var(--accent2);color:var(--accent);}
+.circle-btn.selected.danger{border-color:#c0392b;background:#fff0f0;color:#c0392b;}
+.circle-note{flex:1;}
+.key-row{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;}
+.key-label{font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;flex-shrink:0;}
+.key-note{flex:1;min-width:60px;}
 
-/* スマホ：サイドバーを注文欄の後に */
-@media(max-width:800px){
-  .main-wrap{grid-template-columns:1fr;}
-  .sidebar{order:10;}
-  body{font-size:16px;}
-  input[type="text"],input[type="tel"],input[type="number"],input[type="date"]{
-    font-size:16px;padding:10px 12px;}
-  label{font-size:13px;}
-  .card-header h3{font-size:15px;}
-  .btn{font-size:14px;padding:10px 16px;}
-  .btn-sm{font-size:13px;padding:8px 13px;}
-  /* 注文日・指定日 スマホで2列固定 */
-  .date-row-2col{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;width:100%!important;box-sizing:border-box!important;}
-  .date-row-2col .form-group{min-width:0!important;overflow:hidden!important;}
-  .date-row-2col input[type="date"]{width:100%!important;min-width:0!important;box-sizing:border-box!important;font-size:13px!important;padding:8px 2px!important;}
+/* メーターセクション */
+.meter-grid{padding:14px 18px;}
+.meter-date-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.meter-date-label{font-size:.78rem;font-weight:700;color:var(--text2);white-space:nowrap;}
+.meter-date-input{border:1.5px solid var(--border);border-radius:6px;padding:7px 8px;font-size:.85rem;background:var(--surface);color:var(--text);outline:none;text-align:center;}
+.meter-date-input:focus{border-color:var(--accent);}
+.meter-date-range{font-size:.75rem;color:var(--text2);background:var(--surface2);border-radius:5px;padding:4px 10px;}
+.col-headers{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-bottom:5px;padding:0 0 5px;border-bottom:1px solid var(--border);}
+.col-header{font-size:.8rem;font-weight:700;color:var(--text2);text-align:center;}
+.col-header.today{color:var(--text);}
+.meter-block{padding:6px 0 3px;border-bottom:1px solid #f0f2f5;}
+.meter-block:last-child{border-bottom:none;}
+.meter-row{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;align-items:center;}
+.meter-label{font-size:.88rem;font-weight:700;color:var(--text2);}
+.meter-input{border:1.5px solid var(--border);border-radius:6px;padding:8px 5px;font-size:1.1rem;font-weight:600;text-align:right;width:100%;background:var(--surface);color:var(--text);outline:none;transition:border-color .15s;-moz-appearance:textfield;}
+.meter-input::-webkit-outer-spin-button,.meter-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.meter-input:focus{border-color:var(--accent);background:#fafcff;}
+.meter-input.auto{background:var(--surface2);border-style:dashed;}
+.meter-input.elec-auto{border-color:var(--elec-border);color:var(--elec);}
+.meter-input.water-auto{border-color:var(--water-border);color:var(--water);}
+.meter-input.has-value{background:#fffef0;}
+.meter-input.meter-warn{background:#fff0f0;border-color:#c0392b;}
+.usage-row{display:grid;grid-template-columns:46px repeat(3,1fr);gap:5px;margin-top:2px;}
+.usage-cell{text-align:right;font-size:.78rem;color:var(--text2);padding-right:3px;min-height:14px;}
+.usage-cell.this-month{font-weight:700;color:var(--accent);font-size:.82rem;}
+.usage-cell.warn{color:#c0392b;font-weight:700;}
+
+/* 規定値セクション */
+.fixed-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fixed-item{display:flex;flex-direction:column;gap:3px;}
+.fixed-label{font-size:.72rem;font-weight:700;color:var(--text2);}
+.fixed-item.full{grid-column:1/-1;}
+.capacity-row{display:flex;align-items:center;gap:8px;}
+.capacity-now{flex:1;text-align:right;}
+.capacity-all{flex:1;text-align:left;}
+.capacity-sep{font-size:1.1rem;font-weight:700;color:var(--text2);flex-shrink:0;}
+
+/* アクションエリア */
+.action-area{background:var(--surface);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;margin-bottom:14px;}
+.action-row{display:flex;gap:10px;flex-wrap:wrap;}
+.btn{border:none;border-radius:7px;padding:11px 18px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px;letter-spacing:.03em;font-family:inherit;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--accent);color:#fff;flex:1;justify-content:center;min-width:160px;}
+.btn-primary:hover{background:#1550a0;}
+.btn-save{background:var(--success);color:#fff;flex:1;justify-content:center;}
+.btn-save:hover{background:#219a52;}
+.btn-outline{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);flex:1;justify-content:center;}
+.btn-outline:hover{background:var(--border);}
+.note{font-size:.74rem;color:var(--text2);display:flex;align-items:flex-start;gap:5px;line-height:1.5;}
+.notes-area{display:flex;flex-direction:column;gap:4px;margin-top:4px;}
+
+/* データ一覧 */
+.data-card{background:var(--surface);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow);margin-bottom:14px;}
+.data-card-title{font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:12px;}
+.data-list{max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;}
+.data-list-item{padding:7px 10px;font-size:.82rem;display:flex;align-items:center;border-bottom:1px solid var(--border);transition:background .1s;}
+.data-list-item:last-child{border-bottom:none;}
+.data-list-item:hover{background:var(--accent2);}
+.data-list-item.active{background:var(--accent2);font-weight:700;color:var(--accent);}
+.data-list-label{flex:1;cursor:pointer;padding:2px 0;}
+.data-list-empty{padding:16px;font-size:.82rem;color:var(--text2);text-align:center;}
+.del-btn{flex-shrink:0;border:1px solid #f5c0bc;border-radius:5px;background:#fff0f0;color:#c0392b;font-size:.72rem;font-weight:700;padding:3px 8px;cursor:pointer;font-family:inherit;line-height:1;transition:background .1s;}
+.del-btn:hover{background:#ffe0e0;}
+
+/* 送信エリア */
+.send-area{padding:16px 18px;border-top:1px solid var(--border);}
+.send-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+.send-label{font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;width:60px;}
+.send-input{flex:1;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:.88rem;min-width:0;font-family:inherit;}
+.send-input:focus{border-color:var(--accent);outline:none;}
+.btn-send{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:11px 20px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:opacity .15s;}
+.btn-send:hover{opacity:.88;}
+.btn-send:disabled{opacity:.5;cursor:not-allowed;}
+
+/* seal */
+.seal-area{display:flex;gap:12px;padding:14px 18px;}
+
+/* 過去データ入力モーダル */
+.modal-overlay{
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;
 }
-
-/* ─ Cards ─ */
-.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);
-  box-shadow:var(--shadow);margin-bottom:12px;}
-.card-header{padding:10px 14px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:8px;background:var(--surface2);
-  border-radius:var(--radius) var(--radius) 0 0;}
-.card-header h3{font-size:13px;font-weight:700;}
-.card-body{padding:12px 14px;}
-.section-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;
-  justify-content:center;font-size:12px;background:var(--accent-k-bg);flex-shrink:0;}
-
-/* ─ Form ─ */
-.form-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-bottom:9px;}
-/* ③ PC版：管理員名から改行 */
-.form-row.profile-row{grid-template-columns:repeat(3,1fr);}
-@media(max-width:800px){.form-row.profile-row{grid-template-columns:1fr 1fr;}}
-.form-group{display:flex;flex-direction:column;gap:3px;}
-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.3px;}
-label .req{color:var(--danger);margin-left:2px;}
-label .fn{display:none;}
-input[type="text"],input[type="tel"],input[type="number"],input[type="date"]{
-  width:100%;padding:7px 9px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);
-  font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);
-  transition:border-color .15s,box-shadow .15s;outline:none;}
-input[type="number"]{-moz-appearance:textfield;}
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
-input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13);}
-.date-preview{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;padding-left:2px;margin-top:2px;}
-.ord-dlv-preview{display:none;}
-
-/* ─ Order table PC ─ */
-.order-table-wrap{overflow-x:auto;width:100%;}
-.order-table{width:100%;border-collapse:collapse;font-size:12.5px;}
-.order-table th{background:var(--surface2);border:1px solid var(--border);
-  padding:6px 7px;font-size:11px;font-weight:700;color:var(--text2);text-align:center;white-space:nowrap;}
-.order-table td{border:1px solid var(--border);padding:3px 4px;vertical-align:middle;}
-.order-table tr:hover td{background:var(--surface2);}
-.order-table tr.active-row td{background:#fef9c3!important;}
-.row-num{font-family:'DM Mono',monospace;font-weight:700;font-size:13px;
-  color:var(--text3);text-align:center;width:26px;}
-.code-part{font-family:'DM Mono',monospace;font-size:16px;text-align:center;letter-spacing:2px;font-weight:600;}
-.code-p1{width:52px;}.code-p2{width:60px;}
-.qty-input{width:56px;text-align:right;}
-.name-input{min-width:230px;}
-.price-input{width:78px;text-align:right;font-family:'DM Mono',monospace;}
-.pick-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border2);
-  background:var(--surface);cursor:pointer;display:flex;align-items:center;
-  justify-content:center;font-size:14px;transition:all .15s;}
-.pick-btn:hover{border-color:var(--accent-k);background:var(--accent-k-bg);transform:scale(1.1);}
-.clear-row-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid #fca5a5;
-  background:transparent;cursor:pointer;color:var(--danger);font-size:14px;font-weight:700;
-  display:flex;align-items:center;justify-content:center;transition:all .15s;}
-.clear-row-btn:hover{border-color:var(--danger);color:#fff;background:var(--danger);}
-.name-autofilled{background:#f0fdf4!important;border-color:var(--success)!important;}
-
-/* ─ スマホ用 明細カード ─ */
-.order-cards{display:none;flex-direction:column;gap:10px;}
-.order-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px;}
-.order-card.active-row{border-color:#f59e0b;background:#fef9c3;}
-.order-card-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.order-card-num{font-family:'DM Mono',monospace;font-weight:700;font-size:16px;
-  color:#fff;background:var(--accent-k);width:28px;height:28px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.order-card-code{display:flex;align-items:center;gap:4px;flex:1;}
-.order-card-code input{font-family:'DM Mono',monospace;font-size:18px;text-align:center;letter-spacing:3px;font-weight:600;}
-.code-sp1{width:80px;}.code-sp2{width:90px;}
-.order-card-actions{display:flex;gap:6px;flex-shrink:0;}
-.order-card-body{display:flex;flex-direction:column;gap:8px;}
-.order-card-row3{display:flex;align-items:flex-end;gap:8px;grid-column:1/-1;}
-.order-card-row3 .form-group{flex:1;}
-.order-card-qty{display:flex;flex-direction:column;gap:3px;grid-column:2;}
-.order-card-qty input{text-align:right;font-size:16px;}
-@media(max-width:800px){
-  .order-table-wrap{display:none;}
-  .order-cards{display:flex;}
+.modal-overlay.show{display:flex;}
+.modal-box{
+  background:#fff;border-radius:12px;padding:20px;width:90%;max-width:560px;
+  max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);
 }
+.modal-title{font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.modal-sub{font-size:.78rem;color:var(--text2);margin-bottom:16px;}
+.modal-meter-grid{display:grid;grid-template-columns:1fr repeat(4,1fr);gap:4px;align-items:center;}
+.modal-meter-grid .mh{font-size:.7rem;font-weight:700;color:var(--text2);text-align:center;padding:4px 2px;}
+.modal-meter-grid .ml{font-size:.8rem;font-weight:700;color:var(--text2);padding:4px 2px;}
+.modal-meter-grid .mi{border:1.5px solid var(--border);border-radius:6px;padding:6px 5px;font-size:.88rem;text-align:right;width:100%;box-sizing:border-box;-moz-appearance:textfield;}
+.modal-meter-grid .mi::-webkit-outer-spin-button,.modal-meter-grid .mi::-webkit-inner-spin-button{-webkit-appearance:none;}
+.modal-meter-grid .mi:focus{border-color:var(--accent);outline:none;}
+.modal-meter-grid .mi.readonly{background:var(--surface2);color:var(--text2);}
+.modal-meter-grid .mi.computed{background:#edfaf2;color:var(--success);font-weight:700;}
+.modal-meter-grid .month-label{font-size:.8rem;font-weight:700;color:var(--accent);}
+.modal-footer{display:flex;gap:10px;margin-top:16px;justify-content:flex-end;}
+.btn-modal-save{background:var(--success);color:#fff;border:none;border-radius:7px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-modal-cancel{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);border-radius:7px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.modal-notice{background:#fff9e6;border:1px solid #f5d26b;border-radius:6px;padding:8px 12px;font-size:.78rem;color:#856404;margin-bottom:12px;}
+.seal-box{width:60px;height:60px;border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text2);text-align:center;line-height:1.3;}
 
-/* ─ Sidebar ─ */
-.info-summary{background:linear-gradient(135deg,var(--accent-k-bg) 0%,var(--surface) 100%);
-  border:1px solid var(--accent-k-border);border-radius:var(--radius);padding:12px;margin-bottom:12px;}
-.info-summary.kaisha-summary{background:linear-gradient(135deg,#fee2e2 0%,var(--surface) 100%);
-  border-color:#fca5a5;}
-.info-line{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--border);}
-.info-line:last-child{border-bottom:none;}
-.info-key{color:var(--text2);}
-.info-val{font-weight:600;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;}
+/* コメント行入力 */
+.comment-lines{display:flex;flex-direction:column;gap:4px;}
+.comment-line-wrap{position:relative;}
+.comment-line{width:100%;font-family:inherit;}
+.comment-counter{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.68rem;color:var(--text2);pointer-events:none;}
+.comment-counter.warn{color:#c0392b;font-weight:700;}
 
-/* ─ Buttons ─ */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  padding:8px 15px;border-radius:var(--radius-sm);border:none;font-family:inherit;
-  font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;}
-.btn-primary{background:var(--accent-k);color:#fff;box-shadow:0 2px 6px rgba(26,86,219,.3);}
-.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
-.btn-primary.kaisha{background:var(--danger);box-shadow:0 2px 6px rgba(220,38,38,.3);}
-.btn-secondary{background:var(--surface);color:var(--text2);border:1.5px solid var(--border2);}
-.btn-secondary:hover{border-color:var(--accent-k);color:var(--accent-k);background:var(--accent-k-bg);}
-.btn-sm{padding:5px 11px;font-size:12px;}
-.btn-full{width:100%;}
-.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+/* セクションカラー */
+.sh-rec .section-icon{background:#8e44ad;}
+.sh-rec .section-title{color:#8e44ad;}
+.sh-res .section-icon{background:#16a085;}
+.sh-res .section-title{color:#16a085;}
+.sh-vis .section-icon{background:#2980b9;}
+.sh-vis .section-title{color:#2980b9;}
+.sh-ins .section-icon{background:#27ae60;}
+.sh-ins .section-title{color:#27ae60;}
+.sh-rep .section-icon{background:#e67e22;}
+.sh-rep .section-title{color:#e67e22;}
+.sh-acc .section-icon{background:#c0392b;}
+.sh-acc .section-title{color:#c0392b;}
+.sh-eve .section-icon{background:#f39c12;}
+.sh-eve .section-title{color:#f39c12;}
+.sh-key .section-icon{background:#7f8c8d;}
+.section-header.sh-key.required-alert{background:#fff0f0 !important;}
+.sh-key.required-alert ~ .section-body,.sh-key.required-alert + .section-body{outline:2px solid #e74c3c;outline-offset:-2px;}
+.sh-key .section-title{color:#7f8c8d;}
+.sh-elec .section-header{background:var(--elec-bg);}
+.section-header.sh-elec.required-alert{background:#fff0f0 !important;}
+.sh-elec .section-icon{background:var(--elec);}
+.sh-elec .section-title{color:var(--elec);}
+.sh-water .section-header{background:var(--water-bg);}
+.section-header.sh-water.required-alert{background:#fff0f0 !important;}
+.sh-water .section-icon{background:var(--water);}
+.sh-water .section-title{color:var(--water);}
+.sh-fixed .section-icon{background:#34495e;}
+.section-header.sh-fixed.required-alert{background:#fff0f0 !important;}
+.sh-fixed .section-title{color:#34495e;}
+.sh-comment .section-icon{background:#95a5a6;}
+.sh-comment .section-title{color:#555;}
 
-/* ─ Page count ─ */
-.page-count-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:9px 12px;display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
-.count-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--accent-k);}
+/* 印鑑選択エリア */
+.seal-select-area{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px;}
+.seal-preview{width:60px;height:60px;border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--surface2);overflow:hidden;flex-shrink:0;}
+.seal-preview img{width:100%;height:100%;object-fit:contain;}
+.seal-preview.empty{font-size:.65rem;color:var(--text2);text-align:center;line-height:1.3;}
+.btn-seal{background:#fff5f5;color:#c0392b;border:1.5px solid #f5c0bc;border-radius:7px;padding:9px 16px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+.btn-seal:hover{background:#ffe0e0;}
+.btn-seal.selected{background:#edfaf2;color:var(--success);border-color:#b2e8c9;}
+.btn-clear-seal{background:none;border:none;color:var(--text2);font-size:.75rem;cursor:pointer;padding:2px 6px;font-family:inherit;}
+.btn-clear-seal:hover{color:#c0392b;}
 
-/* ─ Target indicator ─ */
-.target-indicator{background:#fef9c3;border:1px solid #fde68a;border-radius:var(--radius-sm);
-  padding:6px 12px;font-size:12px;color:#92400e;display:none;align-items:center;gap:6px;margin-bottom:9px;}
-.target-indicator.show{display:flex;}
+/* レスポンシブ */
+/* date inputの透明化はJSで制御 */
+input[type="date"].meter-date-input.empty,input[type="date"].date-input.empty{
+  color: transparent !important;
+}
+input[type="time"].date-input.empty::-webkit-datetime-edit,
+input[type="date"].date-input.empty::-webkit-datetime-edit,
+input[type="time"].date-input.empty::-webkit-datetime-edit-fields-wrapper,
+input[type="date"].date-input.empty::-webkit-datetime-edit-fields-wrapper,
+input[type="time"].date-input.empty::-webkit-datetime-edit-text,
+input[type="date"].date-input.empty::-webkit-datetime-edit-text,
+input[type="time"].date-input.empty::-webkit-datetime-edit-hours-field,
+input[type="time"].date-input.empty::-webkit-datetime-edit-minutes-field,
+input[type="time"].date-input.empty::-webkit-datetime-edit-ampm-field,
+input[type="date"].date-input.empty::-webkit-datetime-edit-month-field,
+input[type="date"].date-input.empty::-webkit-datetime-edit-day-field,
+input[type="date"].date-input.empty::-webkit-datetime-edit-year-field,
+input[type="date"].date-input.empty::-webkit-inner-spin-button{
+  color: transparent !important;
+  opacity: 0 !important;
+}
+/* PC版：日付・時間・部屋番号列の幅を統一 */
+@media(min-width:601px){
+  .form-table td.td-date{width:110px;min-width:110px;}
+  .form-table td.td-time{width:100px;min-width:100px;}
+  .form-table td.td-room{width:85px;min-width:85px;}
+  .form-table td.row-num{width:28px;min-width:28px;}
+  input[type="date"].meter-date-input{width:115px !important;max-width:115px !important;}
+  input[type="date"]#KEY_Check{width:115px !important;max-width:115px !important;}
+}
+@media(max-width:600px){
+  .month-card{flex-direction:column;align-items:flex-start;}
+  .month-info{margin-left:0;text-align:left;}
+  .col-headers,.meter-row,.usage-row{grid-template-columns:38px repeat(3,1fr);gap:3px;}
+  .meter-input{padding:7px 3px;font-size:1rem;}
+  input[type="date"].meter-date-input{width:140px !important;max-width:140px !important;height:38px !important;padding:7px 8px !important;box-sizing:border-box !important;}
+  input[type="date"]#KEY_Check{width:140px !important;max-width:140px !important;height:38px !important;padding:7px 8px !important;box-sizing:border-box !important;}
+  .key-row{flex-wrap:wrap;}
+  .key-note{width:calc(100% - 68px);flex-basis:calc(100% - 68px);margin-left:68px;box-sizing:border-box;}
+  /* 駐車場などは常に2列 fixed-gridはスマホでも2列維持 */
+  .btn{padding:10px 12px;font-size:.82rem;}
+  select{font-size:.85rem;padding:6px 8px;}
+  /* スマホ：縦積みシンプルレイアウト */
+  .form-table thead{display:none;}
+  .form-table tbody,.form-table tr{display:block;}
+  .form-table tr{
+    border:1.5px solid var(--border);border-radius:8px;
+    margin-bottom:6px;padding:8px 10px;
+    background:var(--surface);
+  }
+  .section-card{overflow:visible;border-radius:var(--radius);}
+  .section-header{position:sticky;top:102px;z-index:50;box-shadow:0 2px 4px rgba(0,0,0,.06);border-radius:var(--radius) var(--radius) 0 0;}
+  .form-table tr.tr-hidden{display:none;}
+  /* スマホ：セクションヘッダーをスクロール時に上部固定 */
+  .section-header{
+    position:sticky;
+    top:64px; /* headerの高さ分下げる */
+    z-index:50;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+  }
+  .form-table td{
+    display:flex;flex-direction:column;
+    padding:0 0 6px 0;border:none;width:100%;box-sizing:border-box;
+  }
+  .form-table td:last-child{padding-bottom:0;}
+  .form-table td::before{
+    content:attr(data-label);
+    font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:4px;
+  }
+  .form-table td input{width:100%;box-sizing:border-box;min-width:0;}
+  /* スマホでは固定幅をリセットして全幅に */
+  .form-table td.td-date,
+  .form-table td.td-time,
+  .form-table td.td-room{width:100% !important;min-width:0 !important;max-width:100% !important;overflow:hidden;}
+  /* 日付・時間・部屋番号を横2列並びに */
+  .form-table td.td-date,
+  .form-table td.td-time,
+  .form-table td.td-room{
+    width:48% !important;
+    max-width:48% !important;
+    display:inline-flex !important;
+    flex-direction:column;
+    vertical-align:top;
+    margin-right:2% !important;
+    box-sizing:border-box;
+  }
+  .form-table td.td-date input,
+  .form-table td.td-time input{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+    -webkit-appearance:none;
+    appearance:none;
+    padding:7px 8px !important;
+    min-height:38px !important;
+    height:auto !important;
+    font-size:.88rem;
+    color:var(--text);
+  }
+  /* スマホ：未入力の日付欄 */
+  .form-table td.td-date input:not([value])::-webkit-datetime-edit,
+  .form-table td.td-date input[value=""]::-webkit-datetime-edit,
+  .form-table td.td-time input:not([value])::-webkit-datetime-edit,
+  .form-table td.td-time input[value=""]::-webkit-datetime-edit{
+    color:#aaa;
+    content:'日付';
+  }
+  .form-table td.td-room input{
+    width:100% !important;
+    box-sizing:border-box !important;
+  }
+  /* date/timeのplaceholder代替：ラベルをdata-labelで表示済みなので追加不要 */
+  .form-table td.td-date input:not([value=""]):not([value]){color:var(--text);}
+  /* 行内ふわっと：日付以外のtdを非表示→日付入力で表示 */
+  .td-sub-item{
+    overflow:hidden;
+    max-height:0 !important;
+    opacity:0;
+    padding:0 !important;
+    transition:max-height .35s ease, opacity .3s ease;
+  }
+  .td-sub-item.open{
+    max-height:200px !important;
+    opacity:1;
+    padding:0 0 6px 0 !important;
+  }
+  .row-num{
+    display:block;font-size:.88rem;font-weight:700;color:var(--accent);
+    border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:6px;
+    width:100%;
+  }
 
-/* ─ Work time ─ */
-.work-time-wrap{margin-top:8px;padding:7px 11px;background:var(--surface2);
-  border:1px dashed var(--border2);border-radius:var(--radius-sm);}
-.work-time-toggle{font-size:11px;color:var(--text3);cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;}
-.work-time-toggle:hover{color:var(--text2);}
-.work-time-content{display:none;margin-top:7px;}
-.work-time-content.open{display:block;}
-
-/* ─ History modal ─ */
-.history-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
-  z-index:200;backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:16px;}
-.history-modal-overlay.open{display:flex;}
-.history-modal{background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);
-  width:100%;max-width:700px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;}
-.history-modal-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
-.history-modal-header h2{font-size:16px;font-weight:700;flex:1;}
-.history-search{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2);}
-.history-search input{width:100%;padding:9px 12px;border:1.5px solid var(--border2);
-  border-radius:var(--radius-sm);font-family:inherit;font-size:14px;outline:none;}
-.history-search input:focus{border-color:var(--accent-k);}
-.history-list{flex:1;overflow-y:auto;padding:8px 10px;}
-.history-item{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;
-  margin-bottom:7px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:2px;}
-.history-item:hover{border-color:var(--accent-k);background:var(--accent-k-bg);transform:translateX(2px);}
-.history-code{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--text);flex-shrink:0;letter-spacing:1px;}
-.history-info{flex:1;min-width:0;}
-.history-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.history-meta{font-size:11px;color:var(--text3);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
-.history-count-badge{background:var(--surface2);border:1px solid var(--border);border-radius:12px;
-  padding:2px 8px;font-size:11px;color:var(--text2);flex-shrink:0;}
-.history-del-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);
-  background:transparent;cursor:pointer;color:var(--text3);font-size:13px;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
-.history-del-btn:hover{background:#fef2f2;border-color:#fecaca;color:var(--danger);}
-.history-empty{text-align:center;color:var(--text3);padding:36px;font-size:13px;}
-.history-empty .icon{font-size:34px;margin-bottom:9px;}
-
-/* ─ 必須項目 未入力ハイライト ─ */
-.field-required-empty{background:#fff1f1!important;border-color:#fca5a5!important;}
-.field-required-empty:focus{border-color:var(--danger)!important;box-shadow:0 0 0 3px rgba(220,38,38,.15)!important;}
-
-/* ─ Toast ─ */
-.toast-container{position:fixed;top:72px;right:14px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
-.toast{background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);
-  font-size:13px;box-shadow:var(--shadow-md);animation:toastIn .22s ease;max-width:290px;}
-.toast.success{background:var(--success);}
-.toast.error{background:var(--danger);}
-@keyframes toastIn{from{opacity:0;transform:translateY(-8px) scale(.95);}to{opacity:1;transform:none;}}
-
-.mono{font-family:'DM Mono',monospace;}
+}
 </style>
 </head>
 <body>
-<div class="toast-container" id="toastContainer"></div>
-
-<!-- ② Header：会社経費時に赤くなる -->
-<header class="app-header" id="appHeader">
-  <div>
-    <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.58</div>
-  </div>
-  <div class="header-spacer"></div>
-  <div class="backup-btns">
-    <button class="btn-header" onclick="exportData()">⬇ 保存</button>
-    <button class="btn-header" onclick="document.getElementById('importFile').click()">⬆ 読込</button>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+<header>
+  <div class="status-dot"></div>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.50</span></h1>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+    <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
+    <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
+    <button onclick="changeMonthBy(1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">▶</button>
   </div>
 </header>
-
-<!-- Type toggle -->
-<div class="type-toggle-bar" id="typeToggleBar">
-  <span class="type-toggle-label">経費区分：</span>
-  <div class="toggle-btns">
-    <button class="toggle-btn active-k" id="btnKanri" onclick="setType('kanri')">🏢 管理組合</button>
-    <button class="toggle-btn" id="btnKaisha" onclick="setType('kaisha')">🏬 会社経費</button>
-  </div>
-  <div class="pdf-statuses">
-    <div id="pdfStatusK" class="pdf-status loading">⏳ Order読込中</div>
-    <div id="pdfStatusC" class="pdf-status loading">⏳ Request読込中</div>
-  </div>
-</div>
-
-<div class="main-wrap">
-  <div class="form-col">
-
-    <!-- 注文日・配送日 -->
-    <div class="card">
-      <div class="card-header"><div class="section-icon">📅</div><h3>注文日・配送指定日</h3></div>
-      <div class="card-body">
-        <div class="date-row-2col">
-          <div class="form-group">
-            <label>注文日 <span class="req">★</span></label>
-            <input type="date" id="ORD_Date" onchange="onDateChange('ORD')">
-            <div class="date-preview ord-dlv-preview" id="ORD_Preview">—</div>
-          </div>
-          <div class="form-group">
-            <label>配送指定日（任意）</label>
-            <input type="date" id="DLV_Date" onchange="onDateChange('DLV')">
-            <div class="date-preview ord-dlv-preview" id="DLV_Preview">—</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 注文者情報 -->
-    <div class="card">
-      <div class="card-header">
-        <div class="section-icon">👤</div><h3>FAX送信者様（注文者情報）</h3>
-      </div>
-      <div class="card-body">
-        <!-- 上段：ID・名称・Maコード -->
-        <div class="form-row profile-row">
-          <div class="form-group">
-            <label>ログインID（7桁） <span class="req">★</span> <span class="fn">ID_No</span></label>
-            <input type="text" id="ID_No_base" class="mono" placeholder="12345-1" maxlength="7"
-              oninput="this.value=toHankaku(this.value); updateIdPreview(); autoSaveProfile();">
-            <div class="date-preview" id="ID_No_preview">PDF記入値：—</div>
-          </div>
-          <div class="form-group">
-            <label>ご登録名称 <span class="req">★</span> <span class="fn">ID_Name</span></label>
-            <input type="text" id="ID_Name" placeholder="マンション名 / 事務室"
-              oninput="updateSummary(); autoSaveProfile();">
-          </div>
-          <div class="form-group">
-            <label>Maコード <span class="req">★</span> <span class="fn">ID_Code</span></label>
-            <input type="text" id="ID_Code" class="mono" placeholder="12345678" maxlength="10" inputmode="numeric"
-              oninput="this.value=toHankaku(this.value).replace(/\D/g,''); autoSaveProfile();">
-          </div>
-        </div>
-        <!-- ③ 下段：管理員名・電話番号（PC:横並び、スマホ:縦） -->
-        <div class="form-row profile-row">
-          <div class="form-group">
-            <label>管理員名 <span class="req">★</span> <span class="fn">ID_Staff</span></label>
-            <input type="text" id="ID_Staff" placeholder="氏名" oninput="autoSaveProfile();">
-          </div>
-          <div class="form-group">
-            <label>電話番号 <span class="req">★</span> <span class="fn">ID_Tel</span></label>
-            <input type="tel" id="ID_Tel" class="mono" placeholder="03-0000-0000" inputmode="tel"
-              oninput="this.value=toHankaku(this.value); autoSaveProfile();">
-          </div>
-          <div class="form-group" style="visibility:hidden;"></div><!-- spacing -->
-        </div>
-        <!-- 勤務曜日こっそり -->
-        <div class="work-time-wrap">
-          <div class="work-time-toggle" onclick="toggleWorkTime()">
-            <span id="workTimeArrow">▶</span>&nbsp;勤務曜日・時間（任意）
-          </div>
-          <div class="work-time-content" id="workTimeContent">
-            <input type="text" id="WORK_Time" placeholder="例：月水金 9:00〜17:00"
-              style="margin-top:4px;" oninput="autoSaveProfile();">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 担当者情報 -->
-    <div class="card">
-      <div class="card-header">
-        <div class="section-icon">🏢</div><h3>担当者情報（長谷エコミュニティ）</h3>
-      </div>
-      <div class="card-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label>担当支店・部署 <span class="fn">BRC_Name</span></label>
-            <input type="text" id="BRC_Name" placeholder="例：北関東支店" oninput="autoSaveStaff();">
-          </div>
-          <div class="form-group">
-            <label>フロント担当 <span class="fn">BRC_Front</span></label>
-            <input type="text" id="BRC_Front" placeholder="担当者名" oninput="autoSaveStaff();">
-          </div>
-          <div class="form-group">
-            <label>電話番号 <span class="fn">BRC_Tel</span></label>
-            <input type="tel" id="BRC_Tel" class="mono" placeholder="00-0000-0000" inputmode="tel"
-              oninput="this.value=toHankaku(this.value); autoSaveStaff();">
-          </div>
-          <div class="form-group">
-            <label>FAX番号 <span class="fn">BRC_Fax</span></label>
-            <input type="tel" id="BRC_Fax" class="mono" placeholder="00-0000-0000" inputmode="tel"
-              oninput="this.value=toHankaku(this.value); autoSaveStaff();">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 注文商品 -->
-    <div class="card">
-      <div class="card-header">
-        <div class="section-icon">🛒</div><h3>ご注文記入欄</h3>
-        <div class="header-spacer"></div>
-        <button class="btn btn-secondary btn-sm" onclick="openHistory(null)">📋 履歴</button>
-        <button class="btn btn-secondary btn-sm" onclick="clearAllItems()">🗑 全クリア</button>
-        <button class="btn btn-primary btn-sm" id="downloadBtnTop" onclick="downloadPDF()" style="margin-left:4px;">⬇ PDF</button>
-      </div>
-      <div class="card-body">
-        <div class="target-indicator" id="targetIndicator">
-          📍 <span id="targetRowLabel">行を選択中</span>
-          <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="clearTargetRow()">解除</button>
-        </div>
-
-        <!-- PC テーブル -->
-        <div class="order-table-wrap">
-          <table class="order-table">
-            <thead>
-              <tr>
-                <th>No.</th><th>3桁コード</th><th>-</th><th>4桁コード</th>
-                <th>数量</th><th>★ 商品名</th><th>価格(任意)</th><th>履歴</th><th></th>
-              </tr>
-            </thead>
-            <tbody id="orderBody"></tbody>
-          </table>
-        </div>
-
-        <!-- ④ スマホ カード -->
-        <div class="order-cards" id="orderCards"></div>
-
-        <div class="page-count-box">
-          <div>
-            <div style="font-size:12px;color:var(--text2);">送信枚数（PDF出力）</div>
-            <div style="font-size:11px;color:var(--text3);">明細数に応じて自動計算</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:10px;color:var(--text3);">総枚数</div>
-            <div class="count-val" id="totalPages">1</div>
-            <div style="font-size:10px;color:var(--text3);">枚</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /form-col -->
-
-  <!-- Sidebar（スマホでは注文欄の後） -->
-  <div class="sidebar">
-    <div class="card">
-      <div class="card-header"><div class="section-icon">📊</div><h3>入力サマリー</h3></div>
-      <div class="card-body">
-        <div class="info-summary" id="infoSummary">
-          <div class="info-line"><span class="info-key">経費区分</span><span class="info-val" id="sum-type">管理組合</span></div>
-          <div class="info-line"><span class="info-key">注文日</span><span class="info-val" id="sum-date">-</span></div>
-          <div class="info-line"><span class="info-key">マンション</span><span class="info-val" id="sum-name">-</span></div>
-          <div class="info-line"><span class="info-key">注文明細数</span><span class="info-val" id="sum-items">0 件</span></div>
-          <div class="info-line"><span class="info-key">合計金額（税別）</span><span class="info-val" id="sum-total">¥ -</span></div>
-          <div class="info-line"><span class="info-key">PDF出力枚数</span><span class="info-val" id="sum-pages">1 枚</span></div>
-        </div>
-        <button class="btn btn-primary btn-full" id="downloadBtn" onclick="downloadPDF()">
-          ⬇ PDF作成・ダウンロード
-        </button>
-        <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:5px;" id="pdfFileName">
-          OrderSheet_v2.pdf に書き込み
-        </div>
-        <div style="margin-top:10px;padding:8px 10px;background:#fef9c3;border:1px solid #fde68a;border-radius:var(--radius-sm);font-size:11px;color:#92400e;line-height:1.6;">
-          💡 1回のご注文金額の合計が<br>
-          <b>800円未満（税別）</b>の場合、<br>
-          税込送料 <b>330円</b> をご負担いただきます。
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="section-icon">🕐</div><h3>よく注文する商品（Top 5）</h3>
-        <div class="header-spacer"></div>
-        <button class="btn btn-secondary btn-sm" onclick="openHistory(null)">全て見る</button>
-      </div>
-      <div class="card-body" style="padding:7px;">
-        <div id="recentList"><div class="history-empty" style="padding:16px;"><div class="icon">📭</div><div>まだありません</div></div></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="section-icon">💡</div><h3>操作ガイド</h3></div>
-      <div class="card-body">
-        <div style="font-size:12px;color:var(--text2);line-height:2.0;">
-          <div>📋 <b>履歴ボタン</b>：各行の📋から商品選択</div>
-          <div>🔢 <b>番号入力</b>：3桁+4桁揃うと商品名を自動表示</div>
-          <div>✏️ <b>商品名修正</b>：修正すると履歴も更新されます</div>
-          <div>1️⃣ <b>数量</b>：番号入力時に「1」を自動セット</div>
-          <div>💾 <b>自動保存</b>：送信者・担当者は入力即保存</div>
-          <div>⬇ <b>データ保存</b>：全データをJSONで書き出し</div>
-          <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);">🏢 <b>管理組合</b>：通常業務での利用分は組合負担です</div>
-        </div>
-      </div>
+<div id="toast" class="toast"></div>
+<!-- 過去データ入力モーダル -->
+<div class="modal-overlay" id="past-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="past-modal-title">過去データ入力</div>
+    <div class="modal-sub">今月のメーター値から逆算して過去１年分を自動計算します</div>
+    <div class="modal-notice" id="past-modal-notice" style="display:none;"></div>
+    <div id="past-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="closePastModal()">キャンセル</button>
+      <button class="btn-modal-save" id="past-modal-save" onclick="savePastData()">💾 保存</button>
     </div>
   </div>
 </div>
 
-<!-- History Modal -->
-<div class="history-modal-overlay" id="historyOverlay" onclick="if(event.target===this)closeHistory()">
-  <div class="history-modal">
-    <div class="history-modal-header">
-      <div style="font-size:22px;">📦</div>
-      <h2>注文履歴から選ぶ</h2>
-      <div style="font-size:12px;color:var(--text3);" id="historyTargetLabel"></div>
-      <div class="header-spacer"></div>
-      <button class="btn btn-secondary btn-sm" onclick="closeHistory()">✕ 閉じる</button>
+<div class="container">
+
+<!-- ① 月選択 -->
+<div class="month-card">
+  <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+    <label style="font-size:.85rem;font-weight:700;color:var(--text2);">対象年月</label>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="btn-month-nav" onclick="changeMonthBy(-1)">◀</button>
+      <select id="sel-yearmonth" style="font-size:1rem;font-weight:700;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--surface2);color:var(--text);cursor:pointer;outline:none;width:auto;height:40px;box-sizing:border-box;-webkit-appearance:auto;appearance:auto;"></select>
+      <button class="btn-month-nav" onclick="changeMonthBy(1)">▶</button>
     </div>
-    <div class="history-search">
-      <input type="text" id="historySearchInput" placeholder="🔍 商品番号・商品名で絞り込み..." oninput="renderHistory()">
+  </div>
+  <div class="month-info" id="month-info"></div>
+</div>
+
+<!-- ② 申請受付状況 -->
+<div class="section-card">
+  <div class="section-header sh-rec">
+    <div class="section-icon">📋</div>
+    <div class="section-title">申請受付状況</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr>
+        <th></th><th>受付日</th><th>部屋番号</th><th>申請名</th><th>区画番号</th><th>開始・解約日</th><th>備考</th>
+      </tr></thead>
+      <tbody id="rec-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ③ 組合員の異動 -->
+<div class="section-card">
+  <div class="section-header sh-res">
+    <div class="section-icon">🏠</div>
+    <div class="section-title">組合員の異動</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>部屋番号</th><th>種別</th></tr></thead>
+      <tbody id="res-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ④ 主な来訪者 -->
+<div class="section-card">
+  <div class="section-header sh-vis">
+    <div class="section-icon">👤</div>
+    <div class="section-title">主な来訪者</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>時間</th><th>来訪者</th><th>来訪目的・内容</th></tr></thead>
+      <tbody id="vis-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑤ 点検清掃等 -->
+<div class="section-card">
+  <div class="section-header sh-ins">
+    <div class="section-icon">🔧</div>
+    <div class="section-title">点検清掃等</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>業務内容</th><th>会社名</th></tr></thead>
+      <tbody id="ins-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑥ 補修作業状況 -->
+<div class="section-card">
+  <div class="section-header sh-rep">
+    <div class="section-icon">🔨</div>
+    <div class="section-title">補修作業状況</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>業務内容</th><th>会社名</th><th>備考</th></tr></thead>
+      <tbody id="rep-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑦ 事故報告 -->
+<div class="section-card">
+  <div class="section-header sh-acc">
+    <div class="section-icon">🚨</div>
+    <div class="section-title">事故報告</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>時間</th><th>場所</th><th>発生内容</th><th>対処内容</th></tr></thead>
+      <tbody id="acc-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑧ 組合行事 -->
+<div class="section-card">
+  <div class="section-header sh-eve">
+    <div class="section-icon">📅</div>
+    <div class="section-title">組合行事</div>
+  </div>
+  <div class="section-body">
+    <table class="form-table">
+      <thead><tr><th></th><th>日付</th><th>行事</th><th>備考</th></tr></thead>
+      <tbody id="eve-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑨ 鍵確認 -->
+<div class="section-card">
+  <div class="section-header sh-key">
+    <div class="section-icon">🔑</div>
+    <div class="section-title">鍵確認</div>
+  </div>
+  <div class="section-body" style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;">確認日</span>
+      <input class="fi date-input" type="date" id="KEY_Check" onchange="checkRequiredFields()">
     </div>
-    <div class="history-list" id="historyList">
-      <div class="history-empty"><div class="icon">📭</div><div>履歴がありません</div></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="key-row">
+        <span class="key-label">鍵の状態</span>
+        <div class="circle-wrap">
+          <button class="circle-btn" id="KEY_Yes_btn" onclick="toggleCircle('KEY','Yes')">異常あり ○</button>
+          <button class="circle-btn" id="KEY_No_btn"  onclick="toggleCircle('KEY','No')">異常なし ○</button>
+        </div>
+        <input class="fi circle-note key-note" type="text" id="KEY_Note" placeholder="備考">
+      </div>
+      <div class="key-row">
+        <span class="key-label">鍵の変更</span>
+        <div class="circle-wrap">
+          <button class="circle-btn" id="CHANGE_Yes_btn" onclick="toggleCircle('CHANGE','Yes')">変更あり ○</button>
+          <button class="circle-btn" id="CHANGE_No_btn"  onclick="toggleCircle('CHANGE','No')">変更なし ○</button>
+        </div>
+        <input class="fi circle-note key-note" type="text" id="CHANGE_Note" placeholder="備考">
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ⑩ 電気メーター -->
+<div class="section-card">
+  <div class="section-header sh-elec">
+    <div class="section-icon">⚡</div>
+    <div class="section-title">電気メーター　読み取り値</div>
+    <button class="btn-past" onclick="openPastModal('Elec')">📅 過去</button>
+  </div>
+  <div class="meter-grid">
+    <div class="meter-date-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="meter-date-label">当月検針日</span>
+        <span class="meter-date-range" id="Elec_DateRange">─</span>
+      </div>
+      <input class="meter-date-input date-input" type="date" id="Elec_DateT"
+        onfocus="autoFillToday(this)" onchange="updateMeterDateRange('Elec')">
+    </div>
+    <div class="col-headers">
+      <div class="col-header"></div>
+      <div class="col-header today">今月値</div>
+      <div class="col-header">先月値</div>
+      <div class="col-header">前年値</div>
+    </div>
+    <div id="elec-rows"></div>
+  </div>
+</div>
+
+<!-- ⑪ 水道メーター -->
+<div class="section-card">
+  <div class="section-header sh-water">
+    <div class="section-icon">💧</div>
+    <div class="section-title">水道メーター　読み取り値</div>
+    <button class="btn-past" onclick="openPastModal('Water')">📅 過去</button>
+  </div>
+  <div class="meter-grid">
+    <div class="meter-date-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="meter-date-label">当月検針日</span>
+        <span class="meter-date-range" id="Water_DateRange">─</span>
+      </div>
+      <input class="meter-date-input date-input" type="date" id="Water_DateT"
+        onfocus="autoFillToday(this)" onchange="updateMeterDateRange('Water')">
+    </div>
+    <div class="col-headers">
+      <div class="col-header"></div>
+      <div class="col-header today">今月値</div>
+      <div class="col-header">先月値</div>
+      <div class="col-header">前年値</div>
+    </div>
+    <div id="water-rows"></div>
+  </div>
+</div>
+
+<!-- ⑫ その他報告 -->
+<div class="section-card">
+  <div class="section-header sh-comment">
+    <div class="section-icon">📝</div>
+    <div class="section-title">その他報告　（1行27文字・5行まで）</div>
+  </div>
+  <div class="section-body">
+    <div class="comment-lines" id="comment-lines"></div>
+    <div style="font-size:.72rem;color:var(--text2);margin-top:6px;">
+      ℹ️ 27文字で自動的に次の行へ移ります。行頭でBackspaceを押すと前の行に戻ります
     </div>
   </div>
 </div>
+
+<!-- ⑬ 規定値 -->
+<div class="section-card">
+  <div class="section-header sh-fixed">
+    <div class="section-icon">🏢</div>
+    <div class="section-title">規定値　（前月から自動引継ぎ・変更箇所のみ修正）</div>
+  </div>
+  <div class="section-body">
+    <div class="fixed-grid">
+      <div class="fixed-item full">
+        <span class="fixed-label">マンション名</span>
+        <input class="fi" type="text" id="Ma_Name" placeholder="マンション名" oninput="checkRequiredFields()">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">マンションコード</span>
+        <input class="fi" type="number" min="0" id="MaCD" oninput="toHankaku(this)" placeholder="コード">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">総戸数</span>
+        <input class="fi" type="number" min="0" id="TOTAL" oninput="toHankaku(this)" placeholder="戸">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">駐車場　利用台数</span>
+        <input class="fi" type="number" min="0" id="Car_NOW" oninput="toHankaku(this);checkCapacity('Car_NOW','Car_ALL')" placeholder="台"
+          oninput="checkCapacity('Car_NOW','Car_ALL')" onchange="checkCapacity('Car_NOW','Car_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">駐車場　区画総数</span>
+        <input class="fi" type="number" min="0" id="Car_ALL" oninput="toHankaku(this);checkCapacity('Car_NOW','Car_ALL')" placeholder="台"
+          oninput="checkCapacity('Car_NOW','Car_ALL')" onchange="checkCapacity('Car_NOW','Car_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">バイク　利用台数</span>
+        <input class="fi" type="number" min="0" id="Bike_NOW" oninput="toHankaku(this);checkCapacity('Bike_NOW','Bike_ALL')" placeholder="台"
+          oninput="checkCapacity('Bike_NOW','Bike_ALL')" onchange="checkCapacity('Bike_NOW','Bike_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">バイク　区画総数</span>
+        <input class="fi" type="number" min="0" id="Bike_ALL" oninput="toHankaku(this);checkCapacity('Bike_NOW','Bike_ALL')" placeholder="台"
+          oninput="checkCapacity('Bike_NOW','Bike_ALL')" onchange="checkCapacity('Bike_NOW','Bike_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">自転車　利用台数</span>
+        <input class="fi" type="number" min="0" id="Cycle_NOW" oninput="toHankaku(this);checkCapacity('Cycle_NOW','Cycle_ALL')" placeholder="台"
+          oninput="checkCapacity('Cycle_NOW','Cycle_ALL')" onchange="checkCapacity('Cycle_NOW','Cycle_ALL')">
+      </div>
+      <div class="fixed-item">
+        <span class="fixed-label">自転車　区画総数</span>
+        <input class="fi" type="number" min="0" id="Cycle_ALL" oninput="toHankaku(this);checkCapacity('Cycle_NOW','Cycle_ALL')" placeholder="台"
+          oninput="checkCapacity('Cycle_NOW','Cycle_ALL')" onchange="checkCapacity('Cycle_NOW','Cycle_ALL')">
+      </div>
+      <div class="fixed-item full">
+        <span class="fixed-label">フロントメールアドレス（送信先）</span>
+        <input class="fi" type="email" id="Front_Add" placeholder="mail@example.com">
+      </div>
+      <div class="fixed-item full">
+        <span class="fixed-label">CC　相手に見える（任意）</span>
+        <input class="fi" type="email" id="send-cc" placeholder="自分のアドレスなど">
+      </div>
+      <div class="fixed-item full">
+        <span class="fixed-label">BCC　相手に見えない（任意）</span>
+        <input class="fi" type="email" id="send-bcc" placeholder="自分のアドレスなど">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- アクションエリア -->
+<div class="action-area">
+  <!-- 印鑑エリア -->
+  <div style="border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;background:var(--surface2);">
+    <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;">🔴 印鑑（PDFの右欄に押印されます）</div>
+    <div style="font-size:.72rem;color:var(--text2);margin-bottom:8px;">PNG・JPEG対応。規定値に登録すると毎月自動で押印されます</div>
+    <div style="display:flex;justify-content:center;align-items:center;">
+      <!-- 未選択時：ボタン -->
+      <button class="btn-seal" id="seal-btn" onclick="selectSeal()" style="padding:12px 24px;">🔴 印鑑画像を選択</button>
+      <!-- 選択済時：画像のみ（クリックで変更） -->
+      <div class="seal-preview" id="seal-preview" style="display:none;cursor:pointer;width:80px;height:80px;" onclick="selectSeal()" title="クリックで変更">印鑑<br>未選択</div>
+      <input type="file" id="seal-file" accept="image/png,image/jpeg" style="display:none" onchange="onSealSelected(event)">
+    </div>
+    <div id="seal-clear-wrap" style="display:none;text-align:center;margin-top:6px;">
+      <button class="btn-clear-seal" onclick="clearSeal()">✕ クリア</button>
+    </div>
+  </div>
+  <div class="action-row">
+    <button class="btn btn-save"    onclick="saveData()">💾 このデータを保存</button>
+    <button class="btn btn-primary" onclick="downloadPDF()">📄 PDFダウンロード</button>
+  </div>
+
+  <!-- 送信エリア -->
+  <div class="send-area">
+    <div class="send-row" style="font-size:.78rem;color:var(--text2);">
+      📨 送信先・CC・BCCは規定値欄で設定してください
+    </div>
+    <div class="send-row" style="justify-content:flex-end;">
+      <button class="btn-send" id="btn-send" onclick="sendPDF()">
+        <span>📨</span> PDFを送信
+      </button>
+    </div>
+  </div>
+  <div class="action-row">
+    <button class="btn btn-outline" onclick="exportJSON()">⬇️ データを書き出し</button>
+    <label class="btn btn-outline" style="cursor:pointer;">
+      ⬆️ データを読み込み
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+    </label>
+  </div>
+  <div class="notes-area">
+    <div class="note">ℹ️ 電気・水道の入力欄はメーター読み取り値。PDFには使用量（今月値－先月値）が書き込まれます</div>
+    <div class="note">ℹ️ 規定値・メーター先月値・前年値は保存済みデータから自動引継ぎされます</div>
+    <div class="note">⚠️ データはこのブラウザのlocalStorageに保存されます。定期的に「データを書き出し」でバックアップしてください</div>
+  </div>
+  <div style="text-align:center;padding:20px 0 8px;opacity:.5;font-size:.7rem;letter-spacing:.12em;color:var(--text2);">
+    ─── Powered by <span style="font-weight:700;letter-spacing:.05em;">Claude</span> <span style="opacity:.6;"></span> &nbsp;with&nbsp; <span style="font-weight:700;letter-spacing:.05em;">AI Director</span> ───
+  </div>
+  <div style="display:none;"><!-- Programmed by Claude (Anthropic) - 2026 --><!-- Directed by A.I. --></div>
+</div>
+
+<!-- データ一覧 -->
+<div class="data-card">
+  <div class="data-card-title">📋 保存済みデータ一覧</div>
+  <div class="data-list" id="data-list"></div>
+</div>
+
+</div><!-- /container -->
 
 <script>
-'use strict';
+// ============================================================
+// ★ 元号テーブル
+// 新しい元号になったらここに1行追加するだけでOKです
+// start  = 元号が始まる西暦年
+// offset = 西暦 - offset = 元号の年数
+// ============================================================
+const GENGO_LIST = [
+  { name:'令和', start:2019, offset:2018 },
+  // { name:'○○', start:2050, offset:2049 }, // 次の元号はここに追加
+];
+function adToGengo(y){ for(let i=GENGO_LIST.length-1;i>=0;i--){ if(y>=GENGO_LIST[i].start) return{name:GENGO_LIST[i].name,year:y-GENGO_LIST[i].offset}; } return{name:'',year:y}; }
 
-// ─── STATE ───
-let currentType = 'kanri';
-let targetRow   = null;
-let totalRows   = 0;
-let pdfBytesKanri  = null;
-let pdfBytesKaisha = null;
-const PDF_FILE_KANRI  = 'OrderSheet_v2.pdf';
-const PDF_FILE_KAISHA = 'RequestSheet_v3.pdf';
-const SK = {history:'stn_history_v1',profile:'stn_profile_v1',staff:'stn_staff_v1',items:'stn_items_v1'};
+// ============================================================
+// 定数
+// ============================================================
+const METER_COUNT    = 4;
+const STORAGE_PREFIX = 'monthly_report_';
+const YEAR_START_AD  = 2021;
+const YEAR_END_AD    = 2045;
 
-// ─── INIT ───
-document.addEventListener('DOMContentLoaded', () => {
-  setToday();
-  buildOrderRows();
-  loadProfile();
-  loadStaff();
-  loadItems();
-  renderRecentList();
-  updateSummary();
-  loadPDFs();
-  document.getElementById('ID_Name').addEventListener('input', updateSummary);
-});
+// 規定値フィールド（前月から自動引継ぎ対象）
+const FIXED_FIELDS = ['Ma_Name','MaCD','TOTAL','Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL','Front_Add','send-cc','send-bcc'];
 
-function setToday() {
-  const n = new Date();
-  const val = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
-  document.getElementById('ORD_Date').value = val;
-  onDateChange('ORD');
+// 鍵確認・ラジオ状態
+const circleState = { KEY:'', CHANGE:'' };
+
+// 印鑑画像データ（base64）
+let sealImageData = null;
+let sealImageType = 'image/png';
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function storageKey(y,m){ return `${STORAGE_PREFIX}${y}_${String(m).padStart(2,'0')}`; }
+function prevMonthAD(y,m){ return m===1?{year:y-1,month:12}:{year:y,month:m-1}; }
+function lastYearAD(y,m){ return {year:y-1,month:m}; }
+function valOrEmpty(v){ const n=Number(v); return(v===''||v===null||isNaN(n)||n===0)?'':n.toFixed(1); }
+function calcUsage(t,p){ const tv=parseFloat(t),pv=parseFloat(p); if(isNaN(tv)||isNaN(pv)||t===''||p==='') return ''; return (tv-pv).toFixed(1); }
+
+// ============================================================
+// 印鑑画像の選択・クリア・プレビュー
+// ============================================================
+function selectSeal(){
+  document.getElementById('seal-file').click();
 }
 
-function onDateChange(prefix) {
-  const val  = document.getElementById(prefix+'_Date').value;
-  const prev = document.getElementById(prefix+'_Preview');
-  if (!val) { prev.textContent='—'; return; }
-  const [y,m,d] = val.split('-');
-  prev.textContent = `${y}年 ${parseInt(m)}月 ${parseInt(d)}日`;
-  updateSummary();
+function onSealSelected(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  sealImageType = file.type;
+  const reader = new FileReader();
+  reader.onload = e => {
+    sealImageData = e.target.result; // data:image/png;base64,....
+    // プレビュー更新
+    const preview = document.getElementById('seal-preview');
+    preview.innerHTML = `<img src="${sealImageData}" alt="印鑑">`;
+    preview.classList.remove('empty');
+    // ボタン表示更新
+    document.getElementById('seal-btn').style.display = 'none';
+    document.getElementById('seal-preview').style.display = 'flex';
+    document.getElementById('seal-clear-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
 }
 
-function parseDateField(prefix) {
-  const val = document.getElementById(prefix+'_Date').value;
-  if (!val) return {y:'',m:'',d:''};
-  const [y,m,d] = val.split('-');
-  return {y, m:parseInt(m).toString(), d:parseInt(d).toString()};
+function clearSeal(){
+  sealImageData = null;
+  const preview = document.getElementById('seal-preview');
+  preview.innerHTML = '印鑑<br>未選択';
+  preview.classList.add('empty');
+  preview.style.display = 'none';
+  document.getElementById('seal-btn').style.display = '';
+  document.getElementById('seal-clear-wrap').style.display = 'none';
+  document.getElementById('seal-btn').classList.remove('selected');
+  document.getElementById('seal-btn').textContent = '🔴 印鑑画像を選択';
 }
 
-// ─── PDF LOAD ───
-async function loadPDFs() {
-  await Promise.all([loadOnePDF(PDF_FILE_KANRI,'K'), loadOnePDF(PDF_FILE_KAISHA,'C')]);
-}
-async function loadOnePDF(filename, key) {
-  const el = document.getElementById('pdfStatus'+key);
-  try {
-    const res = await fetch(filename);
-    if (!res.ok) throw new Error('HTTP '+res.status);
-    const buf = await res.arrayBuffer();
-    if (key==='K') pdfBytesKanri  = new Uint8Array(buf);
-    else           pdfBytesKaisha = new Uint8Array(buf);
-    el.className='pdf-status ok'; el.textContent='✅ '+(key==='K'?'Order':'Request');
-  } catch(e) {
-    el.className='pdf-status ng'; el.textContent='❌ '+(key==='K'?'Order':'Request');
-  }
+// 全角数字→半角変換
+function toHankaku(el){
+  el.value = el.value.replace(/[０-９]/g, s=>String.fromCharCode(s.charCodeAt(0)-0xFEE0));
 }
 
-// ─── ② TYPE TOGGLE ───
-function setType(type) {
-  currentType = type;
-  const isK = type === 'kanri';
-  // ② ヘッダー背景：管理組合=青、会社経費=赤
-  document.getElementById('appHeader').style.background = isK ? 'var(--accent-k)' : 'var(--danger)';
-  document.getElementById('typeToggleBar').style.borderBottomColor = isK ? 'var(--accent-k)' : 'var(--danger)';
-  document.getElementById('btnKanri').className  = 'toggle-btn'+(isK?' active-k':'');
-  document.getElementById('btnKaisha').className = 'toggle-btn'+(!isK?' active-c':'');
-  document.getElementById('pdfFileName').textContent = (isK?PDF_FILE_KANRI:PDF_FILE_KAISHA)+' に書き込み';
-  const dlBtn = document.getElementById('downloadBtn');
-  dlBtn.className = 'btn btn-primary btn-full'+(isK?'':' kaisha');
-  document.getElementById('sum-type').textContent = isK?'管理組合':'会社経費';
-  // サマリーの背景も変える
-  const sumEl = document.getElementById('infoSummary');
-  sumEl.className = 'info-summary'+(isK?'':' kaisha-summary');
-  updateIdPreview();
-  updateSummary();
-}
+// YYYY-MM-DD 形式で今日を返す
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+// 日付文字列の前日を返す
+function prevDay(dateStr){ if(!dateStr) return ''; const d=new Date(dateStr); d.setDate(d.getDate()-1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+// YYYY-MM-DD → M/D 表示
+function fmtDate(s){ if(!s) return '─'; const p=s.split('-'); return `${parseInt(p[1])}/${parseInt(p[2])}`; }
 
-// ─── ③ ログインID（7桁入力対応） ───
-function getLoginIdForPdf() {
-  const raw = document.getElementById('ID_No_base').value.trim();
-  if (!raw) return '';
-  // ハイフンで分割して判定
-  const parts = raw.split('-');
-  const base  = parts[0];             // 数字部分
-  const suffix = parts[1] || '';      // -1 or -2 or なし
-  if (currentType === 'kanri') {
-    // 管理組合：-1 であるべき。-2 なら強制修正
-    if (suffix === '2') return base + '-1';
-    return base + '-1';
-  } else {
-    // 会社経費：-2 であるべき。-1 なら強制修正
-    if (suffix === '1') return base + '-2';
-    return base + '-2';
-  }
-}
+// ============================================================
+// 状態
+// ============================================================
+let currentADYear=0, currentMonth=0;
 
-function updateIdPreview() {
-  const val = getLoginIdForPdf();
-  const raw = document.getElementById('ID_No_base').value.trim();
-  const parts = raw.split('-');
-  const suffix = parts[1] || '';
-  let warning = '';
-  if (raw && suffix && currentType==='kanri' && suffix==='2') warning = ' ⚠ -1に修正';
-  if (raw && suffix && currentType==='kaisha'&& suffix==='1') warning = ' ⚠ -2に修正';
-  document.getElementById('ID_No_preview').textContent = 'PDF記入値：'+(val||'—')+warning;
-}
-
-// ─── ① 自動保存（入力即時） ───
-// ─── 必須項目未入力ハイライト ───
-const PROFILE_REQUIRED = ['ID_No_base','ID_Name','ID_Code','ID_Staff','ID_Tel'];
-const STAFF_REQUIRED   = ['BRC_Name','BRC_Front','BRC_Tel','BRC_Fax'];
-
-function checkRequiredFields() {
-  [...PROFILE_REQUIRED, ...STAFF_REQUIRED].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const empty = !el.value.trim();
-    el.classList.toggle('field-required-empty', empty);
-  });
-}
-
-let autoSaveTimer = null;
-function autoSaveProfile() {
-  clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => {
-    const data = {};
-    ['ID_No_base','ID_Name','ID_Code','ID_Staff','ID_Tel','WORK_Time'].forEach(id => {
-      const el = document.getElementById(id); if(el) data[id] = el.value;
-    });
-    localStorage.setItem(SK.profile, JSON.stringify(data));
-    checkRequiredFields();
-  }, 600);
-}
-let autoSaveStaffTimer = null;
-function autoSaveStaff() {
-  clearTimeout(autoSaveStaffTimer);
-  autoSaveStaffTimer = setTimeout(() => {
-    const data = {};
-    ['BRC_Name','BRC_Front','BRC_Tel','BRC_Fax'].forEach(id => {
-      const el = document.getElementById(id); if(el) data[id] = el.value;
-    });
-    localStorage.setItem(SK.staff, JSON.stringify(data));
-    checkRequiredFields();
-  }, 600);
-}
-
-function loadProfile() {
-  try {
-    const data = JSON.parse(localStorage.getItem(SK.profile));
-    if (!data) return;
-    ['ID_No_base','ID_Name','ID_Code','ID_Staff','ID_Tel','WORK_Time'].forEach(id => {
-      const el = document.getElementById(id); if(el && data[id]!==undefined) el.value = data[id];
-    });
-    updateIdPreview(); updateSummary();
-    setTimeout(checkRequiredFields, 100);
-  } catch(e) {}
-}
-function loadStaff() {
-  try {
-    const data = JSON.parse(localStorage.getItem(SK.staff));
-    if (!data) return;
-    ['BRC_Name','BRC_Front','BRC_Tel','BRC_Fax'].forEach(id => {
-      const el = document.getElementById(id); if(el && data[id]!==undefined) el.value = data[id];
-    });
-  } catch(e) {}
-}
-
-// ─── 勤務曜日トグル ───
-function toggleWorkTime() {
-  const c = document.getElementById('workTimeContent');
-  const a = document.getElementById('workTimeArrow');
-  a.textContent = c.classList.toggle('open') ? '▼' : '▶';
-}
-
-// ─── ORDER ROWS ───
-function buildOrderRows() {
-  totalRows = 0;
-  document.getElementById('orderBody').innerHTML  = '';
-  document.getElementById('orderCards').innerHTML = '';
-  addRows(5);
-}
-
-function addRows(n) {
-  const tbody = document.getElementById('orderBody');
-  const cards = document.getElementById('orderCards');
-  for (let k = 0; k < n; k++) {
-    totalRows++;
-    const i = totalRows;
-
-    // PC テーブル行
-    const tr = document.createElement('tr');
-    tr.id = 'row_'+i;
-    tr.innerHTML = `
-      <td class="row-num">${i}</td>
-      <td><input type="text" id="ODNO_1_${i}" class="code-part code-p1" maxlength="3" inputmode="numeric" placeholder="000"
-        oninput="onCodeInput(${i})" onblur="zeroPad(this,3)"></td>
-      <td style="text-align:center;color:var(--text3);font-weight:700;padding:0 2px;">-</td>
-      <td><input type="text" id="ODNO_2_${i}" class="code-part code-p2" maxlength="4" inputmode="numeric" placeholder="0000"
-        oninput="onCodeInput(${i})" onblur="zeroPad(this,4)"></td>
-      <td><input type="number" id="ODSU_1_${i}" class="qty-input" min="1" inputmode="numeric" placeholder="0"
-        oninput="this.value=toHankaku(this.value);onItemChange()"></td>
-      <td><input type="text" id="ODNA_1_${i}" class="name-input" placeholder="商品名"
-        oninput="onNameInput(${i})"></td>
-      <td><input type="number" id="ODPR_1_${i}" class="price-input" min="0" inputmode="numeric" placeholder=""
-        oninput="this.value=toHankaku(this.value);onItemChange()"></td>
-      <td><button class="pick-btn" onclick="openHistory(${i})" title="履歴">📋</button></td>
-      <td><button class="clear-row-btn" onclick="clearRow(${i})">✕</button></td>`;
-    tbody.appendChild(tr);
-
-    // ④ スマホ カード
-    const card = document.createElement('div');
-    card.className = 'order-card';
-    card.id = 'card_'+i;
-    card.innerHTML = `
-      <div class="order-card-header">
-        <div class="order-card-num">${i}</div>
-        <div class="order-card-code">
-          <input type="text" id="ODNO_1s_${i}" class="code-part code-sp1" maxlength="3" inputmode="numeric" placeholder="000"
-            oninput="syncCode(${i},'1',this.value);onCodeInput(${i})" onblur="zeroPad(this,3)">
-          <span style="color:var(--text3);font-weight:700;font-size:16px;">-</span>
-          <input type="text" id="ODNO_2s_${i}" class="code-part code-sp2" maxlength="4" inputmode="numeric" placeholder="0000"
-            oninput="syncCode(${i},'2',this.value);onCodeInput(${i})" onblur="zeroPad(this,4)">
-        </div>
-      </div>
-      <div class="order-card-body">
-        <div style="width:100%;margin-bottom:4px;">
-          <label style="font-size:12px;display:block;">商品名</label>
-          <input type="text" id="ODNA_1s_${i}" placeholder="商品名"
-            style="width:100%;box-sizing:border-box;font-size:18px;font-weight:600;"
-            oninput="syncName(${i},this.value);onNameInput(${i})">
-        </div>
-        <div style="display:flex;align-items:flex-end;gap:8px;width:100%;">
-          <div style="width:86px;flex-shrink:0;">
-            <label style="font-size:12px;display:block;">数量</label>
-            <input type="number" id="ODSU_1s_${i}" min="1" placeholder="0" inputmode="numeric"
-              style="width:86px;text-align:right;font-size:14px;height:46px;box-sizing:border-box;"
-              oninput="this.value=toHankaku(this.value);syncQty(${i},this.value);onItemChange()">
-          </div>
-          <div style="flex:1;min-width:0;overflow:hidden;">
-            <label style="font-size:12px;display:block;">価格（任意）</label>
-            <input type="number" id="ODPR_1s_${i}" min="0" placeholder="" inputmode="numeric"
-              style="width:100%;box-sizing:border-box;text-align:right;font-family:'DM Mono',monospace;font-size:14px;height:46px;"
-              oninput="this.value=toHankaku(this.value);syncPrice(${i},this.value);onItemChange()">
-          </div>
-          <button class="pick-btn" onclick="openHistory(${i})"
-            style="flex-shrink:0;width:48px;height:48px;font-size:22px;">📋</button>
-          <div style="flex-shrink:0;width:20px;"></div>
-          <button class="clear-row-btn" onclick="clearRow(${i})"
-            style="flex-shrink:0;width:44px;height:44px;font-size:22px;border-radius:8px;">✕</button>
-        </div>
-      </div>`;
-    cards.appendChild(card);
-  }
-}
-
-// スマホ↔PCの値を同期
-function syncCode(i,part,v){ const el=document.getElementById('ODNO_'+part+'_'+i); if(el)el.value=v; }
-function syncName(i,v){ const el=document.getElementById('ODNA_1_'+i); if(el)el.value=v; }
-function syncQty(i,v){ const el=document.getElementById('ODSU_1_'+i); if(el)el.value=v; }
-function syncPrice(i,v){ const el=document.getElementById('ODPR_1_'+i); if(el)el.value=v; }
-// PC→スマホ同期
-function syncToCard(i){
-  const get=(id)=>document.getElementById(id)?.value||'';
-  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
-  s('ODNO_1s_'+i, get('ODNO_1_'+i));
-  s('ODNO_2s_'+i, get('ODNO_2_'+i));
-  s('ODNA_1s_'+i, get('ODNA_1_'+i));
-  s('ODSU_1s_'+i, get('ODSU_1_'+i));
-  s('ODPR_1s_'+i, get('ODPR_1_'+i));
-}
-
-function checkExpandRows() {
-  if (totalRows >= 20) return;
-  let hasInput = false;
-  for (let i = totalRows-4; i <= totalRows; i++) {
-    if ((document.getElementById('ODNO_1_'+i)?.value||'').trim() ||
-        (document.getElementById('ODNO_2_'+i)?.value||'').trim()) { hasInput=true; break; }
-  }
-  if (hasInput) { addRows(5); toast(`📋 ${totalRows}行目まで追加しました`,''); }
-}
-
-function pad2(n){return n<10?'0'+n:''+n;}
-function zeroPad(el,len){const v=el.value.replace(/\D/g,'');el.value=v?v.padStart(len,'0'):'';}
-function toHankaku(str){
-  return (str||'').replace(/[！-～]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/　/g,' ');
-}
-
-function onCodeInput(i) {
-  ['ODNO_1_','ODNO_2_'].forEach(f=>{
-    const el=document.getElementById(f+i); if(el) el.value=toHankaku(el.value).replace(/\D/g,'');
-  });
-  // スマホ側に同期
-  ['1','2'].forEach(p=>{
-    const src=document.getElementById('ODNO_'+p+'_'+i);
-    const dst=document.getElementById('ODNO_'+p+'s_'+i);
-    if(src&&dst) dst.value=src.value;
-  });
-  const c1=(document.getElementById('ODNO_1_'+i)?.value||'').trim();
-  const c2=(document.getElementById('ODNO_2_'+i)?.value||'').trim();
-  const qtyEl=document.getElementById('ODSU_1_'+i);
-  if((c1||c2)&&qtyEl&&!qtyEl.value){ qtyEl.value='1'; syncQty(i,'1'); }
-  if(c1.length===3&&c2.length===4){
-    const code=c1+'-'+c2;
-    const found=getHistory().find(p=>p.code===code);
-    const nameEl=document.getElementById('ODNA_1_'+i);
-    const priceEl=document.getElementById('ODPR_1_'+i);
-    if(found&&nameEl&&!nameEl.classList.contains('user-edited')){
-      nameEl.value=found.name||''; if(priceEl) priceEl.value=found.price||'';
-      nameEl.classList.add('name-autofilled'); nameEl.dataset.autoCode=code;
-      syncToCard(i);
+// ============================================================
+// 初期化
+// ============================================================
+function init(){
+  // スマホ判定：タッチデバイスかつ画面幅800px以下
+  function checkMobile(){
+    const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const isNarrow = window.innerWidth <= 800;
+    if(isTouchDevice && isNarrow){
+      document.body.classList.add('is-mobile');
+    } else {
+      document.body.classList.remove('is-mobile');
     }
   }
-  checkExpandRows();
-  onItemChange();
-}
+  checkMobile();
+  console.log("is-mobile:", document.body.classList.contains("is-mobile"), "width:", window.innerWidth, "touch:", ('ontouchstart' in window));
+  window.addEventListener('resize', checkMobile);
 
-function onNameInput(i){
-  const nameEl=document.getElementById('ODNA_1_'+i);
-  const priceEl=document.getElementById('ODPR_1_'+i);
-  if(!nameEl) return;
-  // スマホ→PC同期
-  const sns=document.getElementById('ODNA_1s_'+i); if(sns) sns.value=nameEl.value;
-  nameEl.classList.remove('name-autofilled'); nameEl.classList.add('user-edited');
-  const autoCode=nameEl.dataset.autoCode;
-  if(autoCode){
-    const hist=getHistory(); const idx=hist.findIndex(p=>p.code===autoCode);
-    if(idx>=0){hist[idx].name=nameEl.value;if(priceEl)hist[idx].price=priceEl.value;saveHistory(hist);}
+  const selYearMonth=document.getElementById('sel-yearmonth');
+  for(let ad=YEAR_START_AD;ad<=YEAR_END_AD;ad++){
+    for(let m=1;m<=12;m++){
+      const g=adToGengo(ad),opt=document.createElement('option');
+      opt.value=`${ad}_${m}`;
+      opt.textContent=`${ad}年${m}月（${g.name}${g.year}年）`;
+      selYearMonth.appendChild(opt);
+    }
   }
-  onItemChange();
-}
+  const today=new Date();
+  // 7日までは前月をデフォルト表示
+  let defaultYear = today.getFullYear();
+  let defaultMonth = today.getMonth()+1;
+  if(today.getDate() <= 7){
+    defaultMonth--;
+    if(defaultMonth < 1){ defaultMonth = 12; defaultYear--; }
+  }
+  selYearMonth.value=`${defaultYear}_${defaultMonth}`;
+  // 後方互換性のためsel-year/sel-monthも非表示で残す
+  const selYear=document.createElement('select'); selYear.id='sel-year'; selYear.style.display='none'; document.body.appendChild(selYear);
+  const selMonth=document.createElement('select'); selMonth.id='sel-month'; selMonth.style.display='none'; document.body.appendChild(selMonth);
+  selYear.value=today.getFullYear(); selMonth.value=today.getMonth()+1;
 
-function clearRow(i){
-  ['ODNO_1_','ODNO_2_','ODSU_1_','ODNA_1_','ODPR_1_'].forEach(f=>{
-    const el=document.getElementById(f+i); if(!el)return;
-    el.value=''; el.classList.remove('name-autofilled','user-edited'); delete el.dataset.autoCode;
+  // useDynamic=true で行数が多いセクションは動的行追加
+  buildTableRows('rec-rows',  ['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'], 7, ['日付','部屋番号','申請名','区画番号','開始・解約日','備考'], true);
+  buildTableRows('res-rows',  ['Res_D','Res_R','Res_T'], 2, ['日付','部屋番号','種別'], true);
+  buildTableRows('vis-rows',  ['Vis_D','Vis_T','Vis_V','Vis_N'], 5, ['日付','時間','来訪者','目的・内容'], true);
+  buildTableRows('ins-rows',  ['Ins_D','Ins_C','Ins_E'], 8, ['日付','業務内容','会社名'], true);
+  buildTableRows('rep-rows',  ['Rep_D','Rep_C','Rep_E','Rep_N'], 3, ['日付','業務内容','会社名','備考'], true);
+  buildTableRows('acc-rows',  ['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'], 2, ['日付','時間','場所','発生内容','対処内容'], true);
+  buildTableRows('eve-rows',  ['Eve_D','Eve_C','Eve_N'], 4, ['日付','行事','備考'], true);
+  buildCommentLines();
+  buildMeterRows('elec-rows',  'Elec',  'elec');
+  buildMeterRows('water-rows', 'Water', 'water');
+
+  // date inputの空チェック（未入力時にグレー日付を隠す）
+  function updateDateInputEmpty(el){
+    if(!el.value){ el.classList.add('empty'); }
+    else { el.classList.remove('empty'); }
+  }
+  function initDateInputEmpty(){
+    document.querySelectorAll('input[type="date"].date-input, input[type="date"].meter-date-input, input[type="time"].date-input').forEach(el=>{
+      updateDateInputEmpty(el);
+      if(!el._emptyListenerAdded){
+        el.addEventListener('change', ()=>updateDateInputEmpty(el));
+        el.addEventListener('blur', ()=>updateDateInputEmpty(el));
+        el._emptyListenerAdded = true;
+      }
+    });
+  }
+  setTimeout(initDateInputEmpty, 200);
+
+  selYearMonth.addEventListener('change', ()=>{
+    const [y,m]=selYearMonth.value.split('_');
+    selYear.value=y; selMonth.value=m;
+    onMonthChange();
   });
-  syncToCard(i);
-  onItemChange();
-}
-function clearAllItems(){for(let i=1;i<=totalRows;i++)clearRow(i);}
-function onItemChange(){saveItems();updateSummary();}
+  onMonthChange();
+  refreshDataList();
 
-// ─── SUMMARY ───
-function updateSummary(){
-  const ord=parseDateField('ORD');
-  document.getElementById('sum-date').textContent=ord.y?`${ord.y}年${ord.m}月${ord.d}日`:'-';
-  document.getElementById('sum-name').textContent=document.getElementById('ID_Name').value||'-';
-  let count=0,total=0,hasPrice=false;
-  for(let i=1;i<=totalRows;i++){
-    const c1=(document.getElementById('ODNO_1_'+i)?.value||'').trim();
-    const c2=(document.getElementById('ODNO_2_'+i)?.value||'').trim();
-    const qty=parseInt(document.getElementById('ODSU_1_'+i)?.value)||0;
-    const pr=parseFloat(document.getElementById('ODPR_1_'+i)?.value)||0;
-    if(c1||c2){count++;total+=pr*(qty||1);if(pr>0)hasPrice=true;}
-  }
-  const pages=Math.max(1,Math.ceil(count/10));
-  document.getElementById('sum-items').textContent=count+' 件';
-  document.getElementById('sum-total').textContent=hasPrice?'¥ '+total.toLocaleString():'未入力';
-  document.getElementById('sum-pages').textContent=pages+' 枚';
-  document.getElementById('totalPages').textContent=pages;
+
 }
 
-// ─── ITEMS save/load ───
-function saveItems(){
-  const items=[];
-  for(let i=1;i<=totalRows;i++){
-    items.push({
-      code1:document.getElementById('ODNO_1_'+i)?.value||'',
-      code2:document.getElementById('ODNO_2_'+i)?.value||'',
-      qty:document.getElementById('ODSU_1_'+i)?.value||'',
-      name:document.getElementById('ODNA_1_'+i)?.value||'',
-      price:document.getElementById('ODPR_1_'+i)?.value||'',
+// ============================================================
+// テーブル行生成（汎用）
+// prefixes = フィールド名のプレフィックス配列（番号を後付け）
+// ============================================================
+// ============================================================
+// テーブル行生成（汎用・動的行追加付き）
+// useDynamic=true のとき、1行目だけ表示して入力で次行が出る
+// ============================================================
+// ============================================================
+// テーブル行生成（汎用・動的行追加付き）
+// スマホ：日付を入力するとサブ項目がふわっと表示
+// ============================================================
+function buildTableRows(containerId, prefixes, count, labels, useDynamic=false){
+  const tbody=document.getElementById(containerId);
+  tbody.innerHTML='';
+
+  for(let i=1;i<=count;i++){
+    const tr=document.createElement('tr');
+    tr.id=`${containerId}_tr${i}`;
+    if(useDynamic && i>1) tr.className='tr-hidden';
+
+    let html=`<td class="row-num">${i}行目</td>`;
+
+    // 全項目を順番に出力
+    // スマホのふわっとはCSSクラスで制御
+    const dateIdx = prefixes.findIndex(p=>p.endsWith('_D'));
+    // 2番目の項目（部屋番号・業務内容など）のインデックス
+    const secondVisibleIdx = dateIdx >= 0 ? (dateIdx === 0 ? 1 : 0) : -1;
+    prefixes.forEach((pf,pi)=>{
+      const id=`${pf}${i}`;
+      // 日付・2番目以外はtd-sub-itemクラスを付ける
+      const isHidden = dateIdx >= 0 && pi !== dateIdx && pi !== secondVisibleIdx;
+      if(pi === dateIdx){
+        // 日付欄：onfocusにopenSubRowを追加
+        const pf2=prefixes[dateIdx], id2=`${pf2}${i}`;
+        const dynAttr = useDynamic
+          ? `onfocus="onDateFocus(this,'${containerId}',${i},${count})" onchange="onDatePickDay(this,'${containerId}',${i},${count})"`
+          : `onfocus="onDateFocus(this,'${containerId}',${i},0)" onchange="onDatePickDay(this,null,0,0)"`;
+        html += `<td class="td-date" data-label="${labels[dateIdx]||''}"><input class="fi date-input" type="date" id="${id2}" ${dynAttr}></td>`;
+      } else {
+        html += makeTdHtml(pf, pi, id, labels, containerId, i, count, useDynamic, prefixes, isHidden);
+      }
     });
+
+    tr.insertAdjacentHTML('beforeend', html);
+    tbody.appendChild(tr);
   }
-  localStorage.setItem(SK.items,JSON.stringify(items));
+
 }
-function loadItems(){
-  try{
-    const items=JSON.parse(localStorage.getItem(SK.items));
-    if(!items)return;
-    while(totalRows<items.length&&totalRows<20) addRows(5);
-    items.forEach((item,idx)=>{
-      const i=idx+1;
-      const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
-      s('ODNO_1_'+i,item.code1||''); s('ODNO_2_'+i,item.code2||'');
-      s('ODSU_1_'+i,item.qty||'');   s('ODNA_1_'+i,item.name||'');
-      s('ODPR_1_'+i,item.price||'');
-      syncToCard(i);
+
+// td要素のHTML生成（buildTableRowsのヘルパー）
+function makeTdHtml(pf, pi, id, labels, containerId, rowIdx, maxCount, useDynamic, prefixes, isSub=false){
+  const isDatePicker = pf.endsWith('_S');
+  const isDayInput   = pf.endsWith('_D');
+  const isVisTime    = pf==='Vis_T';
+  const isAccTime    = pf==='Acc_T';
+  const isRoomNum    = pf==='Rec_R'||pf==='Res_R'||pf==='Rec_P';
+  const isLastCol    = pi===prefixes.length-1;
+  const lbl = labels[pi]||'';
+
+  if(isDatePicker){
+    return `<td class="${isSub?'td-sub-item ':''}td-date" data-label="${lbl}"><input class="fi date-input" type="date" id="${id}"></td>`;
+  }
+  if(isVisTime||isAccTime){
+    return `<td class="${isSub?'td-sub-item ':''}td-time" data-label="${lbl}"><input class="fi date-input" type="time" id="${id}" placeholder="${lbl}"></td>`;
+  }
+  if(isDayInput){
+    const dynAttr = useDynamic
+      ? `onchange="onDatePickDay(this,'${containerId}',${rowIdx},${maxCount})"`
+      : `onchange="onDatePickDay(this,null,0,0)"`;
+    return `<td class="td-date" data-label="${lbl}"><input class="fi date-input" type="date" id="${id}" ${dynAttr}></td>`;
+  }
+  if(isRoomNum){
+    // inputmode="numeric" → 数字・記号キーボードをデフォルトに
+    const dynAttr = isLastCol ? `oninput="onLastColInput(this,'${containerId}',${rowIdx},${maxCount})"` : '';
+    return `<td class="${isSub?'td-sub-item ':''}td-room" data-label="${lbl}"><input class="fi" type="text" inputmode="numeric" id="${id}" placeholder="${lbl}" ${dynAttr}></td>`;
+  }
+  // 通常テキスト
+  const dynAttr = (useDynamic && isLastCol) ? `oninput="onLastColInput(this,'${containerId}',${rowIdx},${maxCount})"` : '';
+  return `<td class="${isSub?'td-sub-item ':''}" data-label="${lbl}"><input class="fi" type="text" id="${id}" placeholder="${lbl}" ${dynAttr}></td>`;
+}
+
+// 行内ふわっと：日付入力時にサブ項目を表示
+// ② 日付にフォーカスしたら全項目表示＋次行表示
+function onDateFocus(dateEl, containerId, rowIdx, maxCount){
+  // サブ項目をふわっと表示
+  const tr = document.getElementById(`${containerId}_tr${rowIdx}`);
+  if(tr) tr.querySelectorAll('.td-sub-item').forEach(el=>el.classList.add('open'));
+  // 次行も表示
+  if(maxCount > 0 && rowIdx < maxCount){
+    const nextTr = document.getElementById(`${containerId}_tr${rowIdx+1}`);
+    if(nextTr) nextTr.classList.remove('tr-hidden');
+  }
+
+}
+
+function openSubRow(dateEl, containerId, rowIdx){
+  // その行のtd-sub-itemを全部取得してopenクラスを切り替え
+  const tr = document.getElementById(`${containerId}_tr${rowIdx}`);
+  if(!tr) return;
+  const subItems = tr.querySelectorAll('.td-sub-item');
+  if(dateEl && dateEl.value){
+    subItems.forEach(el=>el.classList.add('open'));
+  } else {
+    subItems.forEach(el=>el.classList.remove('open'));
+  }
+}
+
+// カレンダー選択→日だけ取り出して2桁表示
+function onDatePickDay(el, containerId, rowIdx, maxCount){
+  if(el.value){
+    const day = parseInt(el.value.split('-')[2]);
+    el.dataset.dayVal = String(day).padStart(2,'0');
+    el.dataset.fullDate = el.value;
+
+  } else {
+    el.dataset.dayVal = '';
+    el.dataset.fullDate = '';
+
+  }
+  // 動的行追加
+  if(el.value && containerId && rowIdx < maxCount){
+    const nextTr = document.getElementById(`${containerId}_tr${rowIdx+1}`);
+    if(nextTr) nextTr.classList.remove('tr-hidden');
+  }
+}
+
+// 必須項目チェック（未入力時にセクションヘッダーを赤くする）
+function checkRequiredFields(){
+  // section-cardにrequired-cardクラスを付けてsection-bodyを赤枠に
+  const toggle = (headerSel, isAlert) => {
+    const header = document.querySelector(headerSel);
+    if(!header) return;
+    header.classList.toggle('required-alert', isAlert);
+    const card = header.closest('.section-card');
+    if(card){
+      const body = card.querySelector('.section-body, .meter-grid');
+      if(body) body.classList.toggle('required-alert-body', isAlert);
+    }
+  };
+
+  // ① 鍵確認日
+  const keyCheck = document.getElementById('KEY_Check');
+  toggle('.sh-key', !!(keyCheck && !keyCheck.value));
+
+  // ② 電気メーター
+  const hasElec = [1,2,3,4].some(i=>{
+    const el = document.getElementById(`Elec_T${i}`);
+    return el && el.value.trim()!=='' && el.value!=='0';
+  });
+  toggle('.sh-elec', !hasElec);
+
+  // ② 水道メーター
+  const hasWater = [1,2,3,4].some(i=>{
+    const el = document.getElementById(`Water_T${i}`);
+    return el && el.value.trim()!=='' && el.value!=='0';
+  });
+  toggle('.sh-water', !hasWater);
+
+  // ③ マンション名
+  const maName = document.getElementById('Ma_Name');
+  toggle('.sh-fixed', !!(maName && !maName.value.trim()));
+}
+
+// 駐車場・バイク・自転車：利用台数 > 総数 で赤表示
+function checkCapacity(nowId, allId){
+  const nowEl=document.getElementById(nowId);
+  const allEl=document.getElementById(allId);
+  if(!nowEl||!allEl) return;
+  const now=parseFloat(nowEl.value), all=parseFloat(allEl.value);
+  const over = !isNaN(now)&&!isNaN(all)&&now>all;
+  nowEl.classList.toggle('invalid', over);
+  // 総数欄も赤にする（利用が超えていることを両方で示す）
+  allEl.classList.toggle('invalid', over);
+}
+
+// データ読み込み後に台数チェックを再実行
+function recheckCapacities(){
+  checkCapacity('Car_NOW','Car_ALL');
+  checkCapacity('Bike_NOW','Bike_ALL');
+  checkCapacity('Cycle_NOW','Cycle_ALL');
+}
+
+// 日付（日のみ）バリデーション：1〜末日、2桁まで
+function validateDay(el){
+  const v=parseInt(el.value);
+  const lastDay=new Date(currentADYear,currentMonth,0).getDate(); // 末日
+  el.classList.toggle('invalid', el.value!=='' && (isNaN(v)||v<1||v>lastDay));
+}
+
+// 動的行追加：日付欄入力時
+function onDayInput(el, containerId, rowIdx, maxCount){
+  validateDay(el);
+  // 値が入ったら次行を表示
+  if(el.value.trim()!=='' && rowIdx<maxCount){
+    const nextTr=document.getElementById(`${containerId}_tr${rowIdx+1}`);
+    if(nextTr) nextTr.classList.remove('tr-hidden');
+  }
+}
+
+// 動的行追加：最終列入力時（日付以外のテーブル）
+function onLastColInput(el, containerId, rowIdx, maxCount){
+  if(el.value.trim()!=='' && rowIdx<maxCount){
+    const nextTr=document.getElementById(`${containerId}_tr${rowIdx+1}`);
+    if(nextTr) nextTr.classList.remove('tr-hidden');
+  }
+}
+
+// 動的行の表示状態を復元（データ読み込み時）
+function restoreDynamicRows(containerId, prefixes, count){
+  for(let i=1;i<=count;i++){
+    const tr=document.getElementById(`${containerId}_tr${i}`);
+    if(!tr) continue;
+    const hasVal=prefixes.some(pf=>{
+      const el=document.getElementById(`${pf}${i}`);
+      return el && el.value.trim()!=='';
     });
-    updateSummary();
-  }catch(e){}
-}
-
-// ─── HISTORY ───
-function getHistory(){try{return JSON.parse(localStorage.getItem(SK.history))||[];}catch(e){return[];}}
-function saveHistory(h){localStorage.setItem(SK.history,JSON.stringify(h));}
-function computeScore(p){
-  const now=Date.now(); const n=(p.orders||[]).length; if(!n)return 0;
-  return p.orders.reduce((a,o)=>a+Math.floor((now-new Date(o.date).getTime())/86400000),0)*n;
-}
-function getSortedHistory(q){
-  let h=getHistory();
-  if(q){const ql=q.toLowerCase();h=h.filter(p=>p.code.toLowerCase().includes(ql)||p.name.toLowerCase().includes(ql));}
-  return h.sort((a,b)=>computeScore(b)-computeScore(a));
-}
-function addToHistory(item){
-  const hist=getHistory(); const today=new Date().toISOString().slice(0,10);
-  const code=item.code1.padStart(3,'0')+'-'+item.code2.padStart(4,'0');
-  const idx=hist.findIndex(p=>p.code===code);
-  if(idx>=0){hist[idx].name=item.name;hist[idx].price=item.price;(hist[idx].orders=hist[idx].orders||[]).push({date:today,qty:item.qty});}
-  else{hist.push({code,code1:item.code1,code2:item.code2,name:item.name,price:item.price,orders:[{date:today,qty:item.qty}]});}
-  saveHistory(hist);
-}
-
-// ─── HISTORY MODAL ───
-function openHistory(rowIndex){
-  targetRow=rowIndex;
-  document.getElementById('historyOverlay').classList.add('open');
-  document.getElementById('historySearchInput').value='';
-  document.getElementById('historyTargetLabel').textContent=rowIndex!==null?`→ ${rowIndex}行目`:' ';
-  if(rowIndex!==null){
-    document.querySelectorAll('.order-table tr,.order-card').forEach(r=>r.classList.remove('active-row'));
-    document.getElementById('row_'+rowIndex)?.classList.add('active-row');
-    document.getElementById('card_'+rowIndex)?.classList.add('active-row');
-    document.getElementById('targetIndicator').classList.add('show');
-    document.getElementById('targetRowLabel').textContent=`${rowIndex}行目を選択中`;
+    if(hasVal || i===1) tr.classList.remove('tr-hidden');
+    if(hasVal && i<count){
+      const nextTr=document.getElementById(`${containerId}_tr${i+1}`);
+      if(nextTr) nextTr.classList.remove('tr-hidden');
+    }
+    // ③ 日付に値があればサブ項目も表示
+    const datePrefix=prefixes.find(p=>p.endsWith('_D'));
+    if(datePrefix){
+      const dateEl=document.getElementById(`${datePrefix}${i}`);
+      if(dateEl && dateEl.value){
+        tr.querySelectorAll('.td-sub-item').forEach(el=>el.classList.add('open'));
+      }
+    }
   }
-  setTimeout(()=>document.getElementById('historySearchInput').focus(),80);
-  renderHistory();
 }
-function closeHistory(){
-  document.getElementById('historyOverlay').classList.remove('open');
-  document.querySelectorAll('.order-table tr,.order-card').forEach(r=>r.classList.remove('active-row'));
-}
-function clearTargetRow(){
-  targetRow=null;
-  document.getElementById('targetIndicator').classList.remove('show');
-  document.querySelectorAll('.order-table tr,.order-card').forEach(r=>r.classList.remove('active-row'));
-}
-function renderHistory(){
-  const q=document.getElementById('historySearchInput').value.trim();
-  const sorted=getSortedHistory(q);
-  const container=document.getElementById('historyList');
-  if(!sorted.length){container.innerHTML=`<div class="history-empty"><div class="icon">${q?'🔍':'📭'}</div><div>${q?'該当なし':'まだ注文履歴がありません'}</div></div>`;return;}
+
+// ============================================================
+// コメント行生成（5行×27文字、自動カーソル移動）
+// ============================================================
+const COMMENT_LINES = 5;
+const COMMENT_COLS  = 27;
+
+function buildCommentLines(){
+  const container=document.getElementById('comment-lines');
+  if(!container) return;
   container.innerHTML='';
-  sorted.forEach(product=>{
-    const n=(product.orders||[]).length;
-    const lastDate=n?(product.orders[n-1].date||''):'';
-    const daysAgo=lastDate?Math.floor((Date.now()-new Date(lastDate).getTime())/86400000):'?';
-    const div=document.createElement('div'); div.className='history-item';
-    div.innerHTML=`
-      <div style="display:flex;align-items:center;gap:10px;width:100%;min-width:0;">
-        <div class="history-code" style="flex-shrink:0;">${product.code}</div>
-        <div class="history-meta" style="flex:1;min-width:0;display:flex;gap:8px;flex-wrap:nowrap;overflow:hidden;">
-          <span style="white-space:nowrap;">📅 ${daysAgo}日前</span>
-          <span style="white-space:nowrap;">🔁 ${n}回</span>
-          ${product.price?`<span style="white-space:nowrap;">¥${Number(product.price).toLocaleString()}</span>`:''}
-        </div>
-        <button class="history-del-btn" onclick="deleteHistory(event,'${product.code}')" style="flex-shrink:0;">🗑</button>
+  for(let i=1;i<=COMMENT_LINES;i++){
+    const wrap=document.createElement('div'); wrap.className='comment-line-wrap';
+    const input=document.createElement('input');
+    input.type='text'; input.id=`Comment_${i}`; input.className='fi comment-line';
+    input.maxLength=COMMENT_COLS;
+    input.placeholder=`${i}行目`;
+    input.dataset.line=i;
+
+    // 27文字に達したら自動で次行へ
+    input.addEventListener('input', ()=>{
+      updateCommentCounter(i);
+      if(input.value.length>=COMMENT_COLS && i<COMMENT_LINES){
+        document.getElementById(`Comment_${i+1}`).focus();
+      }
+    });
+
+    // 行頭でBackspaceを押したら前の行末へ
+    input.addEventListener('keydown', e=>{
+      if(e.key==='Backspace' && input.value==='' && i>1){
+        e.preventDefault();
+        const prev=document.getElementById(`Comment_${i-1}`);
+        prev.focus();
+        prev.setSelectionRange(prev.value.length, prev.value.length);
+      }
+    });
+
+    const counter=document.createElement('span');
+    counter.className='comment-counter'; counter.id=`Comment_counter_${i}`;
+    counter.textContent='';
+
+    wrap.appendChild(input); wrap.appendChild(counter);
+    container.appendChild(wrap);
+  }
+}
+
+function updateCommentCounter(i){
+  const input=document.getElementById(`Comment_${i}`);
+  const counter=document.getElementById(`Comment_counter_${i}`);
+  if(!input||!counter) return;
+  const len=input.value.length;
+  counter.textContent=len>0?`${len}/${COMMENT_COLS}`:'';
+  counter.classList.toggle('warn', len>=COMMENT_COLS);
+}
+
+// ============================================================
+// メーター行生成
+// ============================================================
+const ELEC_LABELS  = ['電灯','電灯','動力','動力'];
+const WATER_LABELS = ['総括','共用','共用','共用'];
+
+function buildMeterRows(containerId, prefix, cls){
+  const container=document.getElementById(containerId);
+  container.innerHTML='';
+  const labels = prefix==='Elec' ? ELEC_LABELS : WATER_LABELS;
+  for(let i=1;i<=METER_COUNT;i++){
+    const block=document.createElement('div'); block.className='meter-block';
+    block.innerHTML=`
+      <div class="meter-row">
+        <div class="meter-label">${labels[i-1]}</div>
+        <input class="meter-input" type="text" inputmode="decimal"
+          id="${prefix}_T${i}" placeholder="読み取り値"
+          oninput="onTodayInput('${prefix}',${i})">
+        <input class="meter-input auto ${cls}-auto" type="text"
+          id="${prefix}_P${i}" placeholder="─" readonly tabindex="-1">
+        <input class="meter-input auto ${cls}-auto" type="text"
+          id="${prefix}_L${i}" placeholder="─" readonly tabindex="-1">
       </div>
-      <div class="history-name" style="width:100%;padding-top:3px;">${product.name||'（商品名未登録）'}</div>`;
-    div.addEventListener('click',(e)=>{if(e.target.closest('.history-del-btn'))return;selectHistoryItem(product);});
-    container.appendChild(div);
-  });
+      <div class="usage-row">
+        <div></div>
+        <div class="usage-cell this-month" id="${prefix}_U${i}"></div>
+        <div class="usage-cell"            id="${prefix}_UP${i}"></div>
+        <div class="usage-cell"            id="${prefix}_UL${i}"></div>
+      </div>`;
+    container.appendChild(block);
+  }
 }
-function selectHistoryItem(product){
-  let row=targetRow;
-  if(row===null){for(let i=1;i<=totalRows;i++){if(!(document.getElementById('ODNO_1_'+i)?.value||'').trim()&&!(document.getElementById('ODNO_2_'+i)?.value||'').trim()){row=i;break;}}}
-  if(row===null){toast('空き行がありません','error');return;}
-  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
-  s('ODNO_1_'+row,product.code1.padStart(3,'0')); s('ODNO_2_'+row,product.code2.padStart(4,'0'));
-  s('ODNA_1_'+row,product.name||'');               s('ODPR_1_'+row,product.price||'');
-  s('ODSU_1_'+row,'1');
-  syncToCard(row);
-  onItemChange(); closeHistory(); clearTargetRow();
-  setTimeout(()=>{const el=document.getElementById('ODSU_1_'+row)||document.getElementById('ODSU_1s_'+row);if(el){el.focus();el.select();}},50);
-  toast(`${row}行目に「${product.name||product.code}」を挿入`,'success');
+
+// ============================================================
+// 検針日：空欄なら今日を自動入力
+// ============================================================
+function autoFillToday(el){
+  if(!el.value) el.value=todayStr();
+  updateMeterDateRange(el.id.startsWith('Elec')?'Elec':'Water');
 }
-function deleteHistory(e,code){
-  e.stopPropagation();
-  if(!confirm(`「${code}」の履歴を削除しますか？`))return;
-  saveHistory(getHistory().filter(p=>p.code!==code));
-  renderHistory();renderRecentList();toast('履歴を削除しました');
+
+// 検針期間表示を更新（前月の検針日〜今月の検針日の前日）
+function updateMeterDateRange(prefix){
+  const todayInput=document.getElementById(`${prefix}_DateT`);
+  const rangeEl=document.getElementById(`${prefix}_DateRange`);
+  if(!todayInput||!rangeEl) return;
+  const pm=prevMonthAD(currentADYear,currentMonth);
+  const prevData=loadFromStorage(pm.year,pm.month);
+  const ds = prevData ? (prevData[`${prefix}_DateT`]||'') : '';
+  const de = prevDay(todayInput.value);
+  rangeEl.textContent = (ds||de) ? `${fmtDate(ds)} 〜 ${fmtDate(de)}` : '─';
 }
-function renderRecentList(){
-  const sorted=getSortedHistory('').slice(0,5);
-  const c=document.getElementById('recentList');
-  if(!sorted.length){c.innerHTML=`<div class="history-empty" style="padding:14px;"><div class="icon">📭</div><div>まだありません</div></div>`;return;}
-  c.innerHTML='';
-  sorted.forEach(p=>{
-    const n=(p.orders||[]).length;
-    const div=document.createElement('div');
-    div.style.cssText='padding:6px 4px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);cursor:pointer;';
-    div.innerHTML=`<span style="font-family:DM Mono,monospace;font-size:12px;font-weight:700;">${p.code}</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name||''}</span><span style="font-size:10px;color:var(--text3);">${n}回</span>`;
-    div.addEventListener('click',()=>selectHistoryItem(p));
-    c.appendChild(div);
+
+// ============================================================
+// ○トグル（鍵確認）
+// ============================================================
+function toggleCircle(group, key){
+  circleState[group] = circleState[group]===key ? '' : key;
+  ['Yes','No'].forEach(k=>{
+    const btn=document.getElementById(`${group}_${k}_btn`);
+    btn.classList.toggle('selected', circleState[group]===k);
+    // 異常あり・変更ありは赤色
+    if(k==='Yes') btn.classList.toggle('danger', circleState[group]==='Yes');
   });
 }
 
-// ─── EXPORT / IMPORT ───
-function exportData(){
-  const data={profile:JSON.parse(localStorage.getItem(SK.profile)||'{}'),staff:JSON.parse(localStorage.getItem(SK.staff)||'{}'),history:getHistory(),items:JSON.parse(localStorage.getItem(SK.items)||'[]'),exported:new Date().toISOString()};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);const a=document.createElement('a');
-  a.href=url;a.download='事務用品データ_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);
-  toast('バックアップを保存しました','success');
+// ============================================================
+// 月変更（自動保存付き）
+// ④ 自動保存（クレーマー対策）
+// ============================================================
+function onMonthChange(){
+  const ymVal=document.getElementById('sel-yearmonth').value||`${new Date().getFullYear()}_${new Date().getMonth()+1}`;
+  const [ymY,ymM]=ymVal.split('_');
+  const newADYear=parseInt(ymY);
+  const newMonth =parseInt(ymM);
+
+  const isSameMonth=(currentADYear===newADYear && currentMonth===newMonth);
+  let didAutoSave=false;
+  if(currentADYear>0 && !isSameMonth && hasAnyInput()){
+    saveDataSilent();
+    const g=adToGengo(currentADYear);
+    showBanner(`${currentADYear}年${currentMonth}月を自動保存しました`,'saved',2500);
+    didAutoSave=true;
+  }
+
+  currentADYear=newADYear; currentMonth=newMonth;
+
+  // カレンダー初期月はonfocusで制御
+
+  const g=adToGengo(currentADYear);
+  const pm=prevMonthAD(currentADYear,currentMonth);
+  const ly=lastYearAD(currentADYear,currentMonth);
+  document.getElementById('month-info').innerHTML=
+    `<span class="main-month">${currentADYear}年${currentMonth}月（${g.name}${g.year}年）</span><br>`+
+    `先月: ${pm.year}年${pm.month}月（${adToGengo(pm.year).name}${adToGengo(pm.year).year}年）<br>`+
+    `前年: ${ly.year}年${ly.month}月（${adToGengo(ly.year).name}${adToGengo(ly.year).year}年）`;
+  // ヘッダーにも年月を表示（スクロールしても見える）
+  document.getElementById('header-month').textContent=`${currentADYear}年${currentMonth}月`;
+
+  loadCurrentMonth();
+  if(!didAutoSave) hideBanner();
 }
-function importData(event){
-  const file=event.target.files[0];if(!file)return;
+
+// ============================================================
+// データ読み込み
+// ============================================================
+function loadCurrentMonth(){
+  // 動的行を全部リセット（tr-hiddenに戻す）してからデータ読み込み
+  ['rec-rows','res-rows','vis-rows','ins-rows','rep-rows','acc-rows','eve-rows'].forEach(tid=>{
+    const tbody=document.getElementById(tid);
+    if(!tbody) return;
+    tbody.querySelectorAll('tr').forEach((tr,idx)=>{
+      if(idx>0) tr.classList.add('tr-hidden');
+      // サブ項目も閉じる
+      tr.querySelectorAll('.td-sub-item').forEach(el=>el.classList.remove('open'));
+    });
+  });
+  const current  = loadFromStorage(currentADYear, currentMonth);
+  const pm       = prevMonthAD(currentADYear, currentMonth);
+  const ly       = lastYearAD(currentADYear, currentMonth);
+  const ppm      = prevMonthAD(pm.year, pm.month);
+  const lym      = prevMonthAD(ly.year, ly.month);
+  const prevData = loadFromStorage(pm.year,  pm.month);
+  const lyData   = loadFromStorage(ly.year,  ly.month);
+  const ppData   = loadFromStorage(ppm.year, ppm.month);
+  const lymData  = loadFromStorage(lym.year, lym.month);
+
+  // テーブル系フィールドを復元
+  const tableFields = [];
+  ['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].forEach(p=>{ for(let i=1;i<=7;i++) tableFields.push(`${p}${i}`); });
+  ['Res_D','Res_R','Res_T'].forEach(p=>{ for(let i=1;i<=2;i++) tableFields.push(`${p}${i}`); });
+  ['Vis_D','Vis_T','Vis_V','Vis_N'].forEach(p=>{ for(let i=1;i<=5;i++) tableFields.push(`${p}${i}`); });
+  ['Ins_D','Ins_C','Ins_E'].forEach(p=>{ for(let i=1;i<=8;i++) tableFields.push(`${p}${i}`); });
+  ['Rep_D','Rep_C','Rep_E','Rep_N'].forEach(p=>{ for(let i=1;i<=3;i++) tableFields.push(`${p}${i}`); });
+  ['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'].forEach(p=>{ for(let i=1;i<=2;i++) tableFields.push(`${p}${i}`); });
+  ['Eve_D','Eve_C','Eve_N'].forEach(p=>{ for(let i=1;i<=4;i++) tableFields.push(`${p}${i}`); });
+  tableFields.push('KEY_Check','KEY_Note','CHANGE_Note');
+  const dayIds=[];
+  ['Rec_D','Res_D','Vis_D','Ins_D','Rep_D','Acc_D','Eve_D'].forEach(p=>{
+    const counts={'Rec_D':7,'Res_D':2,'Vis_D':5,'Ins_D':8,'Rep_D':3,'Acc_D':2,'Eve_D':4};
+    for(let i=1;i<=(counts[p]||0);i++) dayIds.push(`${p}${i}`);
+  });
+  tableFields.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    const raw=current?(current[id]||''):'';
+    if(dayIds.includes(id)){
+      try{
+        const obj=JSON.parse(raw);
+        el.value=obj.full||'';
+        el.dataset.fullDate=obj.full||'';
+        el.dataset.dayVal=obj.day||'';
+      }catch{ el.value=raw; el.dataset.dayVal=raw; el.dataset.fullDate=''; }
+    } else {
+      el.value=raw;
+    }
+  });
+
+  // 鍵確認ラジオ復元
+  ['KEY','CHANGE'].forEach(grp=>{
+    circleState[grp] = current?(current[`${grp}_state`]||''):'';
+    ['Yes','No'].forEach(k=>{
+      const btn=document.getElementById(`${grp}_${k}_btn`);
+      if(btn) btn.classList.toggle('selected', circleState[grp]===k);
+    });
+  });
+
+  // 規定値：今月データがあればそれを、なければ前月から引継ぎ
+  FIXED_FIELDS.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    if(current && current[id]!==undefined && current[id]!==null && String(current[id])!=='')
+      el.value=current[id];
+    else if(prevData && prevData[id]!==undefined && prevData[id]!==null && String(prevData[id])!=='')
+      el.value=prevData[id];
+    else el.value='';
+  });
+
+  // メーター今月値
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++){
+      const tEl=document.getElementById(`${prefix}_T${i}`);
+      const tVal=current?(current[`${prefix}_T${i}`]||''):'';
+      tEl.value=tVal;
+      tEl.classList.toggle('has-value', tVal!==''&&tVal!=='0');
+    }
+  });
+
+  // メーター先月値（前月の今月値から自動引継ぎ）
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++){
+      document.getElementById(`${prefix}_P${i}`).value = prevData?(prevData[`${prefix}_T${i}`]||''):'';
+      document.getElementById(`${prefix}_L${i}`).value = lyData  ?(lyData[`${prefix}_T${i}`]||''):'';
+    }
+  });
+
+  // 検針日の復元と期間表示
+  ['Elec','Water'].forEach(prefix=>{
+    const dtEl=document.getElementById(`${prefix}_DateT`);
+    if(dtEl) dtEl.value=current?(current[`${prefix}_DateT`]||''):'';
+    updateMeterDateRange(prefix);
+  });
+
+  // 使用量表示
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++){
+      updateUsage(prefix,i,
+        document.getElementById(`${prefix}_T${i}`).value,
+        document.getElementById(`${prefix}_P${i}`).value,
+        ppData ?(ppData[`${prefix}_T${i}`]||''):'',
+        document.getElementById(`${prefix}_L${i}`).value,
+        lymData?(lymData[`${prefix}_T${i}`]||''):''
+      );
+    }
+  });
+
+  // 動的行の表示状態を復元
+  restoreDynamicRows('rec-rows', ['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'], 7);
+  restoreDynamicRows('vis-rows', ['Vis_D','Vis_T','Vis_V','Vis_N'], 5);
+  restoreDynamicRows('ins-rows', ['Ins_D','Ins_C','Ins_E'], 8);
+  restoreDynamicRows('eve-rows', ['Eve_D','Eve_C','Eve_N'], 4);
+  restoreDynamicRows('res-rows', ['Res_D','Res_R','Res_T'], 2);
+  restoreDynamicRows('acc-rows', ['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'], 2);
+  restoreDynamicRows('rep-rows', ['Rep_D','Rep_C','Rep_E','Rep_N'], 3);
+  recheckCapacities();
+  checkRequiredFields();
+
+  // 印鑑復元（今月データがあればそれを、なければ前月から引継ぎ）
+  const sealSrc = current?._sealImage || prevData?._sealImage || null;
+  const sealTypeSrc = current?._sealType || prevData?._sealType || 'image/png';
+  if(sealSrc){
+    sealImageData=sealSrc; sealImageType=sealTypeSrc;
+    const preview=document.getElementById('seal-preview');
+    preview.innerHTML=`<img src="${sealSrc}" alt="印鑑">`;
+    preview.classList.remove('empty');
+    document.getElementById('seal-btn').style.display = 'none';
+    document.getElementById('seal-preview').style.display = 'flex';
+    document.getElementById('seal-clear-wrap').style.display = 'block';
+  } else {
+    sealImageData=null;
+    const preview=document.getElementById('seal-preview');
+    preview.innerHTML='印鑑<br>未選択'; preview.classList.add('empty');
+    document.getElementById('seal-btn').classList.remove('selected');
+    document.getElementById('seal-btn').textContent='印鑑画像を選択';
+  }
+
+  // コメント行復元
+  for(let i=1;i<=COMMENT_LINES;i++){
+    const el=document.getElementById(`Comment_${i}`);
+    if(el){ el.value=current?(current[`Comment_${i}`]||''):''; updateCommentCounter(i); }
+  }
+
+  refreshDataList();
+  // データ読み込み完了後にemptyクラスを更新（少し遅らせて確実にvalueがセットされた後に実行）
+  setTimeout(()=>{
+    document.querySelectorAll('input[type="date"]').forEach(el=>{
+      if(el.value){ el.classList.remove('empty'); }
+      else { el.classList.add('empty'); }
+    });
+  }, 50);
+}
+
+// ============================================================
+// 入力チェック（今月値に何か入っているか）
+// ============================================================
+function hasAnyInput(){
+  // メーター値確認
+  for(const p of ['Elec','Water']){
+    for(let i=1;i<=METER_COUNT;i++){
+      const v=document.getElementById(`${p}_T${i}`).value.trim();
+      if(v!==''&&v!=='0') return true;
+    }
+  }
+  // テーブル系：日付欄に値があるか確認
+  const dayFields=['Rec_D1','Res_D1','Vis_D1','Ins_D1','Rep_D1','Acc_D1','Eve_D1'];
+  for(const id of dayFields){
+    const el=document.getElementById(id);
+    if(el&&el.value.trim()!=='') return true;
+  }
+  // コメント確認
+  const c1=document.getElementById('Comment_1');
+  if(c1&&c1.value.trim()!=='') return true;
+  return false;
+}
+
+// ============================================================
+// 今月値入力時
+// ============================================================
+function onTodayInput(prefix,idx){
+  const tEl=document.getElementById(`${prefix}_T${idx}`);
+  tEl.classList.toggle('has-value', tEl.value!==''&&tEl.value!=='0');
+  const pVal=document.getElementById(`${prefix}_P${idx}`).value;
+  const lVal=document.getElementById(`${prefix}_L${idx}`).value;
+  const pm=prevMonthAD(currentADYear,currentMonth);
+  const ppm=prevMonthAD(pm.year,pm.month);
+  const ly=lastYearAD(currentADYear,currentMonth);
+  const lym=prevMonthAD(ly.year,ly.month);
+  updateUsage(prefix,idx,tEl.value,pVal,
+    (()=>{const d=loadFromStorage(ppm.year,ppm.month);return d?(d[`${prefix}_T${idx}`]||''):'';})(),
+    lVal,
+    (()=>{const d=loadFromStorage(lym.year,lym.month);return d?(d[`${prefix}_T${idx}`]||''):'';})()
+  );
+}
+
+// 使用量表示更新
+function updateUsage(prefix,idx,tVal,pVal,ppVal,lVal,lymVal){
+  const uToday=calcUsage(tVal,pVal), uPrev=calcUsage(pVal,ppVal), uLast=calcUsage(lVal,lymVal);
+  const uEl=document.getElementById(`${prefix}_U${idx}`);
+  const upEl=document.getElementById(`${prefix}_UP${idx}`);
+  const ulEl=document.getElementById(`${prefix}_UL${idx}`);
+  uEl.textContent  = uToday!==''?`( ${uToday})`:'';
+  upEl.textContent = uPrev !==''?`( ${uPrev})`:'';
+  ulEl.textContent = uLast !==''?`( ${uLast})`:'';
+  const isNeg = !isNaN(parseFloat(uToday))&&parseFloat(uToday)<0;
+  uEl.classList.toggle('warn', isNeg);
+  // 今月値入力欄の背景も赤に
+  const tInput=document.getElementById(`${prefix}_T${idx}`);
+  if(tInput) tInput.classList.toggle('meter-warn', isNeg);
+}
+
+// ============================================================
+// localStorage
+// ============================================================
+function loadFromStorage(y,m){
+  const raw=localStorage.getItem(storageKey(y,m)); return raw?JSON.parse(raw):null;
+}
+
+// 全フィールドを収集してオブジェクトに
+function collectData(){
+  const data={ _savedAt:new Date().toISOString() };
+
+  // テーブル系（日付欄はfullDateとdayValを両方保存）
+  const dayPrefixes=['Rec_D','Res_D','Vis_D','Ins_D','Rep_D','Acc_D','Eve_D'];
+  function getFieldVal(el, pf){
+    if(!el) return '';
+    if(dayPrefixes.includes(pf)){
+      return JSON.stringify({full:el.dataset.fullDate||el.value||'', day:el.dataset.dayVal||''});
+    }
+    return el.value;
+  }
+  ['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].forEach(p=>{ for(let i=1;i<=7;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Res_D','Res_R','Res_T'].forEach(p=>{ for(let i=1;i<=2;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Vis_D','Vis_T','Vis_V','Vis_N'].forEach(p=>{ for(let i=1;i<=5;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Ins_D','Ins_C','Ins_E'].forEach(p=>{ for(let i=1;i<=8;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Rep_D','Rep_C','Rep_E','Rep_N'].forEach(p=>{ for(let i=1;i<=3;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'].forEach(p=>{ for(let i=1;i<=2;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+  ['Eve_D','Eve_C','Eve_N'].forEach(p=>{ for(let i=1;i<=4;i++){ const el=document.getElementById(`${p}${i}`); if(el) data[`${p}${i}`]=getFieldVal(el,p); }});
+
+  // 鍵確認
+  data.KEY_Check    = document.getElementById('KEY_Check').value;
+  data.KEY_Note     = document.getElementById('KEY_Note').value;
+  data.KEY_state    = circleState['KEY'];
+  data.CHANGE_Note  = document.getElementById('CHANGE_Note').value;
+  data.CHANGE_state = circleState['CHANGE'];
+
+  // コメント（5行）
+  for(let i=1;i<=COMMENT_LINES;i++){
+    const el=document.getElementById(`Comment_${i}`);
+    data[`Comment_${i}`]=el?el.value:'';
+  }
+
+  // 規定値
+  FIXED_FIELDS.forEach(id=>{ const el=document.getElementById(id); if(el) data[id]=el.value; });
+
+  // メーター
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++) data[`${prefix}_T${i}`]=document.getElementById(`${prefix}_T${i}`).value;
+    const dtEl=document.getElementById(`${prefix}_DateT`);
+    if(dtEl) data[`${prefix}_DateT`]=dtEl.value;
+  });
+
+  // 印鑑画像（base64）を保存
+  if(sealImageData){
+    data._sealImage=sealImageData;
+    data._sealType=sealImageType;
+  }
+
+  return data;
+}
+
+function saveDataSilent(){
+  localStorage.setItem(storageKey(currentADYear,currentMonth), JSON.stringify(collectData()));
+  refreshDataList();
+}
+
+function saveData(){
+  saveDataSilent();
+  const g=adToGengo(currentADYear);
+  showBanner(`${currentADYear}年${currentMonth}月（${g.name}${g.year}年）を保存しました`,'saved');
+}
+
+// ============================================================
+// データ一覧
+// ============================================================
+function refreshDataList(){
+  const container=document.getElementById('data-list');
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.startsWith(STORAGE_PREFIX)) keys.push(k);
+  }
+  keys.sort().reverse();
+  if(keys.length===0){ container.innerHTML='<div class="data-list-empty">保存済みデータはありません</div>'; return; }
+  container.innerHTML='';
+  keys.forEach(k=>{
+    const match=k.match(/(\d{4})_(\d{2})$/); if(!match) return;
+    const ad=parseInt(match[1]),m=parseInt(match[2]),g=adToGengo(ad);
+    const isActive=ad===currentADYear&&m===currentMonth;
+    const div=document.createElement('div'); div.className=`data-list-item${isActive?' active':''}`;
+    const label=document.createElement('span'); label.className='data-list-label';
+    label.textContent=`${isActive?'▶ ':'　'}${ad}年${m}月（${g.name}${g.year}年）`;
+    label.onclick=()=>{ document.getElementById('sel-yearmonth').value=`${ad}_${m}`; document.getElementById('sel-year').value=ad; document.getElementById('sel-month').value=m; onMonthChange(); };
+    const delBtn=document.createElement('button'); delBtn.className='del-btn'; delBtn.textContent='削除';
+    delBtn.onclick=(e)=>{
+      e.stopPropagation();
+      if(!confirm(`${ad}年${m}月（${g.name}${g.year}年）のデータを削除しますか？`)) return;
+      localStorage.removeItem(k);
+      showBanner(`${ad}年${m}月を削除しました`,'saved',2500);
+      if(ad===currentADYear&&m===currentMonth) loadCurrentMonth(); else refreshDataList();
+    };
+    div.appendChild(label); div.appendChild(delBtn); container.appendChild(div);
+  });
+}
+
+// ============================================================
+// JSON エクスポート / インポート
+// ============================================================
+function exportJSON(){
+  const all={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.startsWith(STORAGE_PREFIX)) all[k]=JSON.parse(localStorage.getItem(k));
+  }
+  const t=new Date();
+  const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`月報データ_${t.getFullYear()}${String(t.getMonth()+1).padStart(2,'0')}${String(t.getDate()).padStart(2,'0')}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showBanner('データを書き出しました','saved');
+}
+
+function importJSON(event){
+  const file=event.target.files[0]; if(!file) return;
   const reader=new FileReader();
-  reader.onload=(e)=>{
+  reader.onload=e=>{
     try{
-      const data=JSON.parse(e.target.result);
-      if(data.profile)localStorage.setItem(SK.profile,JSON.stringify(data.profile));
-      if(data.staff)localStorage.setItem(SK.staff,JSON.stringify(data.staff));
-      if(data.history)saveHistory(data.history);
-      if(data.items)localStorage.setItem(SK.items,JSON.stringify(data.items));
-      loadProfile();loadStaff();loadItems();renderRecentList();updateSummary();
-      toast('データを読み込みました ✅','success');
-    }catch(err){toast('読み込み失敗','error');}
+      const all=JSON.parse(e.target.result); let count=0;
+      Object.keys(all).forEach(k=>{ if(k.startsWith(STORAGE_PREFIX)){localStorage.setItem(k,JSON.stringify(all[k]));count++;} });
+      showBanner(`${count}件のデータを読み込みました`,'saved');
+      loadCurrentMonth();
+    }catch{ showBanner('ファイルの読み込みに失敗しました','error'); }
     event.target.value='';
   };
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.58 ───
-// 印刷時も確実に表示されるよう ipaexg.ttf を埋め込んでページに直接描画する方式
-// NeedAppearances に頼らず、フォームフィールドの上に文字を直接ページ描画する
-
-// フォントキャッシュ
-let _fontBytes = null;
-async function loadFont() {
-  if (_fontBytes) return _fontBytes;
-  // ipaexg.ttf は同じフォルダに置く
-  const res = await fetch('ipaexg.ttf');
-  if (!res.ok) throw new Error('ipaexg.ttf が読み込めません: HTTP ' + res.status);
-  _fontBytes = await res.arrayBuffer();
-  return _fontBytes;
+// ============================================================
+// トースト
+// ============================================================
+function showBanner(msg,type,duration=3500){
+  const b=document.getElementById('toast');
+  b.textContent=(type==='saved'?'✅ ':'❌ ')+msg;
+  b.className=`toast show ${type}`;
+  clearTimeout(b._timer);
+  b._timer=setTimeout(()=>b.classList.remove('show'),duration);
 }
+function hideBanner(){ document.getElementById('toast').classList.remove('show'); }
 
-function collectFilledItems(){
-  const items=[];
-  for(let i=1;i<=totalRows;i++){
-    const c1=(document.getElementById('ODNO_1_'+i)?.value||'').trim();
-    const c2=(document.getElementById('ODNO_2_'+i)?.value||'').trim();
-    items.push({code1:c1,code2:c2,
-      qty:(document.getElementById('ODSU_1_'+i)?.value||'').trim(),
-      name:(document.getElementById('ODNA_1_'+i)?.value||'').trim(),
-      price:(document.getElementById('ODPR_1_'+i)?.value||'').trim()});
-  }
-  return items.filter(it=>it.code1||it.code2);
-}
-
-async function downloadMultiplePages(pageBytesList,baseFilename){
-  for(let pi=0;pi<pageBytesList.length;pi++){
-    const blob=new Blob([pageBytesList[pi]],{type:'application/pdf'});
-    const url=URL.createObjectURL(blob);const a=document.createElement('a');
-    a.href=url;a.download=baseFilename+'_'+(pi+1)+'of'+pageBytesList.length+'.pdf';
-    a.click();URL.revokeObjectURL(url);
-    if(pi<pageBytesList.length-1)await new Promise(r=>setTimeout(r,400));
-  }
-}
-
+// ============================================================
+// PDF ダウンロード
+// ・メーター入力欄は読み取り値、PDFには使用量（小数点1桁）
+// ・0・空欄はPDFフィールドを空欄に
+// ・R_Year は西暦
+// ============================================================
 async function downloadPDF(){
-  const btn    = document.getElementById('downloadBtn');
-  const btnTop = document.getElementById('downloadBtnTop');
-  [btn,btnTop].forEach(b=>{if(b){b.disabled=true;}});
-  btn.textContent='⏳ 作成中...';if(btnTop)btnTop.textContent='⏳';
-  try{await generateAndDownload();}
-  catch(err){console.error(err);toast('PDF作成エラー：'+err.message,'error');}
-  btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
-  if(btnTop){btnTop.disabled=false;btnTop.innerHTML='⬇ PDF';}
-}
+  try{
+    if(typeof PDFLib==='undefined'){showBanner('pdf-libの読み込みに失敗しています','error');return;}
+    if(typeof fontkit==='undefined'){showBanner('fontkitの読み込みに失敗しています','error');return;}
 
-// フィールドのページ上の位置・サイズ・フォントサイズを取得（低レベル）
-function getFieldInfo(pdfDoc, fieldName) {
-  const {PDFName, PDFArray} = PDFLib;
-  try {
-    const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
-    const acroForm    = pdfDoc.context.lookup(acroFormRef);
-    if (!acroForm) return null;
-
-    function findField(arr) {
-      if (!arr) return null;
-      for (let i = 0; i < arr.size(); i++) {
-        try {
-          const ref  = arr.get(i);
-          const dict = pdfDoc.context.lookup(ref);
-          if (!dict) continue;
-          const tObj = dict.get(PDFName.of('T'));
-          if (tObj && tObj.decodeText() === fieldName) return dict;
-          const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
-          if (kids) { const r = findField(kids); if (r) return r; }
-        } catch(e) {}
-      }
-      return null;
-    }
-
-    const fields = acroForm.lookupMaybe(PDFName.of('Fields'), PDFArray);
-    const fdict  = findField(fields);
-    if (!fdict) return null;
-
-    // Rect を取得
-    const rect = fdict.lookupMaybe(PDFName.of('Rect'), PDFArray);
-    if (!rect) return null;
-    const x1 = rect.get(0).asNumber();
-    const y1 = rect.get(1).asNumber();
-    const x2 = rect.get(2).asNumber();
-    const y2 = rect.get(3).asNumber();
-
-    // DA からフォントサイズを抽出（例: /Helv 9 Tf）
-    let fontSize = 9;
-    try {
-      const daObj = fdict.get(PDFName.of('DA'));
-      if (!daObj) {
-        // AcroForm レベルの DA を確認
-        const acroDA = acroForm.get(PDFName.of('DA'));
-        if (acroDA) {
-          const m = acroDA.decodeText().match(/(\d+(?:\.\d+)?)\s+Tf/);
-          if (m) fontSize = parseFloat(m[1]);
-        }
-      } else {
-        const daStr = daObj.decodeText ? daObj.decodeText() : daObj.toString();
-        const m = daStr.match(/(\d+(?:\.\d+)?)\s+Tf/);
-        if (m) fontSize = parseFloat(m[1]);
-      }
-    } catch(e) {}
-
-    return { x1, y1, x2, y2, fontSize };
-  } catch(e) { return null; }
-}
-
-async function generateAndDownload(){
-  try {
-  const {PDFDocument, PDFName, PDFBool, PDFArray, rgb} = PDFLib;
-  const ord = parseDateField('ORD');
-  const dlv = parseDateField('DLV');
-
-  if (!ord.y) { toast('注文日を入力してください','error'); return; }
-
-  const templateBytes = currentType==='kanri' ? pdfBytesKanri : pdfBytesKaisha;
-  if (!templateBytes) { toast('PDFテンプレートが読み込まれていません','error'); return; }
-
-  const filledItems = collectFilledItems();
-  if (!filledItems.length) { toast('注文明細を1件以上入力してください','error'); return; }
-
-  // フォント読み込み
-  let fontBytes;
-  try {
-    fontBytes = await loadFont();
-  } catch(e) {
-    toast('フォント読み込みエラー：' + e.message, 'error');
-    return;
+    showBanner('PDF生成中...','saved',10000);
+    const savedBytes = await generatePDFBytes();
+    const blob=new Blob([savedBytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
+    a.click(); URL.revokeObjectURL(url);
+    showBanner('PDFをダウンロードしました','saved');
+  }catch(err){
+    console.error(err);
+    showBanner(`エラー: ${err.message}`,'error');
   }
+}
 
-  const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
-  autoSaveProfile(); autoSaveStaff();
+async function downloadPDF_OLD(){
+  try{
+    showBanner('PDF生成中...','saved',10000);
 
-  const commonFields = {
-    ORD_Year:ord.y, ORD_Month:ord.m, ORD_Day:ord.d,
-    DLV_Year:dlv.y, DLV_Month:dlv.m, DLV_Day:dlv.d,
-    NUM_All:String(totalPages),
-    ID_No:   getLoginIdForPdf(),
-    ID_Name: document.getElementById('ID_Name').value.trim(),
-    ID_Code: document.getElementById('ID_Code').value.trim(),
-    ID_Staff:document.getElementById('ID_Staff').value.trim(),
-    ID_Tel:  document.getElementById('ID_Tel').value.trim(),
-    WORK_Time:document.getElementById('WORK_Time').value.trim(),
-    BRC_Name: document.getElementById('BRC_Name').value.trim(),
-    BRC_Front:document.getElementById('BRC_Front').value.trim(),
-    BRC_Tel:  document.getElementById('BRC_Tel').value.trim(),
-    BRC_Fax:  document.getElementById('BRC_Fax').value.trim(),
-  };
+    const [pdfResp, fontResp] = await Promise.all([
+      fetch('Report_M.pdf', {cache: 'no-store'}),
+      fetch('ipaexg.ttf'),
+    ]);
+    if(!pdfResp.ok)  throw new Error('Report_M.pdf が見つかりません');
+    if(!fontResp.ok) throw new Error('ipaexg.ttf が見つかりません');
+    const [pdfBytes, fontBytes] = await Promise.all([
+      pdfResp.arrayBuffer(),
+      fontResp.arrayBuffer(),
+    ]);
 
-  const pageBytesList = [];
+    const {PDFDocument, PDFName, PDFHexString, PDFString} = PDFLib;
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const form = pdfDoc.getForm(); // updateAppearances用
 
-  for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
-    const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption:true});
+    // Helvetica（数字フィールド用・内蔵フォント）
+    const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
 
-    // fontkit を登録してIPAフォントを埋め込む
+    // 数字のみフィールドリスト（Helveticaを使用）
+    const numericFields = new Set([
+      'R_Year','R_Month','TOTAL',
+      'Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL',
+      ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+        `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+      ]))
+    ]);
+
+    // 中央寄せフィールド（日付・時間・部屋番号）
+    const centerFields = new Set([
+      'R_Year','R_Month',
+      ...['Rec','Res','Vis','Ins','Rep','Acc','Eve'].flatMap(p=>{
+        const counts={'Rec':7,'Res':2,'Vis':5,'Ins':8,'Rep':3,'Acc':2,'Eve':4};
+        return [...Array(counts[p]||0)].flatMap((_,i)=>[
+          `${p}_D${i+1}`,`${p}_R${i+1}`,`${p}_T${i+1}`,`${p}_P${i+1}`
+        ]);
+      }),
+      'KEY_Check',
+      ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+        `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+      ])),
+      'Elec_DS','Elec_DE','Water_DS','Water_DE'
+    ]);
     pdfDoc.registerFontkit(fontkit);
     const ipaFont = await pdfDoc.embedFont(fontBytes);
 
-    const page  = pdfDoc.getPage(0);
-    const {height} = page.getSize();
+    // ============================================================
+    // 全フィールドをAP削除→ipaFont登録→HexStringで値書き込み
+    // form.getFields()を使わず直接PDFオブジェクトを操作
+    // ============================================================
 
-    // 全フィールドの情報を収集してから描画
-    const allFields = {...commonFields, NUM_Page: String(pageIdx+1)};
-    const pageItems = filledItems.slice(pageIdx*10, (pageIdx+1)*10);
-    for (let i = 1; i <= 10; i++) {
-      const s    = pad2(i);
-      const item = pageItems[i-1] || {};
-      allFields['ODNO_1'+s] = item.code1 ? item.code1.padStart(3,'0') : '';
-      allFields['ODNO_2'+s] = item.code2 ? item.code2.padStart(4,'0') : '';
-      allFields['ODSU_1'+s] = item.qty   || '';
-      allFields['ODNA_1'+s] = item.name  || '';
-      allFields['ODPR_1'+s] = item.price || '';
+    // AcroFormのDRにipaFontを登録
+    try {
+      const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+      if(acroFormRef){
+        const acroForm = pdfDoc.context.lookup(acroFormRef);
+        const dr = acroForm ? acroForm.lookup(PDFName.of('DR')) : null;
+        const fontDict = dr ? dr.lookup(PDFName.of('Font')) : null;
+        if(fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
+      }
+    } catch(e){}
+
+    // AP削除はfieldMap構築後に行う（後で実施）
+
+    // テキスト書き込みヘルパー
+    // AcroForm.Fieldsから再帰的にフィールドを取得してマップ化
+    const fieldMap = new Map();
+    const collectFields = (arr) => {
+      if(!arr) return;
+      for(let i=0; i<arr.size(); i++){
+        try {
+          const ref = arr.get(i);
+          const obj = pdfDoc.context.lookup(ref);
+          if(!obj) continue;
+          const t = obj.get(PDFName.of('T'));
+          if(t){
+            let name = '';
+            try { name = t.decodeText(); } catch(e1){
+              try { name = t.value; } catch(e2){ name = String(t); }
+            }
+            name = name.replace(/^[(]+|[)]+$/g,'').trim();
+
+            // DAを取得して括弧を除去
+            const daObj = obj.get(PDFName.of('DA'));
+            let daStr = '';
+            if(daObj){
+              try { daStr = daObj.decodeText(); } catch(e1){
+                try { daStr = daObj.value || ''; } catch(e2){
+                  daStr = String(daObj).replace(/^[(]+|[)]+$/g,'');
+                }
+              }
+              daStr = daStr.replace(/^[(]+|[)]+$/g,'').trim();
+            }
+
+            if(name) fieldMap.set(name, {obj, da: daStr});
+          }
+          const kids = obj.get(PDFName.of('Kids'));
+          if(kids) collectFields(pdfDoc.context.lookup(kids));
+        } catch(e){}
+      }
+    };
+    try {
+      const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+      const acroForm = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
+      const fieldsRef = acroForm ? acroForm.get(PDFName.of('Fields')) : null;
+      const fieldsArr = fieldsRef ? pdfDoc.context.lookup(fieldsRef) : null;
+      if(fieldsArr) collectFields(fieldsArr);
+    } catch(e){ console.warn('fieldMap構築:', e); }
+    // fieldMapの全フィールドのAPを削除（元の表示を消してVの値を表示させる）
+    fieldMap.forEach((annot, name) => {
+      try {
+        annot.delete(PDFName.of('AP'));
+        annot.set(PDFName.of('DA'), PDFString.of('/MS-Gothic 10 Tf 0 g'));
+      } catch(e){}
+    });
+
+    // form.getTextField経由でupdateAppearancesを呼ぶ
+    // /VをHexStringで直接セット → WinAnsiエラーなし
+    // その後updateAppearancesでipaFontのAPを生成 → 印刷OK
+    const f = (name, val) => {
+      try {
+        const str = String(val || '');
+        const entry = fieldMap.get(name);
+        if(!entry) return;
+        const annot = entry.obj;
+        const origDAStr = entry.da || '';
+
+        // Printフラグ確実ON
+        annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
+
+        // フォントサイズをDAから抽出（例：/MSPGothic 10.5 Tf → 10.5）
+        const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
+        const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
+        // フォント名を使用フォントに置き換えてDAを再設定
+        const fontName = numericFields.has(name) ? 'Helvetica' : 'MS-Gothic';
+        const newDA = `/${fontName} ${fontSize} Tf 0 g`;
+        annot.set(PDFName.of('DA'), PDFString.of(newDA));
+
+        // APを削除（updateAppearancesで再生成するため）
+        annot.delete(PDFName.of('AP'));
+
+        if(str !== ''){
+          // /VにHexStringで書き込み（WinAnsiチェックなし）
+          let hex = 'FEFF';
+          for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
+          annot.set(PDFName.of('V'), PDFHexString.of(hex));
+
+          // フィールドごとにフォントを切り替えてAPを生成
+          try {
+            const field = form.getTextField(name);
+            const useFont = numericFields.has(name) ? helveticaFont : ipaFont;
+            // 中央寄せ設定
+            if(centerFields.has(name)){
+              field.setAlignment(PDFLib.TextAlignment.Center);
+            }
+            field.updateAppearances(useFont);
+            // AP生成後にDAをMS-Gothicに強制上書き（編集時の文字化け防止）
+            const finalFontName = numericFields.has(name) ? 'Helvetica' : 'MS-Gothic';
+            annot.set(PDFName.of('DA'), PDFString.of(`/${finalFontName} ${fontSize} Tf 0 g`));
+          } catch(e){
+            console.warn('AP生成スキップ:', name, e.message);
+          }
+        }
+      } catch(e) {
+        console.warn(`field ${name}:`, e);
+      }
+    };
+
+    // 年月
+    f('R_Year',  currentADYear);
+    f('R_Month', currentMonth);
+
+    // テーブル系フィールド
+    const allFields=[
+      ...['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].flatMap(p=>Array.from({length:7},(_,i)=>`${p}${i+1}`)),
+      ...['Res_D','Res_R','Res_T'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+      ...['Vis_D','Vis_T','Vis_V','Vis_N'].flatMap(p=>Array.from({length:5},(_,i)=>`${p}${i+1}`)),
+      ...['Ins_D','Ins_C','Ins_E'].flatMap(p=>Array.from({length:8},(_,i)=>`${p}${i+1}`)),
+      ...['Rep_D','Rep_C','Rep_E','Rep_N'].flatMap(p=>Array.from({length:3},(_,i)=>`${p}${i+1}`)),
+      ...['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+      ...['Eve_D','Eve_C','Eve_N'].flatMap(p=>Array.from({length:4},(_,i)=>`${p}${i+1}`)),
+      'KEY_Check','KEY_Note','CHANGE_Note',
+      ...FIXED_FIELDS,
+    ];
+    const dayPfx=['Rec_D','Res_D','Vis_D','Ins_D','Rep_D','Acc_D','Eve_D'];
+    allFields.forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      const isDayField=dayPfx.some(p=>id.startsWith(p));
+      f(id, isDayField ? (el.dataset.dayVal||'') : el.value);
+    });
+
+    // コメント行（Comment_1〜5）
+    for(let i=1;i<=COMMENT_LINES;i++){
+      const el=document.getElementById(`Comment_${i}`);
+      f(`Comment_${i}`, el?el.value:'');
     }
 
-    // 各フィールドの位置を取得して直接ページに描画
-    for (const [name, value] of Object.entries(allFields)) {
-      if (!value) continue;
-      const info = getFieldInfo(pdfDoc, name);
-      if (!info) continue;
+    // 鍵確認ラジオ → 〇テキスト
+    f('KEY_Yes',    circleState['KEY']==='Yes'?'〇':'');
+    f('KEY_No',     circleState['KEY']==='No' ?'〇':'');
+    f('CHANGE_Yes', circleState['CHANGE']==='Yes'?'〇':'');
+    f('CHANGE_No',  circleState['CHANGE']==='No' ?'〇':'');
 
-      const { x1, y1, x2, y2, fontSize } = info;
-      const fieldW  = x2 - x1;
-      const fieldH  = y2 - y1;
-      // PDF座標系はY軸が下から上なのでy1が下辺
-      const drawY   = y1 + (fieldH - fontSize) / 2 + 1; // 縦中央揃え
-      const drawX   = x1 + 2; // 左端から少しオフセット
+    // 検針期間
+    ['Elec','Water'].forEach(prefix=>{
+      const dtEl=document.getElementById(`${prefix}_DateT`);
+      const todayDate=dtEl?dtEl.value:'';
+      const pm=prevMonthAD(currentADYear,currentMonth);
+      const prevData=loadFromStorage(pm.year,pm.month);
+      const ds=prevData?(prevData[`${prefix}_DateT`]||''):'';
+      const de=prevDay(todayDate);
+      f(`${prefix}_DS`, ds);
+      f(`${prefix}_DE`, de);
+    });
 
-      // クリッピング領域でフィールドの外に文字が出ないようにする
-      page.drawText(value, {
-        x: drawX,
-        y: drawY,
-        font: ipaFont,
-        size: fontSize || 9,
-        color: rgb(0, 0, 0),
-        maxWidth: fieldW - 4,
-      });
+    // メーター使用量
+    const pm=prevMonthAD(currentADYear,currentMonth);
+    const ppm=prevMonthAD(pm.year,pm.month);
+    const ly=lastYearAD(currentADYear,currentMonth);
+    const lym=prevMonthAD(ly.year,ly.month);
+    const ppData=loadFromStorage(ppm.year,ppm.month);
+    const lymData=loadFromStorage(lym.year,lym.month);
+    ['Elec','Water'].forEach(prefix=>{
+      for(let i=1;i<=METER_COUNT;i++){
+        const tVal=document.getElementById(`${prefix}_T${i}`).value;
+        const pVal=document.getElementById(`${prefix}_P${i}`).value;
+        const lVal=document.getElementById(`${prefix}_L${i}`).value;
+        const ppVal =ppData ?(ppData[`${prefix}_T${i}`]||''):'';
+        const lymVal=lymData?(lymData[`${prefix}_T${i}`]||''):'';
+        f(`${prefix}_T${i}`, valOrEmpty(calcUsage(tVal,pVal)));
+        f(`${prefix}_P${i}`, valOrEmpty(calcUsage(pVal,ppVal)));
+        f(`${prefix}_L${i}`, valOrEmpty(calcUsage(lVal,lymVal)));
+      }
+    });
+
+    // 印鑑画像をSeal_1に埋め込む
+    if(sealImageData){
+      try{
+        const base64=sealImageData.split(',')[1];
+        const binary=atob(base64);
+        const bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        const isPng=sealImageType==='image/png';
+        const sealImg=isPng?await pdfDoc.embedPng(bytes.buffer):await pdfDoc.embedJpg(bytes.buffer);
+        const page=pdfDoc.getPages()[0];
+        const x=528.609,y=31.09,w=565.46-528.609,h=67.9404-31.09;
+        page.drawImage(sealImg,{x,y,width:w,height:h});
+      }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
     }
 
-    // フォームフィールド自体は空のまま保存（描画はページに直接行った）
-    const bytes = await pdfDoc.save({updateFieldAppearances: false});
-    pageBytesList.push(bytes);
+    // AcroForm・Annotsは削除しない（削除すると値も消えるため）
+
+    // フォームをflatten（全フィールド編集不可・文字化け解消）
+    try { form.flatten(); } catch(e){ console.warn('flatten:', e); }
+
+    // ダウンロード
+    const savedBytes=await pdfDoc.save();
+    const blob=new Blob([savedBytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
+    a.click(); URL.revokeObjectURL(url);
+    showBanner('PDFをダウンロードしました','saved');
+
+  }catch(err){
+    console.error(err);
+    showBanner(`エラー: ${err.message}`,'error');
   }
+}
 
-  const fname    = currentType==='kanri' ? PDF_FILE_KANRI : PDF_FILE_KAISHA;
-  const baseName = fname.replace('.pdf','') + '_'
-    + ord.y + ord.m.padStart(2,'0') + ord.d.padStart(2,'0');
 
-  if (pageBytesList.length === 1) {
-    const blob = new Blob([pageBytesList[0]], {type:'application/pdf'});
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href=url; a.download=baseName+'.pdf'; a.click();
-    URL.revokeObjectURL(url);
+// 前月・来月ボタン
+function changeMonthBy(delta){
+  const sel=document.getElementById('sel-yearmonth');
+  const [ys,ms]=sel.value.split('_');
+  let y=parseInt(ys), m=parseInt(ms)+delta;
+  if(m<1){m=12;y--;}
+  if(m>12){m=1;y++;}
+  if(y<YEAR_START_AD||y>YEAR_END_AD) return;
+  sel.value=`${y}_${m}`;
+  document.getElementById('sel-year').value=y;
+  document.getElementById('sel-month').value=m;
+  onMonthChange();
+}
+
+// ============================================================
+// 過去データ入力モーダル
+// ============================================================
+let pastModalPrefix = ''; // 'Elec' or 'Water'
+
+function openPastModal(prefix){
+  pastModalPrefix = prefix;
+  const label = prefix === 'Elec' ? '電気' : '水道';
+
+  // 今月のメーター値チェック
+  const hasCurrentVal = [1,2,3,4].some(i=>{
+    const el = document.getElementById(`${prefix}_T${i}`);
+    return el && el.value.trim() !== '' && el.value !== '0';
+  });
+
+  const notice = document.getElementById('past-modal-notice');
+  const saveBtn = document.getElementById('past-modal-save');
+
+  if(!hasCurrentVal){
+    notice.textContent = `⚠️ 今月の${label}メーター値を入力してから「過去」ボタンを押してください。`;
+    notice.style.display = 'block';
+    saveBtn.style.display = 'none';
   } else {
-    toast('📄 ' + pageBytesList.length + 'ページ分をダウンロードします','');
-    await downloadMultiplePages(pageBytesList, baseName);
+    notice.style.display = 'none';
+    saveBtn.style.display = '';
   }
 
-  for (const item of filledItems) {
-    if (item.code1 || item.code2) addToHistory(item);
+  document.getElementById('past-modal-title').textContent = `${label}メーター　過去データ入力`;
+  buildPastModalBody(prefix, hasCurrentVal);
+  document.getElementById('past-modal').classList.add('show');
+}
+
+function closePastModal(){
+  document.getElementById('past-modal').classList.remove('show');
+}
+
+function buildPastModalBody(prefix, hasCurrentVal){
+  const body = document.getElementById('past-modal-body');
+  const N = 4; // メーター本数
+
+  // 今月のメーター値を取得
+  const currentVals = [];
+  for(let i=1;i<=N;i++){
+    const el = document.getElementById(`${prefix}_T${i}`);
+    currentVals.push(el ? parseFloat(el.value)||null : null);
   }
-  renderRecentList();
-  toast('PDF作成完了 ✅', 'success');
-  } catch(err) {
-    console.error('generateAndDownload error:', err);
-    toast('PDF作成エラー詳細：' + (err?.message || JSON.stringify(err)), 'error');
+
+  // 過去12ヶ月分の年月リスト（0=今月使用量、1=先月使用量、...）
+  const months = [];
+  months.push({year:currentADYear, month:currentMonth,
+    label:`${currentADYear}年${currentMonth}月（今月）`, isCurrent:true});
+  for(let m=1;m<=12;m++){
+    let y=currentADYear, mo=currentMonth;
+    for(let k=0;k<m;k++){ const p=prevMonthAD(y,mo); y=p.year; mo=p.month; }
+    months.push({year:y, month:mo, label:`${y}年${mo}月`, isCurrent:false});
+  }
+
+  // テーブル生成
+  let html = `<div class="modal-meter-grid">`;
+  html += `<div class="mh">年月</div>`;
+  const mLabels = prefix==='Elec' ? ELEC_LABELS : WATER_LABELS;
+  for(let i=1;i<=N;i++) html += `<div class="mh">${mLabels[i-1]}　使用量</div>`;
+
+  // 今月値（参照用readonly）
+  html += `<div class="month-label" style="color:var(--text2);font-size:.75rem;">今月値<br>（参照）</div>`;
+  for(let i=1;i<=N;i++){
+    const hasVal = currentVals[i-1] !== null && currentVals[i-1] !== 0;
+    const refStyle = hasVal ? '' : 'background:#f5f5f5;color:#bbb;';
+    html += `<input class="mi readonly" type="text" readonly
+      value="${hasVal ? currentVals[i-1] : '未入力'}"
+      style="${refStyle}">`;
+  }
+
+  // 今月〜12ヶ月前の使用量入力欄
+  for(let m=0;m<13;m++){
+    const {year,month,label,isCurrent} = months[m];
+    const data = loadFromStorage(year, month);
+    // 既存の使用量を計算（保存済みのT値から前月T値を引く）
+    html += `<div class="month-label">${label}</div>`;
+    for(let i=1;i<=N;i++){
+      // 既存の使用量を取得（保存済みデータから）
+      let savedUsage = '';
+      if(data && data[`${prefix}_T${i}`]){
+        const thisVal = parseFloat(data[`${prefix}_T${i}`]);
+        // 前月データから引き算して使用量を計算
+        let prevY=year, prevMo=month;
+        const pp = prevMonthAD(prevY, prevMo);
+        const prevData = loadFromStorage(pp.year, pp.month);
+        if(prevData && prevData[`${prefix}_T${i}`]){
+          const prevVal = parseFloat(prevData[`${prefix}_T${i}`]);
+          if(!isNaN(thisVal) && !isNaN(prevVal)) savedUsage = (thisVal-prevVal).toFixed(1);
+        }
+      }
+      // 今月値がない列は入力不可
+      const colHasVal = currentVals[i-1] !== null && currentVals[i-1] !== 0;
+      const disabled = (!hasCurrentVal || !colHasVal) ? 'disabled' : '';
+      const disabledStyle = disabled ? 'background:#f5f5f5;color:#bbb;' : '';
+      html += `<input class="mi" type="number" step="0.1" min="0"
+        id="past_${prefix}_${m}_${i}"
+        value="${savedUsage}"
+        oninput="updatePastComputed('${prefix}')"
+        placeholder="${disabled ? '-' : '使用量'}"
+        style="${disabledStyle}"
+        ${disabled}>`;
+    }
+  }
+  html += `</div>`;
+  html += `<div style="font-size:.72rem;color:var(--text2);margin-top:10px;">
+    ℹ️ 各月の使用量を入力してください。今月メーター値から逆算して各月のメーター値を自動計算・保存します。
+  </div>`;
+
+  body.innerHTML = html;
+  updatePastComputed(prefix);
+}
+
+function updatePastComputed(prefix){
+  // 逆算してcomputed値を表示（将来の拡張用・現在は入力値をそのまま使用）
+}
+
+function savePastData(){
+  const prefix = pastModalPrefix;
+  const N = 4;
+
+  // 今月のメーター値を取得
+  const currentVals = [];
+  for(let i=1;i<=N;i++){
+    const el = document.getElementById(`${prefix}_T${i}`);
+    currentVals.push(el ? parseFloat(el.value)||0 : 0);
+  }
+
+  // 今月データを先にlocalStorageに保存（loadCurrentMonth()で消えないように）
+  saveDataSilent();
+
+  // 各月の使用量から逆算してメーター値を計算・保存
+  // prevMeterVals[i] = 直前に計算したメーター値（最初は今月値）
+  const prevMeterVals = [...currentVals];
+
+  for(let m=0;m<13;m++){
+    let y=currentADYear, mo=currentMonth;
+    for(let k=0;k<m;k++){ const p=prevMonthAD(y,mo); y=p.year; mo=p.month; }
+
+    // 使用量を取得
+    const usages = [];
+    for(let i=1;i<=N;i++){
+      const el = document.getElementById(`past_${prefix}_${m}_${i}`);
+      usages.push(el && el.value.trim()!=='' ? parseFloat(el.value) : null);
+    }
+
+    // このm月のメーター値 = 直前月のメーター値（今月値から逆算不要・そのまま保存）
+    // m=0: 今月の使用量 → 今月のデータに使用量情報として保存
+    // m=1: 先月の使用量 → 先月値 = 今月値 - 今月使用量
+    // m=2: 先々月の使用量 → 先々月値 = 先月値 - 先月使用量
+    if(m === 0){
+      // 今月の使用量から先月メーター値を計算（今月データは変更しない）
+      for(let i=1;i<=N;i++){
+        if(usages[i-1]!==null){
+          prevMeterVals[i-1] = prevMeterVals[i-1] - usages[i-1];
+        }
+      }
+    } else {
+      // m>=1: この月のメーター値として保存
+      const existing = loadFromStorage(y, mo) || {_savedAt: new Date().toISOString()};
+      let hasVal = false;
+      for(let i=1;i<=N;i++){
+        if(!isNaN(prevMeterVals[i-1])){
+          existing[`${prefix}_T${i}`] = prevMeterVals[i-1].toFixed(1);
+          hasVal = true;
+        }
+      }
+      if(hasVal) localStorage.setItem(storageKey(y, mo), JSON.stringify(existing));
+
+      // 次の月のメーター値を計算
+      for(let i=1;i<=N;i++){
+        if(usages[i-1]!==null){
+          prevMeterVals[i-1] = prevMeterVals[i-1] - usages[i-1];
+        }
+      }
+    }
+  }
+
+  closePastModal();
+  loadCurrentMonth();
+  showBanner('過去データを保存しました','saved');
+}
+
+// モーダル外クリックで閉じる
+document.getElementById('past-modal').addEventListener('click', function(e){
+  if(e.target === this) closePastModal();
+});
+
+// ============================================================
+// PDF送信
+// ============================================================
+async function sendPDF(){
+  const ccEl  = document.getElementById('send-cc');
+  const bccEl = document.getElementById('send-bcc');
+  const btn   = document.getElementById('btn-send');
+
+  // フロントメールアドレスを送信先に使用
+  const frontAdd = document.getElementById('Front_Add')?.value?.trim() || '';
+  if(!frontAdd){
+    showBanner('フロントメールアドレスが未入力です。規定値欄に入力してください','error');
+    document.getElementById('Front_Add')?.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  showBanner('📄 PDF作成中...','saved',30000);
+
+  try {
+    // PDFを生成（downloadPDFと同じ処理）
+    const pdfBytes = await generatePDFBytes();
+
+    // Base64に変換
+    const binary = Array.from(new Uint8Array(pdfBytes))
+      .map(b=>String.fromCharCode(b)).join('');
+    const base64 = btoa(binary);
+
+    // 件名：マンションコード-管理業務月報◯年◯月
+    const macd = document.getElementById('MaCD')?.value || '';
+    const subject = `${macd}-管理業務月報${currentADYear}年${currentMonth}月`;
+
+    // ファイル名
+    const filename = `${macd}-管理業務月報_${currentADYear}_${String(currentMonth).padStart(2,'0')}.pdf`;
+
+    // FormDataで送信
+    const fd = new FormData();
+    fd.append('to',         frontAdd);
+    fd.append('cc',         ccEl.value.trim());
+    fd.append('bcc',        bccEl.value.trim());
+    fd.append('subject',    subject);
+    const maName = document.getElementById('Ma_Name')?.value || '';
+    const bodyText = [
+      `${macd}-${maName}`,
+      `管理業務月報${currentADYear}年${currentMonth}月の`,
+      `PDFファイルを添付いたしました。`,
+      `ご確認よろしくお願いいたします。`,
+      ``,``,``,``,``,``,``,``,``,``,
+      `____________________________________________`,
+      `このメールは送信専用アドレスから自動送信されています。`,
+      `ご返信いただいてもお答えできませんのでご了承ください。`,
+      `なお、送信履歴はサーバーには保存されません。`,
+      `__________________________________________∧|`
+    ].join('\n');
+    fd.append('body', bodyText);
+    fd.append('filename',   filename);
+    fd.append('pdf_base64', base64);
+
+    const resp = await fetch('https://aidirector.shop/sendmail.php', {
+      method: 'POST',
+      body: fd,
+    });
+    const result = await resp.json();
+
+    if(result.success){
+      showBanner('✉️ 送信完了！フロントアドレスにPDFを送信しました','saved',5000);
+    } else {
+      showBanner(`送信失敗: ${result.message}`,'error');
+    }
+  } catch(e){
+    console.error(e);
+    showBanner(`エラー: ${e.message}`,'error');
+  } finally {
+    btn.disabled = false;
   }
 }
 
-// ─── TOAST ───
-function toast(msg,type=''){
-  const el=document.createElement('div');el.className='toast'+(type?' '+type:'');el.textContent=msg;
-  document.getElementById('toastContainer').appendChild(el);setTimeout(()=>el.remove(),3500);
+// PDF生成（バイト列を返す）
+async function generatePDFBytes(){
+  const [pdfResp, fontResp] = await Promise.all([
+    fetch('Report_M.pdf', {cache: 'no-store'}),
+    fetch('ipaexg.ttf'),
+  ]);
+  if(!pdfResp.ok)  throw new Error('Report_M.pdf が見つかりません');
+  if(!fontResp.ok) throw new Error('ipaexg.ttf が見つかりません');
+  const [pdfBuf, fontBuf] = await Promise.all([
+    pdfResp.arrayBuffer(),
+    fontResp.arrayBuffer(),
+  ]);
+
+  const {PDFDocument, PDFName, PDFHexString, PDFString} = PDFLib;
+  const pdfDoc = await PDFDocument.load(pdfBuf);
+  pdfDoc.registerFontkit(fontkit);
+  const ipaFont = await pdfDoc.embedFont(fontBuf);
+  const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+  const form = pdfDoc.getForm();
+
+  // AcroFormのDRにipaFontを登録
+  try {
+    const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+    if(acroFormRef){
+      const acroForm = pdfDoc.context.lookup(acroFormRef);
+      const dr = acroForm ? acroForm.lookup(PDFName.of('DR')) : null;
+      const fontDict = dr ? dr.lookup(PDFName.of('Font')) : null;
+      if(fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
+      if(acroForm) acroForm.set(PDFName.of('DA'), PDFString.of('/MS-Gothic 10 Tf 0 g'));
+    }
+  } catch(e){}
+
+  // fieldMapを構築
+  const fieldMap = new Map();
+  const collectFields = (arr) => {
+    if(!arr) return;
+    for(let i=0; i<arr.size(); i++){
+      try {
+        const ref = arr.get(i);
+        const obj = pdfDoc.context.lookup(ref);
+        if(!obj) continue;
+        const t = obj.get(PDFName.of('T'));
+        if(t){
+          let name = '';
+          try { name = t.decodeText(); } catch(e1){
+            try { name = t.value; } catch(e2){ name = String(t); }
+          }
+          name = name.replace(/^[(]+|[)]+$/g,'').trim();
+          const daObj = obj.get(PDFName.of('DA'));
+          let daStr = '';
+          if(daObj){
+            try { daStr = daObj.decodeText(); } catch(e1){
+              try { daStr = daObj.value || ''; } catch(e2){
+                daStr = String(daObj).replace(/^[(]+|[)]+$/g,'');
+              }
+            }
+            daStr = daStr.replace(/^[(]+|[)]+$/g,'').trim();
+          }
+          if(name) fieldMap.set(name, {obj, da: daStr});
+        }
+        const kids = obj.get(PDFName.of('Kids'));
+        if(kids) collectFields(pdfDoc.context.lookup(kids));
+      } catch(e){}
+    }
+  };
+  try {
+    const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+    const acroForm = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
+    const fieldsRef = acroForm ? acroForm.get(PDFName.of('Fields')) : null;
+    const fieldsArr = fieldsRef ? pdfDoc.context.lookup(fieldsRef) : null;
+    if(fieldsArr) collectFields(fieldsArr);
+  } catch(e){}
+
+  const numericFields = new Set([
+    'R_Year','R_Month','TOTAL',
+    'Car_NOW','Car_ALL','Bike_NOW','Bike_ALL','Cycle_NOW','Cycle_ALL',
+    ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+      `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+    ]))
+  ]);
+  const centerFields = new Set([
+    'R_Year','R_Month',
+    ...['Rec','Res','Vis','Ins','Rep','Acc','Eve'].flatMap(p=>{
+      const counts={'Rec':7,'Res':2,'Vis':5,'Ins':8,'Rep':3,'Acc':2,'Eve':4};
+      return [...Array(counts[p]||0)].flatMap((_,i)=>[
+        `${p}_D${i+1}`,`${p}_R${i+1}`,`${p}_T${i+1}`,`${p}_P${i+1}`
+      ]);
+    }),
+    'KEY_Check',
+    ...['Elec','Water'].flatMap(p=>[...Array(4)].flatMap((_,i)=>[
+      `${p}_T${i+1}`,`${p}_P${i+1}`,`${p}_L${i+1}`
+    ])),
+    'Elec_DS','Elec_DE','Water_DS','Water_DE'
+  ]);
+
+  const f = (name, val) => {
+    try {
+      const str = String(val || '');
+      const entry = fieldMap.get(name);
+      if(!entry) return;
+      const annot = entry.obj;
+      const origDAStr = entry.da || '';
+      annot.set(PDFName.of('F'), PDFLib.PDFNumber.of(4));
+      const sizeMatch = origDAStr.match(/(\d+\.?\d*)\s+Tf/);
+      const fontSize = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
+      const fontName = numericFields.has(name) ? 'Helvetica' : 'MS-Gothic';
+      const newDA = `/${fontName} ${fontSize} Tf 0 g`;
+      annot.set(PDFName.of('DA'), PDFString.of(newDA));
+      annot.delete(PDFName.of('AP'));
+      if(str !== ''){
+        let hex = 'FEFF';
+        for(let i=0;i<str.length;i++) hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
+        annot.set(PDFName.of('V'), PDFHexString.of(hex));
+        try {
+          const field = form.getTextField(name);
+          const useFont = numericFields.has(name) ? helveticaFont : ipaFont;
+          if(centerFields.has(name)) field.setAlignment(PDFLib.TextAlignment.Center);
+          field.updateAppearances(useFont);
+        } catch(e){ console.warn('AP生成スキップ:', name, e.message); }
+      }
+    } catch(e){ console.warn(`field ${name}:`, e); }
+  };
+
+  // 以下はdownloadPDFと同じフィールド書き込み処理
+  f('R_Year', currentADYear);
+  f('R_Month', currentMonth);
+  const allFields=[
+    ...['Rec_D','Rec_R','Rec_A','Rec_P','Rec_S','Rec_N'].flatMap(p=>Array.from({length:7},(_,i)=>`${p}${i+1}`)),
+    ...['Res_D','Res_R','Res_T'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+    ...['Vis_D','Vis_T','Vis_V','Vis_N'].flatMap(p=>Array.from({length:5},(_,i)=>`${p}${i+1}`)),
+    ...['Ins_D','Ins_C','Ins_E'].flatMap(p=>Array.from({length:8},(_,i)=>`${p}${i+1}`)),
+    ...['Rep_D','Rep_C','Rep_E','Rep_N'].flatMap(p=>Array.from({length:3},(_,i)=>`${p}${i+1}`)),
+    ...['Acc_D','Acc_T','Acc_P','Acc_C','Acc_N'].flatMap(p=>Array.from({length:2},(_,i)=>`${p}${i+1}`)),
+    ...['Eve_D','Eve_C','Eve_N'].flatMap(p=>Array.from({length:4},(_,i)=>`${p}${i+1}`)),
+    'KEY_Check','KEY_Note','CHANGE_Note',
+    ...FIXED_FIELDS,
+  ];
+  const dayPfx=['Rec_D','Res_D','Vis_D','Ins_D','Rep_D','Acc_D','Eve_D'];
+  allFields.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    const isDayField=dayPfx.some(p=>id.startsWith(p));
+    f(id, isDayField ? (el.dataset.dayVal||'') : el.value);
+  });
+  for(let i=1;i<=COMMENT_LINES;i++){
+    const el=document.getElementById(`Comment_${i}`);
+    f(`Comment_${i}`, el?el.value:'');
+  }
+  f('KEY_Yes',    circleState['KEY']==='Yes'?'〇':'');
+  f('KEY_No',     circleState['KEY']==='No' ?'〇':'');
+  f('CHANGE_Yes', circleState['CHANGE']==='Yes'?'〇':'');
+  f('CHANGE_No',  circleState['CHANGE']==='No' ?'〇':'');
+  ['Elec','Water'].forEach(prefix=>{
+    const dtEl=document.getElementById(`${prefix}_DateT`);
+    const todayDate=dtEl?dtEl.value:'';
+    const pm=prevMonthAD(currentADYear,currentMonth);
+    const prevData=loadFromStorage(pm.year,pm.month);
+    const ds=prevData?(prevData[`${prefix}_DateT`]||''):'';
+    const de=prevDay(todayDate);
+    f(`${prefix}_DS`, ds);
+    f(`${prefix}_DE`, de);
+  });
+  const pm=prevMonthAD(currentADYear,currentMonth);
+  const ppm=prevMonthAD(pm.year,pm.month);
+  const ly=lastYearAD(currentADYear,currentMonth);
+  const lym=prevMonthAD(ly.year,ly.month);
+  const ppData=loadFromStorage(ppm.year,ppm.month);
+  const lymData=loadFromStorage(lym.year,lym.month);
+  ['Elec','Water'].forEach(prefix=>{
+    for(let i=1;i<=METER_COUNT;i++){
+      const tVal=document.getElementById(`${prefix}_T${i}`).value;
+      const pVal=document.getElementById(`${prefix}_P${i}`).value;
+      const lVal=document.getElementById(`${prefix}_L${i}`).value;
+      const ppVal =ppData ?(ppData[`${prefix}_T${i}`]||''):'';
+      const lymVal=lymData?(lymData[`${prefix}_T${i}`]||''):'';
+      f(`${prefix}_T${i}`, valOrEmpty(calcUsage(tVal,pVal)));
+      f(`${prefix}_P${i}`, valOrEmpty(calcUsage(pVal,ppVal)));
+      f(`${prefix}_L${i}`, valOrEmpty(calcUsage(lVal,lymVal)));
+    }
+  });
+  if(sealImageData){
+    try{
+      const base64=sealImageData.split(',')[1];
+      const binary=atob(base64);
+      const bytes=new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      const isPng=sealImageType==='image/png';
+      const sealImg=isPng?await pdfDoc.embedPng(bytes.buffer):await pdfDoc.embedJpg(bytes.buffer);
+      const page=pdfDoc.getPages()[0];
+      const x=528.609,y=31.09,w=565.46-528.609,h=67.9404-31.09;
+      page.drawImage(sealImg,{x,y,width:w,height:h});
+    }catch(e){ console.warn('印鑑埋め込みエラー:',e); }
+  }
+
+  // フォームをflatten
+  try { form.flatten(); } catch(e){ console.warn('flatten:', e); }
+
+  return await pdfDoc.save();
 }
+
+// 起動
+init();
+
+// スマホでsection-headerのtopを動的に設定
+function fixSectionHeaderTop(){
+  if(window.innerWidth > 600) return;
+  const h = document.querySelector('header')?.offsetHeight || 88;
+  const top = (h + 2) + 'px';
+  document.querySelectorAll('.section-header').forEach(el=>{
+    el.style.top = top;
+  });
+}
+setTimeout(fixSectionHeaderTop, 300);
+window.addEventListener('resize', fixSectionHeaderTop);
+
 </script>
 </body>
 </html>
