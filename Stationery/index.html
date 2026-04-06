@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.55</title>
+<title>事務用品 注文シート v1.56</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -257,7 +257,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.55</div>
+    <div class="app-subtitle">ナビリオン v1.56</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,7 +1038,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.55 ───
+// ─── PDF書き込み v1.56 ───
 // 印刷時も確実に表示されるよう ipaexg.ttf を埋め込んでページに直接描画する方式
 // NeedAppearances に頼らず、フォームフィールドの上に文字を直接ページ描画する
 
@@ -1089,7 +1089,7 @@ async function downloadPDF(){
 
 // フィールドのページ上の位置・サイズ・フォントサイズを取得（低レベル）
 function getFieldInfo(pdfDoc, fieldName) {
-  const {PDFName, PDFArray, PDFNumber} = PDFLib;
+  const {PDFName, PDFArray} = PDFLib;
   try {
     const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
     const acroForm    = pdfDoc.context.lookup(acroFormRef);
@@ -1146,7 +1146,8 @@ function getFieldInfo(pdfDoc, fieldName) {
 }
 
 async function generateAndDownload(){
-  const {PDFDocument, PDFName, PDFBool, rgb} = PDFLib;
+  try {
+  const {PDFDocument, PDFName, PDFBool, PDFArray, rgb} = PDFLib;
   const ord = parseDateField('ORD');
   const dlv = parseDateField('DLV');
 
@@ -1271,6 +1272,10 @@ async function generateAndDownload(){
   }
   renderRecentList();
   toast('PDF作成完了 ✅', 'success');
+  } catch(err) {
+    console.error('generateAndDownload error:', err);
+    toast('PDF作成エラー詳細：' + (err?.message || JSON.stringify(err)), 'error');
+  }
 }
 
 // ─── TOAST ───
