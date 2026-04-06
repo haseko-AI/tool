@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.52</title>
+<title>事務用品 注文シート v1.53</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fontkit/1.9.0/fontkit.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -257,7 +258,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.52</div>
+    <div class="app-subtitle">ナビリオン v1.53</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1038,41 +1039,19 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み（getForm/getTextField を一切使わない低レベル方式）───
-function toUtf16Hex(str){
-  if(!str)return'';let hex='FEFF';
-  for(let i=0;i<str.length;i++)hex+=str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
-  return hex;
-}
-function getRawAcroFields(pdfDoc){
-  const{PDFName,PDFArray}=PDFLib;
-  const fieldMap={};
-  try{
-    const acroFormRef=pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
-    const acroForm=pdfDoc.context.lookup(acroFormRef);
-    if(!acroForm)return fieldMap;
-    function collect(arr){
-      if(!arr)return;
-      for(let i=0;i<arr.size();i++){
-        try{
-          const ref=arr.get(i);const dict=pdfDoc.context.lookup(ref);if(!dict)continue;
-          const tObj=dict.get(PDFName.of('T'));
-          const name=tObj?tObj.decodeText():null;
-          if(name)fieldMap[name]={dict,ref};
-          const kids=dict.lookupMaybe(PDFName.of('Kids'),PDFArray);
-          if(kids)collect(kids);
-        }catch(e){}
-      }
-    }
-    collect(acroForm.lookupMaybe(PDFName.of('Fields'),PDFArray));
-  }catch(e){}
-  return fieldMap;
-}
-function writeFieldValue(fieldMap,pdfDoc,name,value){
-  const{PDFName,PDFHexString}=PDFLib;
-  const entry=fieldMap[name];if(!entry)return;
-  entry.dict.set(PDFName.of('V'),PDFHexString.of(toUtf16Hex(String(value||''))));
-  entry.dict.delete(PDFName.of('AP'));
+// ─── PDF書き込み v1.53 ───
+// 印刷時も確実に表示されるよう ipaexg.ttf を埋め込んでページに直接描画する方式
+// NeedAppearances に頼らず、フォームフィールドの上に文字を直接ページ描画する
+
+// フォントキャッシュ
+let _fontBytes = null;
+async function loadFont() {
+  if (_fontBytes) return _fontBytes;
+  // ipaexg.ttf は同じフォルダに置く
+  const res = await fetch('ipaexg.ttf');
+  if (!res.ok) throw new Error('ipaexg.ttf が読み込めません: HTTP ' + res.status);
+  _fontBytes = await res.arrayBuffer();
+  return _fontBytes;
 }
 
 function collectFilledItems(){
@@ -1080,7 +1059,10 @@ function collectFilledItems(){
   for(let i=1;i<=totalRows;i++){
     const c1=(document.getElementById('ODNO_1_'+i)?.value||'').trim();
     const c2=(document.getElementById('ODNO_2_'+i)?.value||'').trim();
-    items.push({code1:c1,code2:c2,qty:(document.getElementById('ODSU_1_'+i)?.value||'').trim(),name:(document.getElementById('ODNA_1_'+i)?.value||'').trim(),price:(document.getElementById('ODPR_1_'+i)?.value||'').trim()});
+    items.push({code1:c1,code2:c2,
+      qty:(document.getElementById('ODSU_1_'+i)?.value||'').trim(),
+      name:(document.getElementById('ODNA_1_'+i)?.value||'').trim(),
+      price:(document.getElementById('ODPR_1_'+i)?.value||'').trim()});
   }
   return items.filter(it=>it.code1||it.code2);
 }
@@ -1098,81 +1080,187 @@ async function downloadMultiplePages(pageBytesList,baseFilename){
 async function downloadPDF(){
   const btn    = document.getElementById('downloadBtn');
   const btnTop = document.getElementById('downloadBtnTop');
-  [btn, btnTop].forEach(b=>{ if(b){ b.disabled=true; } });
-  btn.textContent='⏳ 作成中...'; if(btnTop) btnTop.textContent='⏳';
+  [btn,btnTop].forEach(b=>{if(b){b.disabled=true;}});
+  btn.textContent='⏳ 作成中...';if(btnTop)btnTop.textContent='⏳';
   try{await generateAndDownload();}
   catch(err){console.error(err);toast('PDF作成エラー：'+err.message,'error');}
-  btn.disabled=false; btn.innerHTML='⬇ PDF作成・ダウンロード';
-  if(btnTop){ btnTop.disabled=false; btnTop.innerHTML='⬇ PDF'; }
+  btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
+  if(btnTop){btnTop.disabled=false;btnTop.innerHTML='⬇ PDF';}
+}
+
+// フィールドのページ上の位置・サイズ・フォントサイズを取得（低レベル）
+function getFieldInfo(pdfDoc, fieldName) {
+  const {PDFName, PDFArray, PDFNumber} = PDFLib;
+  try {
+    const acroFormRef = pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
+    const acroForm    = pdfDoc.context.lookup(acroFormRef);
+    if (!acroForm) return null;
+
+    function findField(arr) {
+      if (!arr) return null;
+      for (let i = 0; i < arr.size(); i++) {
+        try {
+          const ref  = arr.get(i);
+          const dict = pdfDoc.context.lookup(ref);
+          if (!dict) continue;
+          const tObj = dict.get(PDFName.of('T'));
+          if (tObj && tObj.decodeText() === fieldName) return dict;
+          const kids = dict.lookupMaybe(PDFName.of('Kids'), PDFArray);
+          if (kids) { const r = findField(kids); if (r) return r; }
+        } catch(e) {}
+      }
+      return null;
+    }
+
+    const fields = acroForm.lookupMaybe(PDFName.of('Fields'), PDFArray);
+    const fdict  = findField(fields);
+    if (!fdict) return null;
+
+    // Rect を取得
+    const rect = fdict.lookupMaybe(PDFName.of('Rect'), PDFArray);
+    if (!rect) return null;
+    const x1 = rect.get(0).asNumber();
+    const y1 = rect.get(1).asNumber();
+    const x2 = rect.get(2).asNumber();
+    const y2 = rect.get(3).asNumber();
+
+    // DA からフォントサイズを抽出（例: /Helv 9 Tf）
+    let fontSize = 9;
+    try {
+      const daObj = fdict.get(PDFName.of('DA'));
+      if (!daObj) {
+        // AcroForm レベルの DA を確認
+        const acroDA = acroForm.get(PDFName.of('DA'));
+        if (acroDA) {
+          const m = acroDA.decodeText().match(/(\d+(?:\.\d+)?)\s+Tf/);
+          if (m) fontSize = parseFloat(m[1]);
+        }
+      } else {
+        const daStr = daObj.decodeText ? daObj.decodeText() : daObj.toString();
+        const m = daStr.match(/(\d+(?:\.\d+)?)\s+Tf/);
+        if (m) fontSize = parseFloat(m[1]);
+      }
+    } catch(e) {}
+
+    return { x1, y1, x2, y2, fontSize };
+  } catch(e) { return null; }
 }
 
 async function generateAndDownload(){
-  const{PDFDocument,PDFName,PDFBool}=PDFLib;
-  const ord=parseDateField('ORD');const dlv=parseDateField('DLV');
-  if(!ord.y){toast('注文日を入力してください','error');return;}
-  const templateBytes=currentType==='kanri'?pdfBytesKanri:pdfBytesKaisha;
-  if(!templateBytes){toast('PDFテンプレートが読み込まれていません','error');return;}
-  const filledItems=collectFilledItems();
-  if(!filledItems.length){toast('注文明細を1件以上入力してください','error');return;}
-  const totalPages=Math.max(1,Math.ceil(filledItems.length/10));
+  const {PDFDocument, PDFName, PDFBool, rgb} = PDFLib;
+  const ord = parseDateField('ORD');
+  const dlv = parseDateField('DLV');
 
-  // ① PDF作成時も自動保存（念のため）
+  if (!ord.y) { toast('注文日を入力してください','error'); return; }
+
+  const templateBytes = currentType==='kanri' ? pdfBytesKanri : pdfBytesKaisha;
+  if (!templateBytes) { toast('PDFテンプレートが読み込まれていません','error'); return; }
+
+  const filledItems = collectFilledItems();
+  if (!filledItems.length) { toast('注文明細を1件以上入力してください','error'); return; }
+
+  // フォント読み込み
+  let fontBytes;
+  try {
+    fontBytes = await loadFont();
+  } catch(e) {
+    toast('フォント読み込みエラー：' + e.message, 'error');
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
   autoSaveProfile(); autoSaveStaff();
 
-  const commonFields={
-    ORD_Year:ord.y,ORD_Month:ord.m,ORD_Day:ord.d,
-    DLV_Year:dlv.y,DLV_Month:dlv.m,DLV_Day:dlv.d,
+  const commonFields = {
+    ORD_Year:ord.y, ORD_Month:ord.m, ORD_Day:ord.d,
+    DLV_Year:dlv.y, DLV_Month:dlv.m, DLV_Day:dlv.d,
     NUM_All:String(totalPages),
-    ID_No:getLoginIdForPdf(),
-    ID_Name:document.getElementById('ID_Name').value.trim(),
-    ID_Code:document.getElementById('ID_Code').value.trim(),
+    ID_No:   getLoginIdForPdf(),
+    ID_Name: document.getElementById('ID_Name').value.trim(),
+    ID_Code: document.getElementById('ID_Code').value.trim(),
     ID_Staff:document.getElementById('ID_Staff').value.trim(),
-    ID_Tel:document.getElementById('ID_Tel').value.trim(),
+    ID_Tel:  document.getElementById('ID_Tel').value.trim(),
     WORK_Time:document.getElementById('WORK_Time').value.trim(),
-    BRC_Name:document.getElementById('BRC_Name').value.trim(),
+    BRC_Name: document.getElementById('BRC_Name').value.trim(),
     BRC_Front:document.getElementById('BRC_Front').value.trim(),
-    BRC_Tel:document.getElementById('BRC_Tel').value.trim(),
-    BRC_Fax:document.getElementById('BRC_Fax').value.trim(),
+    BRC_Tel:  document.getElementById('BRC_Tel').value.trim(),
+    BRC_Fax:  document.getElementById('BRC_Fax').value.trim(),
   };
 
-  const pageBytesList=[];
-  for(let pageIdx=0;pageIdx<totalPages;pageIdx++){
-    const pdfDoc=await PDFDocument.load(templateBytes.slice(),{ignoreEncryption:true});
-    try{
-      const acroFormRef=pdfDoc.catalog.dict.get(PDFName.of('AcroForm'));
-      const acroForm=pdfDoc.context.lookup(acroFormRef);
-      if(acroForm)acroForm.set(PDFName.of('NeedAppearances'),PDFBool.True);
-    }catch(e){}
-    const fieldMap=getRawAcroFields(pdfDoc);
-    const set=(name,val)=>writeFieldValue(fieldMap,pdfDoc,name,val);
-    Object.entries(commonFields).forEach(([k,v])=>set(k,v));
-    set('NUM_Page',String(pageIdx+1));
-    const pageItems=filledItems.slice(pageIdx*10,(pageIdx+1)*10);
-    for(let i=1;i<=10;i++){
-      const s=pad2(i);const item=pageItems[i-1]||{};
-      set('ODNO_1'+s,item.code1?item.code1.padStart(3,'0'):'');
-      set('ODNO_2'+s,item.code2?item.code2.padStart(4,'0'):'');
-      set('ODSU_1'+s,item.qty||'');set('ODNA_1'+s,item.name||'');set('ODPR_1'+s,item.price||'');
+  const pageBytesList = [];
+
+  for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+    const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption:true});
+
+    // fontkit を登録してIPAフォントを埋め込む
+    pdfDoc.registerFontkit(fontkit);
+    const ipaFont = await pdfDoc.embedFont(fontBytes);
+
+    const page  = pdfDoc.getPage(0);
+    const {height} = page.getSize();
+
+    // 全フィールドの情報を収集してから描画
+    const allFields = {...commonFields, NUM_Page: String(pageIdx+1)};
+    const pageItems = filledItems.slice(pageIdx*10, (pageIdx+1)*10);
+    for (let i = 1; i <= 10; i++) {
+      const s    = pad2(i);
+      const item = pageItems[i-1] || {};
+      allFields['ODNO_1'+s] = item.code1 ? item.code1.padStart(3,'0') : '';
+      allFields['ODNO_2'+s] = item.code2 ? item.code2.padStart(4,'0') : '';
+      allFields['ODSU_1'+s] = item.qty   || '';
+      allFields['ODNA_1'+s] = item.name  || '';
+      allFields['ODPR_1'+s] = item.price || '';
     }
-    const bytes=await pdfDoc.save({updateFieldAppearances:false});
+
+    // 各フィールドの位置を取得して直接ページに描画
+    for (const [name, value] of Object.entries(allFields)) {
+      if (!value) continue;
+      const info = getFieldInfo(pdfDoc, name);
+      if (!info) continue;
+
+      const { x1, y1, x2, y2, fontSize } = info;
+      const fieldW  = x2 - x1;
+      const fieldH  = y2 - y1;
+      // PDF座標系はY軸が下から上なのでy1が下辺
+      const drawY   = y1 + (fieldH - fontSize) / 2 + 1; // 縦中央揃え
+      const drawX   = x1 + 2; // 左端から少しオフセット
+
+      // クリッピング領域でフィールドの外に文字が出ないようにする
+      page.drawText(value, {
+        x: drawX,
+        y: drawY,
+        font: ipaFont,
+        size: fontSize || 9,
+        color: rgb(0, 0, 0),
+        maxWidth: fieldW - 4,
+      });
+    }
+
+    // フォームフィールド自体は空のまま保存（描画はページに直接行った）
+    const bytes = await pdfDoc.save({updateFieldAppearances: false});
     pageBytesList.push(bytes);
   }
 
-  const fname=currentType==='kanri'?PDF_FILE_KANRI:PDF_FILE_KAISHA;
-  const baseName=fname.replace('.pdf','')+'_'+ord.y+ord.m.padStart(2,'0')+ord.d.padStart(2,'0');
+  const fname    = currentType==='kanri' ? PDF_FILE_KANRI : PDF_FILE_KAISHA;
+  const baseName = fname.replace('.pdf','') + '_'
+    + ord.y + ord.m.padStart(2,'0') + ord.d.padStart(2,'0');
 
-  if(pageBytesList.length===1){
-    const blob=new Blob([pageBytesList[0]],{type:'application/pdf'});
-    const url=URL.createObjectURL(blob);const a=document.createElement('a');
-    a.href=url;a.download=baseName+'.pdf';a.click();URL.revokeObjectURL(url);
-  }else{
-    toast('📄 '+pageBytesList.length+'ページ分をダウンロードします','');
-    await downloadMultiplePages(pageBytesList,baseName);
+  if (pageBytesList.length === 1) {
+    const blob = new Blob([pageBytesList[0]], {type:'application/pdf'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href=url; a.download=baseName+'.pdf'; a.click();
+    URL.revokeObjectURL(url);
+  } else {
+    toast('📄 ' + pageBytesList.length + 'ページ分をダウンロードします','');
+    await downloadMultiplePages(pageBytesList, baseName);
   }
 
-  for(const item of filledItems){if(item.code1||item.code2)addToHistory(item);}
+  for (const item of filledItems) {
+    if (item.code1 || item.code2) addToHistory(item);
+  }
   renderRecentList();
-  toast('PDF作成完了 ✅','success');
+  toast('PDF作成完了 ✅', 'success');
 }
 
 // ─── TOAST ───
