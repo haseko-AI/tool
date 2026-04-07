@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v2.07</title>
+<title>事務用品 注文シート v2.08</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -274,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v2.07</div>
+    <div class="app-subtitle">ナビリオン v2.08</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -875,11 +875,35 @@ function onNameInput(i){
 }
 
 function clearRow(i){
-  ['ODNO_1_','ODNO_2_','ODSU_1_','ODNA_1_','ODPR_1_'].forEach(f=>{
-    const el=document.getElementById(f+i); if(!el)return;
-    el.value=''; el.classList.remove('name-autofilled','user-edited'); delete el.dataset.autoCode;
-  });
-  syncToCard(i);
+  const name = document.getElementById('ODNA_1_'+i)?.value?.trim();
+  const code1 = document.getElementById('ODNO_1_'+i)?.value?.trim();
+  const code2 = document.getElementById('ODNO_2_'+i)?.value?.trim();
+  const label = name || (code1 && code2 ? code1+'-'+code2 : '');
+  if (label && !confirm(`「${label}」を削除しますか？`)) return;
+  _clearRowData(i);
+}
+function _clearRowData(i){
+  // 下の行を上にずらす
+  for (let j = i; j < totalRows; j++) {
+    const next = j + 1;
+    const fields = ['ODNO_1_','ODNO_2_','ODSU_1_','ODNA_1_','ODPR_1_'];
+    fields.forEach(f => {
+      const cur  = document.getElementById(f+j);
+      const nxt  = document.getElementById(f+next);
+      if (!cur) return;
+      if (nxt) {
+        cur.value = nxt.value;
+        cur.className = nxt.className;
+        if (nxt.dataset.autoCode) cur.dataset.autoCode = nxt.dataset.autoCode;
+        else delete cur.dataset.autoCode;
+      } else {
+        cur.value = '';
+        cur.classList.remove('name-autofilled','user-edited');
+        delete cur.dataset.autoCode;
+      }
+    });
+    syncToCard(j);
+  }
   onItemChange();
 }
 function clearAllItems(){for(let i=1;i<=totalRows;i++)clearRow(i);}
@@ -952,8 +976,16 @@ function addToHistory(item){
   const hist=getHistory(); const today=new Date().toISOString().slice(0,10);
   const code=item.code1.padStart(3,'0')+'-'+item.code2.padStart(4,'0');
   const idx=hist.findIndex(p=>p.code===code);
-  if(idx>=0){hist[idx].name=item.name;hist[idx].price=item.price;(hist[idx].orders=hist[idx].orders||[]).push({date:today,qty:item.qty});}
-  else{hist.push({code,code1:item.code1,code2:item.code2,name:item.name,price:item.price,orders:[{date:today,qty:item.qty}]});}
+  if(idx>=0){
+    hist[idx].name=item.name; hist[idx].price=item.price;
+    const orders = hist[idx].orders = hist[idx].orders||[];
+    // 同じ日のカウントは1回だけ
+    const alreadyToday = orders.some(o=>o.date===today);
+    if(!alreadyToday) orders.push({date:today,qty:item.qty});
+    else orders[orders.length-1].qty = item.qty; // 数量だけ更新
+  } else {
+    hist.push({code,code1:item.code1,code2:item.code2,name:item.name,price:item.price,orders:[{date:today,qty:item.qty}]});
+  }
   saveHistory(hist);
 }
 
@@ -1068,7 +1100,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v2.07 ───
+// ─── PDF書き込み v2.08 ───
 // 月報と完全に同じ方式：
 // 1. ipaexg.ttf + fontkit でAPを生成（updateAppearances）
 // 2. form.flatten() でページに焼き付け（WinAnsiエラーはcatchで無視）
@@ -1126,7 +1158,10 @@ async function downloadPDF(){
   const btn    = document.getElementById('downloadBtn');
   const btnTop = document.getElementById('downloadBtnTop');
   [btn,btnTop].forEach(b=>{if(b){b.disabled=true;}});
-  btn.textContent='⏳ 作成中...';if(btnTop)btnTop.textContent='⏳';
+  btn.textContent='⏳ 作成中...';
+  if(btnTop){btnTop.disabled=true;btnTop.textContent='⏳';}
+  // サイドバーのPDFボタンにも作成中を表示
+  const origBtnHtml = btn.innerHTML;
   try{await generateAndDownload();}
   catch(err){console.error(err);toast('PDF作成エラー：'+(err?.message||String(err)),'error');}
   btn.disabled=false;btn.innerHTML='⬇ PDF作成・ダウンロード';
