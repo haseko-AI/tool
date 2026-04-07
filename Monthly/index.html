@@ -406,7 +406,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.51</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.52</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -1188,9 +1188,8 @@ function buildCommentLines(){
   if(!container) return;
   container.innerHTML='';
   for(let i=1;i<=COMMENT_LINES;i++){
-    const isMob = document.body.classList.contains('is-mobile');
     const wrap=document.createElement('div');
-    wrap.className='comment-line-wrap' + (isMob && i>1 ? ' hidden-line' : '');
+    wrap.className='comment-line-wrap' + (i>1 ? ' hidden-line' : '');
     const input=document.createElement('input');
     input.type='text'; input.id=`Comment_${i}`; input.className='fi comment-line';
     input.maxLength=COMMENT_COLS;
