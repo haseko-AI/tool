@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.79</title>
+<title>事務用品 注文シート v1.80</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -274,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.79</div>
+    <div class="app-subtitle">ナビリオン v1.80</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1068,7 +1068,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.79 ───
+// ─── PDF書き込み v1.80 ───
 // 月報と完全に同じ方式：
 // ipaexg.ttf + fontkit + updateAppearances(ipaFont)
 // 数字フィールドはHelvetica、日本語はipaFont
@@ -1274,9 +1274,20 @@ async function generateAndDownload(){
           try {
             const field    = form.getTextField(name);
             const useFont  = NUMERIC_FIELDS.has(name) ? helveticaFont : ipaFont;
+            // Combフィールドの場合、setAlignmentでQ値を保持
+            try {
+              const ffObj = annot.get(PDFName.of('Ff'));
+              const ff = ffObj && ffObj.asNumber ? ffObj.asNumber() : 0;
+              const isComb = (ff & 16777216) !== 0;
+              const qObj = annot.get(PDFName.of('Q'));
+              const q = qObj && qObj.asNumber ? qObj.asNumber() : 0;
+              if (q === 2) field.setAlignment(PDFLib.TextAlignment.Right);
+              else if (q === 1) field.setAlignment(PDFLib.TextAlignment.Center);
+            } catch(e2) {}
             field.updateAppearances(useFont);
           } catch(e) {
             console.warn('AP生成スキップ:', name, e.message);
+            // エラーでもV値は書き込み済みなのでNeedAppearancesで表示される
           }
         }
       } catch(e) {
