@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.89</title>
+<title>事務用品 注文シート v1.90</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -273,7 +273,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.89</div>
+    <div class="app-subtitle">ナビリオン v1.90</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1067,13 +1067,10 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.89 ───
-// 新PDFは桁ごとに分割済みフィールド！
-// ODNO_101-100(百の位) ODNO_101-10(十の位) ODNO_101-1(一の位)
-// ODNO_201-1000〜-1（4桁）
-// ODSU_101-100〜-1（3桁）
-// 全フィールドCombなし・Helvetica → 1文字ずつ書いてNeedAppearancesでOK
-// fontkit/ipaexg不要！PC・スマホ共通で動く！
+// ─── PDF書き込み v1.90 ───
+// v1.90方式（PC完璧動作）に戻す
+// 分割フィールド(ODNO-100/-10/-1等)に対応
+// V値 + AP削除 + NeedAppearances=true + Printフラグ(F=4)
 
 function toUtf16Hex(str) {
   if (!str) return '';
@@ -1117,90 +1114,6 @@ async function downloadPDF(){
   if(btnTop){btnTop.disabled=false;btnTop.innerHTML='⬇ PDF';}
 }
 
-// 数値を桁ごとに分解してフィールドに書き込む
-// zeroFill=true  → 値がある時は0埋め（商品コード用）
-// zeroFill=false → 値がある時は先頭0省略（数量用）
-function writeDigits(fm, baseName, value, places, zeroFill, pdfDoc, helveticaRef) {
-  const str = String(value || '').replace(/\D/g, '');
-  if (!str) {
-    // 値なし → 全桁空白
-    for (const place of places) {
-      const obj = fm.get(baseName + '-' + place);
-      if (obj) writeField(obj, '', pdfDoc, helveticaRef);
-    }
-    return;
-  }
-  const padded = str.padStart(places.length, '0'); // 右詰めゼロ埋め
-  places.forEach((place, idx) => {
-    const obj = fm.get(baseName + '-' + place);
-    if (!obj) return;
-    const ch = padded[idx];
-    if (zeroFill) {
-      // 商品コード：値があれば0も含めて全桁表示
-      writeField(obj, ch, pdfDoc, helveticaRef);
-    } else {
-      // 数量：先頭ゼロは空白
-      const isLeadingZero = padded.slice(0, idx+1).match(/^0+$/) && idx < places.length - 1;
-      writeField(obj, isLeadingZero ? '' : ch, pdfDoc, helveticaRef);
-    }
-  });
-}
-
-function writeField(obj, str, pdfDoc, helveticaRef) {
-  const {PDFName, PDFHexString, PDFNumber} = PDFLib;
-  // Printフラグ確実ON
-  obj.set(PDFName.of('F'), PDFNumber.of(4));
-  // V値をUTF-16BEで書き込み
-  obj.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(str)));
-
-  if (str && pdfDoc && helveticaRef) {
-    // APストリームを自前生成（スマホ印刷対応）
-    try {
-      const rectObj = obj.get(PDFName.of('Rect'));
-      if (rectObj && rectObj.size) {
-        let x1=rectObj.get(0).asNumber(), y1=rectObj.get(1).asNumber();
-        let x2=rectObj.get(2).asNumber(), y2=rectObj.get(3).asNumber();
-        if(x1>x2)[x1,x2]=[x2,x1]; if(y1>y2)[y1,y2]=[y2,y1];
-        const w=x2-x1, h=y2-y1;
-        // DAからフォントサイズ取得
-        const daObj = obj.get(PDFName.of('DA'));
-        const daStr = daObj ? (daObj.decodeText ? daObj.decodeText() : String(daObj)) : '';
-        const fsM   = daStr.match(/(\d+\.?\d*)\s+Tf/);
-        const fs    = fsM ? parseFloat(fsM[1]) : 14;
-        const ty    = Math.max(1, (h - fs) / 2);
-        // 中央配置
-        const charW = fs * 0.55;
-        const tx    = Math.max(1, (w - charW) / 2);
-        const apStr = `/Tx BMC
-q
-0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n
-` +
-          `BT
-/Helv ${fs} Tf
-0 g
-${tx.toFixed(2)} ${ty.toFixed(2)} Td
-` +
-          `(${str.replace(/[()\\]/g, c=>'\\'+c)}) Tj
-ET
-Q
-EMC`;
-        const apBytes = new TextEncoder().encode(apStr);
-        const apDict  = pdfDoc.context.obj({
-          Type: PDFName.of('XObject'), Subtype: PDFName.of('Form'),
-          FormType: PDFNumber.of(1), BBox: pdfDoc.context.obj([0,0,w,h]),
-          Resources: pdfDoc.context.obj({ Font: pdfDoc.context.obj({ Helv: helveticaRef }) }),
-        });
-        const apRef = pdfDoc.context.register(pdfDoc.context.stream(apBytes, apDict.dict));
-        obj.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef}));
-      }
-    } catch(e) {
-      obj.delete(PDFName.of('AP'));
-    }
-  } else {
-    obj.delete(PDFName.of('AP'));
-  }
-}
-
 async function generateAndDownload(){
   const {PDFDocument, PDFName, PDFBool, PDFHexString, PDFNumber} = PDFLib;
   const ord = parseDateField('ORD');
@@ -1220,21 +1133,14 @@ async function generateAndDownload(){
   for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
     const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption:true});
 
-    // Helveticaを埋め込んでAPストリーム用参照を取得
-    let helveticaRef = null;
-    try {
-      const hFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-      helveticaRef = hFont.ref;
-    } catch(e) {}
-
-    // NeedAppearances=true（PC・スマホ共通のフォールバック）
+    // NeedAppearances=true
     try {
       const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
       const acroForm    = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
       if (acroForm) acroForm.set(PDFName.of('NeedAppearances'), PDFBool.True);
     } catch(e) {}
 
-    // 低レベルでフィールドマップを構築
+    // 低レベルフィールドマップ構築
     const fm = new Map();
     const collect = (arr) => {
       if (!arr) return;
@@ -1262,19 +1168,42 @@ async function generateAndDownload(){
       if (fieldsArr) collect(fieldsArr);
     } catch(e) {}
 
+    // フィールドに1文字書き込む（v1.90方式：AP削除+V値+Printフラグ）
     const wf = (name, val) => {
       const obj = fm.get(name);
-      if (obj) writeField(obj, String(val || ''), pdfDoc, helveticaRef);
+      if (!obj) return;
+      obj.set(PDFName.of('F'), PDFNumber.of(4));  // Printフラグ
+      obj.delete(PDFName.of('AP'));                // AP削除
+      obj.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(String(val || ''))));
     };
 
-    // 注文日・配送日・枚数（通常フィールド）
-    const ord2 = parseDateField('ORD');
-    const dlv2 = parseDateField('DLV');
-    wf('ORD_Year', ord2.y); wf('ORD_Month', ord2.m); wf('ORD_Day', ord2.d);
-    wf('DLV_Year', dlv2.y); wf('DLV_Month', dlv2.m); wf('DLV_Day', dlv2.d);
-    wf('NUM_Page', String(pageIdx+1)); wf('NUM_All', String(totalPages));
+    // 桁分割フィールドに書き込む
+    // zeroFill=true: 商品コード（値あり→0埋め全桁）
+    // zeroFill=false: 数量（先頭0省略）
+    const writeDigits = (baseName, value, places, zeroFill) => {
+      const str = String(value || '').replace(/[^0-9]/g, '');
+      if (!str) {
+        // 値なし → 全桁空白
+        places.forEach(p => wf(baseName + '-' + p, ''));
+        return;
+      }
+      const padded = str.padStart(places.length, '0');
+      places.forEach((place, idx) => {
+        const ch = padded[idx];
+        if (zeroFill) {
+          wf(baseName + '-' + place, ch);
+        } else {
+          // 数量：先頭の連続する0は空白
+          const isLeading = idx < places.length - 1 && /^0+$/.test(padded.slice(0, idx + 1));
+          wf(baseName + '-' + place, isLeading ? '' : ch);
+        }
+      });
+    };
 
-    // 送信者情報（通常フィールド）
+    // 共通フィールド書き込み
+    wf('ORD_Year', ord.y); wf('ORD_Month', ord.m); wf('ORD_Day', ord.d);
+    wf('DLV_Year', dlv.y); wf('DLV_Month', dlv.m); wf('DLV_Day', dlv.d);
+    wf('NUM_Page', String(pageIdx+1)); wf('NUM_All', String(totalPages));
     wf('ID_No',    getLoginIdForPdf());
     wf('ID_Name',  document.getElementById('ID_Name').value.trim());
     wf('ID_Code',  document.getElementById('ID_Code').value.trim());
@@ -1293,19 +1222,11 @@ async function generateAndDownload(){
       const item = pageItems[i-1] || {};
       const c1   = item.code1 ? item.code1.padStart(3,'0') : '';
       const c2   = item.code2 ? item.code2.padStart(4,'0') : '';
-      const qty  = item.qty   || '';
-      const price= item.price || '';
-
-      // 商品コード前3桁：百・十・一の位（0埋め）
-      writeDigits(fm, 'ODNO_1'+s, c1, [100, 10, 1], true, pdfDoc, helveticaRef);
-      // 商品コード後4桁：千・百・十・一の位（0埋め）
-      writeDigits(fm, 'ODNO_2'+s, c2, [1000, 100, 10, 1], true, pdfDoc, helveticaRef);
-      // 数量：百・十・一の位（先頭0省略）
-      writeDigits(fm, 'ODSU_1'+s, qty, [100, 10, 1], false, pdfDoc, helveticaRef);
-      // 商品名（通常フィールド）
-      wf('ODNA_1'+s, item.name || '');
-      // 価格（通常フィールド・元のCombのまま）
-      wf('ODPR_1'+s, price);
+      writeDigits('ODNO_1'+s, c1, [100,10,1],       true);   // 商品コード前3桁（0埋め）
+      writeDigits('ODNO_2'+s, c2, [1000,100,10,1],  true);   // 商品コード後4桁（0埋め）
+      writeDigits('ODSU_1'+s, item.qty||'', [100,10,1], false); // 数量（先頭0省略）
+      wf('ODNA_1'+s, item.name||'');
+      wf('ODPR_1'+s, item.price||'');
     }
 
     const bytes = await pdfDoc.save({updateFieldAppearances: false});
