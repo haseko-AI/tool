@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.94</title>
+<title>事務用品 注文シート v1.95</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -274,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.94</div>
+    <div class="app-subtitle">ナビリオン v1.95</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1068,8 +1068,8 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.94 ───
-// v1.94方式（PC完璧動作）に戻す
+// ─── PDF書き込み v1.95 ───
+// v1.95方式（PC完璧動作）に戻す
 // 分割フィールド(ODNO-100/-10/-1等)に対応
 // V値 + AP削除 + NeedAppearances=true + Printフラグ(F=4)
 
@@ -1197,22 +1197,34 @@ async function generateAndDownload(){
     }
 
     // フィールドに書き込む（PC: AP削除+NeedAppearances / スマホ: AP自前生成）
+    // Kids持ちフィールドはウィジェット(Kids[0])にも処理が必要
+    const getWidget = (obj) => {
+      const kids = obj.get(PDFName.of('Kids'));
+      if (kids && kids.size && kids.size() > 0) {
+        try { return pdfDoc.context.lookup(kids.get(0)); } catch(e) {}
+      }
+      return null; // Kidsなし→自分自身がウィジェット
+    };
+
     const wf = (name, val) => {
       const obj = fm.get(name);
       if (!obj) return;
       const str = String(val || '');
       obj.set(PDFName.of('F'), PDFNumber.of(4));
       obj.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(str)));
+      // ウィジェットを取得（KidsがあればKids[0]、なければobj自身）
+      const widget = getWidget(obj) || obj;
+      widget.set(PDFName.of('F'), PDFNumber.of(4));
       if (isMobile && str) {
         // スマホ：APストリームを自前生成
         try {
-          const rectObj = obj.get(PDFName.of('Rect'));
+          const rectObj = widget.get(PDFName.of('Rect')) || obj.get(PDFName.of('Rect'));
           if (rectObj && rectObj.size) {
             let x1=rectObj.get(0).asNumber(), y1=rectObj.get(1).asNumber();
             let x2=rectObj.get(2).asNumber(), y2=rectObj.get(3).asNumber();
             if(x1>x2)[x1,x2]=[x2,x1]; if(y1>y2)[y1,y2]=[y2,y1];
             const w=x2-x1, h=y2-y1;
-            const daObj = obj.get(PDFName.of('DA'));
+            const daObj = obj.get(PDFName.of('DA')) || widget.get(PDFName.of('DA'));
             const daStr = daObj ? (daObj.decodeText ? daObj.decodeText() : String(daObj)) : '';
             const fsM = daStr.match(/(\d+\.?\d*)\s+Tf/);
             const fs  = fsM ? parseFloat(fsM[1]) : 14;
@@ -1263,11 +1275,14 @@ EMC`;
               Resources: pdfDoc.context.obj({ Font: pdfDoc.context.obj({ [fontKey]: fontRef }) }),
             });
             const apRef2 = pdfDoc.context.register(pdfDoc.context.stream(apBytes, apDict.dict));
-            obj.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef2}));
-          } else { obj.delete(PDFName.of('AP')); }
-        } catch(e) { obj.delete(PDFName.of('AP')); }
+            // Kidsがある場合はウィジェットにAPを設定
+            widget.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef2}));
+            if (widget !== obj) obj.delete(PDFName.of('AP'));
+          } else { widget.delete(PDFName.of('AP')); }
+        } catch(e) { widget.delete(PDFName.of('AP')); }
       } else {
-        obj.delete(PDFName.of('AP'));  // PC: NeedAppearancesに任せる
+        widget.delete(PDFName.of('AP'));  // PC: NeedAppearancesに任せる
+        obj.delete(PDFName.of('AP'));
       }
     };
 
