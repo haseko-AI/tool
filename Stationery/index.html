@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.80</title>
+<title>事務用品 注文シート v1.81</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -274,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.80</div>
+    <div class="app-subtitle">ナビリオン v1.81</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1068,7 +1068,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.80 ───
+// ─── PDF書き込み v1.81 ───
 // 月報と完全に同じ方式：
 // ipaexg.ttf + fontkit + updateAppearances(ipaFont)
 // 数字フィールドはHelvetica、日本語はipaFont
@@ -1247,11 +1247,51 @@ async function generateAndDownload(){
       allFields['ODPR_1'+s]=item.price||'';
     }
 
-    // 月報と同じフィールド書き込み処理
+    // ハイブリッド方式フィールド書き込み
+    // Combフィールド → 自前APストリーム生成（均等表示維持）
+    // 非Combフィールド → updateAppearances(ipaFont)（月報方式・印刷OK）
+    const COMB_BIT = 16777216;
+
+    // 自前CombAP生成（v1.71実績済み）
+    function makeCombAP(value, w, h, fs, maxLen) {
+      const actualFs = fs > 0 ? fs : Math.max(6, Math.floor(h * 0.6));
+      const cellW = w / maxLen;
+      const ty = Math.max(1, (h - actualFs) / 2);
+      const padded = String(value).padStart(maxLen, ' ');
+      let textOps = '';
+      for (let ci = 0; ci < maxLen; ci++) {
+        const ch = padded[ci];
+        if (ch && ch !== ' ') {
+          const cx = cellW * ci + (cellW - actualFs * 0.5) / 2;
+          textOps += `${cx.toFixed(2)} ${ty.toFixed(2)} Td
+`;
+          textOps += `(${ch.replace(/[()\\]/g, c => '\\' + c)}) Tj
+`;
+          textOps += `${(-cx).toFixed(2)} ${(-ty).toFixed(2)} Td
+`;
+        }
+      }
+      const stream = `/Tx BMC
+q
+0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n
+BT
+/Helv ${actualFs} Tf
+0 g
+` + textOps + `ET
+Q
+EMC`;
+      const bytes = new TextEncoder().encode(stream);
+      const apDict = pdfDoc.context.obj({
+        Type: PDFName.of('XObject'), Subtype: PDFName.of('Form'),
+        FormType: PDFNumber.of(1), BBox: pdfDoc.context.obj([0, 0, w, h]),
+      });
+      return pdfDoc.context.stream(bytes, apDict.dict);
+    }
+
     const f = (name, val) => {
       try {
-        const str    = String(val || '');
-        const entry  = fieldMap.get(name);
+        const str   = String(val || '');
+        const entry = fieldMap.get(name);
         if (!entry) return;
         const annot  = entry.obj;
         const origDA = entry.da || '';
@@ -1259,35 +1299,46 @@ async function generateAndDownload(){
         // Printフラグ確実ON（月報の核心！）
         annot.set(PDFName.of('F'), PDFNumber.of(4));
 
-        // DAからフォントサイズ取得
+        // CombフラグとDAフォント情報を取得
+        const ffObj  = annot.get(PDFName.of('Ff'));
+        const ff     = ffObj && ffObj.asNumber ? ffObj.asNumber() : 0;
+        const isComb = (ff & COMB_BIT) !== 0;
         const sizeMatch = origDA.match(/(\d+\.?\d*)\s+Tf/);
         const fontSize  = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
+        const mlObj  = annot.get(PDFName.of('MaxLen'));
+        const maxLen = mlObj && mlObj.asNumber ? mlObj.asNumber() : 1;
 
-        // APを削除（updateAppearancesで再生成）
-        annot.delete(PDFName.of('AP'));
+        // V値をUTF-16BE HexStringで書き込み
+        annot.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(str)));
 
-        if (str !== '') {
-          // V値をUTF-16BE HexStringで書き込み
-          annot.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(str)));
-
-          // updateAppearances（月報と同じ）
-          try {
-            const field    = form.getTextField(name);
-            const useFont  = NUMERIC_FIELDS.has(name) ? helveticaFont : ipaFont;
-            // Combフィールドの場合、setAlignmentでQ値を保持
+        if (isComb) {
+          // Combフィールド：自前APで均等表示（updateAppearancesはCombを壊す）
+          annot.delete(PDFName.of('AP'));
+          if (str) {
             try {
-              const ffObj = annot.get(PDFName.of('Ff'));
-              const ff = ffObj && ffObj.asNumber ? ffObj.asNumber() : 0;
-              const isComb = (ff & 16777216) !== 0;
-              const qObj = annot.get(PDFName.of('Q'));
-              const q = qObj && qObj.asNumber ? qObj.asNumber() : 0;
-              if (q === 2) field.setAlignment(PDFLib.TextAlignment.Right);
-              else if (q === 1) field.setAlignment(PDFLib.TextAlignment.Center);
-            } catch(e2) {}
-            field.updateAppearances(useFont);
-          } catch(e) {
-            console.warn('AP生成スキップ:', name, e.message);
-            // エラーでもV値は書き込み済みなのでNeedAppearancesで表示される
+              const rectArr = annot.lookupMaybe ? annot.lookupMaybe(PDFName.of('Rect'), PDFArray)
+                            : annot.get(PDFName.of('Rect'));
+              if (rectArr) {
+                let x1=rectArr.get(0).asNumber(), y1=rectArr.get(1).asNumber();
+                let x2=rectArr.get(2).asNumber(), y2=rectArr.get(3).asNumber();
+                if(x1>x2)[x1,x2]=[x2,x1]; if(y1>y2)[y1,y2]=[y2,y1];
+                const ap    = makeCombAP(str, x2-x1, y2-y1, fontSize, maxLen);
+                const apRef = pdfDoc.context.register(ap);
+                annot.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef}));
+              }
+            } catch(e) { console.warn('CombAP error:', name, e.message); }
+          }
+        } else {
+          // 非Combフィールド：月報方式（updateAppearances+ipaFont）
+          annot.delete(PDFName.of('AP'));
+          if (str) {
+            try {
+              const field   = form.getTextField(name);
+              const useFont = NUMERIC_FIELDS.has(name) ? helveticaFont : ipaFont;
+              field.updateAppearances(useFont);
+            } catch(e) {
+              console.warn('AP生成スキップ:', name, e.message);
+            }
           }
         }
       } catch(e) {
