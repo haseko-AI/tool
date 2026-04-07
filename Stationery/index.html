@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.92</title>
+<title>事務用品 注文シート v1.93</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -273,7 +273,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.92</div>
+    <div class="app-subtitle">ナビリオン v1.93</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1067,8 +1067,8 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.92 ───
-// v1.92方式（PC完璧動作）に戻す
+// ─── PDF書き込み v1.93 ───
+// v1.93方式（PC完璧動作）に戻す
 // 分割フィールド(ODNO-100/-10/-1等)に対応
 // V値 + AP削除 + NeedAppearances=true + Printフラグ(F=4)
 
@@ -1202,7 +1202,7 @@ async function generateAndDownload(){
             const fs  = fsM ? parseFloat(fsM[1]) : 14;
             const ty  = Math.max(1, (h - fs) / 2);
             const tx  = Math.max(1, (w - fs * 0.55) / 2);
-            const safe = str.replace(/[()\]/g, c => '\' + c);
+            const safe = str.replace(/[()\\]/g, c => '\\' + c);
             const apStr = `/Tx BMC
 q
 0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n
