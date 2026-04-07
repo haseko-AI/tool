@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.76</title>
+<title>事務用品 注文シート v1.77</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -273,7 +273,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.76</div>
+    <div class="app-subtitle">ナビリオン v1.77</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1067,7 +1067,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.76 ───
+// ─── PDF書き込み v1.77 ───
 // 方針を整理：
 // ・日本語フィールド(MSPGothic)→ APなし＋NeedAppearances=true（ビューアのMSPGothicで描画）
 // ・数字Combフィールド(Helv) → APを自前生成（均等表示）＋印刷OK
@@ -1386,19 +1386,14 @@ async function generateAndDownload(){
   const baseName = fname.replace('.pdf','') + '_'
     + ord.y + ord.m.padStart(2,'0') + ord.d.padStart(2,'0');
 
-  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  // PC・スマホ共通：そのままダウンロード
+  // SafariはPDFをプレビューするがそのまま印刷できる（月報と同じ動作）
   if (pageBytesList.length === 1) {
     const blob = new Blob([pageBytesList[0]], {type:'application/pdf'});
     const url  = URL.createObjectURL(blob);
-    if (isMobile) {
-      // スマホ：モーダルでダウンロードリンクを表示
-      showDlModal(url, baseName+'.pdf', pageBytesList[0]);
-    } else {
-      // PC：そのままダウンロード
-      const a = document.createElement('a');
-      a.href=url; a.download=baseName+'.pdf'; a.click();
-      URL.revokeObjectURL(url);
-    }
+    const a = document.createElement('a');
+    a.href=url; a.download=baseName+'.pdf'; a.click();
+    URL.revokeObjectURL(url);
   } else {
     toast('📄 ' + pageBytesList.length + 'ページ分をダウンロードします','');
     await downloadMultiplePages(pageBytesList, baseName);
@@ -1408,7 +1403,7 @@ async function generateAndDownload(){
     if (item.code1 || item.code2) addToHistory(item);
   }
   renderRecentList();
-  if (!isMobile) toast('PDF作成完了 ✅', 'success');
+  toast('PDF作成完了 ✅', 'success');
 }
 
 // ─── スマホ用ダウンロードモーダル ───
