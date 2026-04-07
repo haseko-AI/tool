@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v2.03</title>
+<title>事務用品 注文シート v2.04</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -274,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v2.03</div>
+    <div class="app-subtitle">ナビリオン v2.04</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1068,7 +1068,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v2.03 ───
+// ─── PDF書き込み v2.04 ───
 // 月報と完全に同じ方式：
 // 1. ipaexg.ttf + fontkit でAPを生成（updateAppearances）
 // 2. form.flatten() でページに焼き付け（WinAnsiエラーはcatchで無視）
@@ -1234,8 +1234,7 @@ async function generateAndDownload(){
         if (str) {
           try {
             const field    = form.getTextField(name);
-            const isNumeric = NUMERIC_FIELDS.has(name) ||
-              name.match(/ODNO_\d+-\d+|ODSU_\d+-\d+|ODPR_\d+/);
+            const isNumeric = NUMERIC_FIELDS.has(name) || name.includes('-');
             const useFont  = isNumeric ? helvFont : ipaFont;
             // Q値に応じてアライメント設定
             const q = entry.q || 0;
