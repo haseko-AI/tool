@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.86</title>
+<title>事務用品 注文シート v1.87</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -273,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.86</div>
+    <div class="app-subtitle">ナビリオン v1.87</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1067,13 +1068,22 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.86 ───
+// ─── PDF書き込み v1.87 ───
 // 方針：シンプル確実方式
 // ・V値をUTF-16BE HexStringで書き込む
 // ・APは完全削除（元のAPキャッシュを消す）
 // ・NeedAppearances=true → Acrobatが元のPDFフォント設定で再描画
 // ・Printフラグ(F=4) → 印刷時も確実に表示
 // ・fontkit/ipaexg不要（元のMSPGothic/Helveticaをそのまま使う）
+
+let _fontBytes = null;
+async function loadFont() {
+  if (_fontBytes) return _fontBytes;
+  const res = await fetch('ipaexg.ttf');
+  if (!res.ok) throw new Error('ipaexg.ttf が読み込めません');
+  _fontBytes = await res.arrayBuffer();
+  return _fontBytes;
+}
 
 function toUtf16Hex(str) {
   if (!str) return '';
@@ -1128,8 +1138,21 @@ async function generateAndDownload(){
   const filledItems = collectFilledItems();
   if (!filledItems.length) { toast('注文明細を1件以上入力してください','error'); return; }
 
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
   const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
   autoSaveProfile(); autoSaveStaff();
+
+  // スマホ用：ipaFontを事前ロード
+  let ipaFont = null, helveticaFont = null;
+  if (isMobile) {
+    try {
+      const fontBytes = await loadFont();
+      const tmpDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption:true});
+      tmpDoc.registerFontkit(fontkit);
+      ipaFont = await tmpDoc.embedFont(fontBytes);
+      helveticaFont = await tmpDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    } catch(e) { console.warn('フォントロードエラー:', e); }
+  }
 
   const commonFields = {
     ORD_Year:ord.y, ORD_Month:ord.m, ORD_Day:ord.d,
@@ -1151,13 +1174,31 @@ async function generateAndDownload(){
 
   for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
     const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption:true});
-    const {PDFDocument: _, ...rest} = PDFLib;
 
-    // AcroForm: NeedAppearances=true（元のフォント設定で再描画）
+    // スマホはipaFontを埋め込む
+    let pageIpaFont = null, pageHelvFont = null;
+    if (isMobile && ipaFont) {
+      try {
+        pdfDoc.registerFontkit(fontkit);
+        const fontBytes = await loadFont();
+        pageIpaFont  = await pdfDoc.embedFont(fontBytes);
+        pageHelvFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+      } catch(e) {}
+    }
+
+    // AcroForm設定
     try {
       const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
       const acroForm    = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
-      if (acroForm) acroForm.set(PDFName.of('NeedAppearances'), PDFBool.True);
+      if (acroForm) {
+        if (isMobile) {
+          // スマホ：APを自前生成するのでNeedAppearances不要
+          acroForm.set(PDFName.of('NeedAppearances'), PDFBool.False);
+        } else {
+          // PC：NeedAppearances=trueで元のフォント設定で再描画
+          acroForm.set(PDFName.of('NeedAppearances'), PDFBool.True);
+        }
+      }
     } catch(e) {}
 
     // 低レベルでフィールドマップを構築
@@ -1201,6 +1242,20 @@ async function generateAndDownload(){
     }
 
     // フィールドに書き込む
+    const COMB_BIT = 16777216;
+    const NUMERIC_FIELDS = new Set([
+      'ORD_Year','ORD_Month','ORD_Day','DLV_Year','DLV_Month','DLV_Day',
+      'NUM_Page','NUM_All',
+      'ODNO_101','ODNO_102','ODNO_103','ODNO_104','ODNO_105',
+      'ODNO_106','ODNO_107','ODNO_108','ODNO_109','ODNO_110',
+      'ODNO_201','ODNO_202','ODNO_203','ODNO_204','ODNO_205',
+      'ODNO_206','ODNO_207','ODNO_208','ODNO_209','ODNO_210',
+      'ODSU_101','ODSU_102','ODSU_103','ODSU_104','ODSU_105',
+      'ODSU_106','ODSU_107','ODSU_108','ODSU_109','ODSU_110',
+      'ODPR_101','ODPR_102','ODPR_103','ODPR_104','ODPR_105',
+      'ODPR_106','ODPR_107','ODPR_108','ODPR_109','ODPR_110',
+    ]);
+
     for (const [name, val] of Object.entries(allFields)) {
       const obj = fieldMap.get(name);
       if (!obj) continue;
@@ -1209,11 +1264,107 @@ async function generateAndDownload(){
       // Printフラグ確実ON
       obj.set(PDFName.of('F'), PDFNumber.of(4));
 
-      // APを完全削除（NeedAppearancesで再描画させる）
-      obj.delete(PDFName.of('AP'));
-
       // V値をUTF-16BE HexStringで書き込み
       obj.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(str)));
+
+      if (isMobile && str && pageIpaFont && pageHelvFont) {
+        // スマホ：APを自前生成（NeedAppearancesを信頼できないため）
+        try {
+          const ffObj  = obj.get(PDFName.of('Ff'));
+          const ff     = ffObj && ffObj.asNumber ? ffObj.asNumber() : 0;
+          const isComb = (ff & COMB_BIT) !== 0;
+          const daObj  = obj.get(PDFName.of('DA'));
+          const daStr  = daObj ? (daObj.decodeText ? daObj.decodeText() : String(daObj)) : '';
+          const sizeM  = daStr.match(/(\d+\.?\d*)\s+Tf/);
+          const fs     = sizeM ? parseFloat(sizeM[1]) : 10;
+          const mlObj  = obj.get(PDFName.of('MaxLen'));
+          const maxLen = mlObj && mlObj.asNumber ? mlObj.asNumber() : 1;
+          const isJp   = /MSPGothic|MSGothic/i.test(daStr);
+          const rectObj = obj.get(PDFName.of('Rect'));
+          if (rectObj && rectObj.size) {
+            let x1=rectObj.get(0).asNumber(), y1=rectObj.get(1).asNumber();
+            let x2=rectObj.get(2).asNumber(), y2=rectObj.get(3).asNumber();
+            if(x1>x2)[x1,x2]=[x2,x1]; if(y1>y2)[y1,y2]=[y2,y1];
+            const w=x2-x1, h=y2-y1;
+            const actualFs = fs > 0 ? fs : Math.max(6, Math.floor(h * 0.6));
+
+            let apStream, apFont;
+            if (isComb) {
+              // Comb数字：Helveticaで均等配置
+              apFont = pageHelvFont;
+              const cellW = w / maxLen;
+              const ty = Math.max(1, (h - actualFs) / 2);
+              const padded = str.padStart(maxLen, ' ');
+              let ops = '';
+              for (let ci=0; ci<maxLen; ci++) {
+                const ch = padded[ci];
+                if (ch && ch !== ' ') {
+                  const cx = cellW*ci + (cellW - actualFs*0.5)/2;
+                  ops += `${cx.toFixed(2)} ${ty.toFixed(2)} Td
+(${ch}) Tj
+${(-cx).toFixed(2)} ${(-ty).toFixed(2)} Td
+`;
+                }
+              }
+              apStream = `/Tx BMC
+q
+0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n
+BT
+/F1 ${actualFs} Tf
+0 g
+${ops}ET
+Q
+EMC`;
+            } else if (isJp) {
+              // 日本語：ipaFontで左寄せ
+              apFont = pageIpaFont;
+              const ty = Math.max(1, (h - actualFs) / 2);
+              const hexVal = '<' + toUtf16Hex(str) + '>';
+              apStream = `/Tx BMC
+q
+0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n
+BT
+/F1 ${actualFs} Tf
+0 g
+2 ${ty.toFixed(2)} Td
+${hexVal} Tj
+ET
+Q
+EMC`;
+            } else {
+              // 数字テキスト：Helveticaで左寄せ
+              apFont = pageHelvFont;
+              const ty = Math.max(1, (h - actualFs) / 2);
+              apStream = `/Tx BMC
+q
+0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n
+BT
+/F1 ${actualFs} Tf
+0 g
+2 ${ty.toFixed(2)} Td
+(${str}) Tj
+ET
+Q
+EMC`;
+            }
+
+            const apBytes = new TextEncoder().encode(apStream);
+            const apDict  = pdfDoc.context.obj({
+              Type: PDFName.of('XObject'), Subtype: PDFName.of('Form'),
+              FormType: PDFNumber.of(1), BBox: pdfDoc.context.obj([0,0,w,h]),
+              Resources: pdfDoc.context.obj({ Font: pdfDoc.context.obj({ F1: apFont.ref }) }),
+            });
+            const apRef = pdfDoc.context.register(pdfDoc.context.stream(apBytes, apDict.dict));
+            obj.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef}));
+          }
+        } catch(e) {
+          obj.delete(PDFName.of('AP'));
+          console.warn('mobile AP error:', name, e.message);
+        }
+      } else {
+        // PC：APを削除してNeedAppearancesに任せる
+        obj.delete(PDFName.of('AP'));
+      }
     }
 
     const bytes = await pdfDoc.save({updateFieldAppearances: false});
