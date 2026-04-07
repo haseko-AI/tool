@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.96</title>
+<title>事務用品 注文シート v1.79</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -273,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.96</div>
+    <div class="app-subtitle">ナビリオン v1.79</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1067,9 +1068,20 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.96 ───
-// v1.96完全再現：AP削除 + NeedAppearances=true + Printフラグ(F=4)のみ
-// スマホ分岐なし・fontkit不要・ipaexg不要
+// ─── PDF書き込み v1.79 ───
+// 月報と完全に同じ方式：
+// ipaexg.ttf + fontkit + updateAppearances(ipaFont)
+// 数字フィールドはHelvetica、日本語はipaFont
+// Printフラグ(F=4)を確実にON → Safariプレビューからの印刷OK
+
+let _fontBytes = null;
+async function loadFont() {
+  if (_fontBytes) return _fontBytes;
+  const res = await fetch('ipaexg.ttf');
+  if (!res.ok) throw new Error('ipaexg.ttf が読み込めません: HTTP ' + res.status);
+  _fontBytes = await res.arrayBuffer();
+  return _fontBytes;
+}
 
 function toUtf16Hex(str) {
   if (!str) return '';
@@ -1078,6 +1090,28 @@ function toUtf16Hex(str) {
     hex += str.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
   return hex;
 }
+
+// 数字・ASCII専用フィールド（Helveticaで描画）
+// それ以外（日本語含む可能性あり）はipaFontで描画
+const NUMERIC_FIELDS = new Set([
+  'ORD_Year','ORD_Month','ORD_Day',
+  'DLV_Year','DLV_Month','DLV_Day',
+  'NUM_Page','NUM_All',
+  // 商品コード前3桁
+  'ODNO_101','ODNO_102','ODNO_103','ODNO_104','ODNO_105',
+  'ODNO_106','ODNO_107','ODNO_108','ODNO_109','ODNO_110',
+  // 商品コード後4桁
+  'ODNO_201','ODNO_202','ODNO_203','ODNO_204','ODNO_205',
+  'ODNO_206','ODNO_207','ODNO_208','ODNO_209','ODNO_210',
+  // 数量
+  'ODSU_101','ODSU_102','ODSU_103','ODSU_104','ODSU_105',
+  'ODSU_106','ODSU_107','ODSU_108','ODSU_109','ODSU_110',
+  // 価格（数字のみ）
+  'ODPR_101','ODPR_102','ODPR_103','ODPR_104','ODPR_105',
+  'ODPR_106','ODPR_107','ODPR_108','ODPR_109','ODPR_110',
+  // 送信枚数
+  'NUM_Page','NUM_All',
+]);
 
 function collectFilledItems(){
   const items=[];
@@ -1114,7 +1148,8 @@ async function downloadPDF(){
 }
 
 async function generateAndDownload(){
-  const {PDFDocument, PDFName, PDFBool, PDFHexString, PDFNumber} = PDFLib;
+  const {PDFDocument, PDFName, PDFBool, PDFHexString, PDFString,
+         PDFArray, PDFNumber, StandardFonts} = PDFLib;
   const ord = parseDateField('ORD');
   const dlv = parseDateField('DLV');
 
@@ -1124,24 +1159,54 @@ async function generateAndDownload(){
   const filledItems = collectFilledItems();
   if (!filledItems.length) { toast('注文明細を1件以上入力してください','error'); return; }
 
+  // ipaexg.ttf 読み込み
+  const fontBytes = await loadFont();
+
   const totalPages = Math.max(1, Math.ceil(filledItems.length / 10));
   autoSaveProfile(); autoSaveStaff();
+
+  const commonFields = {
+    ORD_Year:ord.y, ORD_Month:ord.m, ORD_Day:ord.d,
+    DLV_Year:dlv.y, DLV_Month:dlv.m, DLV_Day:dlv.d,
+    NUM_All:String(totalPages),
+    ID_No:    getLoginIdForPdf(),
+    ID_Name:  document.getElementById('ID_Name').value.trim(),
+    ID_Code:  document.getElementById('ID_Code').value.trim(),
+    ID_Staff: document.getElementById('ID_Staff').value.trim(),
+    ID_Tel:   document.getElementById('ID_Tel').value.trim(),
+    WORK_Time:document.getElementById('WORK_Time').value.trim(),
+    BRC_Name: document.getElementById('BRC_Name').value.trim(),
+    BRC_Front:document.getElementById('BRC_Front').value.trim(),
+    BRC_Tel:  document.getElementById('BRC_Tel').value.trim(),
+    BRC_Fax:  document.getElementById('BRC_Fax').value.trim(),
+  };
 
   const pageBytesList = [];
 
   for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
     const pdfDoc = await PDFDocument.load(templateBytes.slice(), {ignoreEncryption:true});
 
-    // NeedAppearances=true
+    // 月報と同じ：fontkit登録＋ipaFont埋め込み
+    pdfDoc.registerFontkit(fontkit);
+    const ipaFont       = await pdfDoc.embedFont(fontBytes);
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const form = pdfDoc.getForm();
+
+    // AcroFormのDRにipaFontを登録（月報と同じ）
     try {
       const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
-      const acroForm    = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
-      if (acroForm) acroForm.set(PDFName.of('NeedAppearances'), PDFBool.True);
+      if (acroFormRef) {
+        const acroForm = pdfDoc.context.lookup(acroFormRef);
+        const dr       = acroForm?.lookup(PDFName.of('DR'));
+        const fontDict = dr?.lookup(PDFName.of('Font'));
+        if (fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
+        if (acroForm) acroForm.set(PDFName.of('NeedAppearances'), PDFBool.False);
+      }
     } catch(e) {}
 
-    // 低レベルフィールドマップ構築
-    const fm = new Map();
-    const collect = (arr) => {
+    // fieldMapを構築（月報と同じ低レベル方式）
+    const fieldMap = new Map();
+    const collectFieldsMap = (arr) => {
       if (!arr) return;
       for (let i = 0; i < arr.size(); i++) {
         try {
@@ -1152,74 +1217,75 @@ async function generateAndDownload(){
           if (t) {
             let name = '';
             try { name = t.decodeText(); } catch(e) { name = String(t); }
-            if (name) fm.set(name, obj);
+            const daObj = obj.get(PDFName.of('DA'));
+            let daStr = '';
+            try { daStr = daObj ? (daObj.decodeText ? daObj.decodeText() : String(daObj)) : ''; } catch(e) {}
+            if (name) fieldMap.set(name, {obj, da: daStr});
           }
           const kids = obj.get(PDFName.of('Kids'));
-          if (kids) collect(pdfDoc.context.lookup(kids));
+          if (kids) collectFieldsMap(pdfDoc.context.lookup(kids));
         } catch(e) {}
       }
     };
     try {
       const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
       const acroForm    = acroFormRef ? pdfDoc.context.lookup(acroFormRef) : null;
-      const fieldsRef   = acroForm ? acroForm.get(PDFName.of('Fields')) : null;
+      const fieldsRef   = acroForm?.get(PDFName.of('Fields'));
       const fieldsArr   = fieldsRef ? pdfDoc.context.lookup(fieldsRef) : null;
-      if (fieldsArr) collect(fieldsArr);
+      if (fieldsArr) collectFieldsMap(fieldsArr);
     } catch(e) {}
 
-    // v1.96：シンプルに書き込むだけ
-    const wf = (name, val) => {
-      const obj = fm.get(name);
-      if (!obj) return;
-      obj.set(PDFName.of('F'), PDFNumber.of(4));
-      obj.delete(PDFName.of('AP'));
-      obj.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(String(val || ''))));
-    };
-
-    const writeDigits = (baseName, value, places, zeroFill) => {
-      const str = String(value || '').replace(/[^0-9]/g, '');
-      if (!str) {
-        places.forEach(p => wf(baseName + '-' + p, ''));
-        return;
-      }
-      const padded = str.padStart(places.length, '0');
-      places.forEach((place, idx) => {
-        const ch = padded[idx];
-        if (zeroFill) {
-          wf(baseName + '-' + place, ch);
-        } else {
-          const isLeading = idx < places.length - 1 && /^0+$/.test(padded.slice(0, idx + 1));
-          wf(baseName + '-' + place, isLeading ? '' : ch);
-        }
-      });
-    };
-
-    wf('ORD_Year', ord.y); wf('ORD_Month', ord.m); wf('ORD_Day', ord.d);
-    wf('DLV_Year', dlv.y); wf('DLV_Month', dlv.m); wf('DLV_Day', dlv.d);
-    wf('NUM_Page', String(pageIdx+1)); wf('NUM_All', String(totalPages));
-    wf('ID_No',    getLoginIdForPdf());
-    wf('ID_Name',  document.getElementById('ID_Name').value.trim());
-    wf('ID_Code',  document.getElementById('ID_Code').value.trim());
-    wf('ID_Staff', document.getElementById('ID_Staff').value.trim());
-    wf('ID_Tel',   document.getElementById('ID_Tel').value.trim());
-    wf('WORK_Time',document.getElementById('WORK_Time').value.trim());
-    wf('BRC_Name', document.getElementById('BRC_Name').value.trim());
-    wf('BRC_Front',document.getElementById('BRC_Front').value.trim());
-    wf('BRC_Tel',  document.getElementById('BRC_Tel').value.trim());
-    wf('BRC_Fax',  document.getElementById('BRC_Fax').value.trim());
-
+    // 書き込む値を準備
     const pageItems = filledItems.slice(pageIdx*10,(pageIdx+1)*10);
+    const allFields = {...commonFields, NUM_Page: String(pageIdx+1)};
     for (let i=1;i<=10;i++){
-      const s    = pad2(i);
-      const item = pageItems[i-1] || {};
-      const c1   = item.code1 ? item.code1.padStart(3,'0') : '';
-      const c2   = item.code2 ? item.code2.padStart(4,'0') : '';
-      writeDigits('ODNO_1'+s, c1,       [100,10,1],      true);
-      writeDigits('ODNO_2'+s, c2,       [1000,100,10,1], true);
-      writeDigits('ODSU_1'+s, item.qty||'', [100,10,1],  false);
-      wf('ODNA_1'+s, item.name||'');
-      wf('ODPR_1'+s, item.price||'');
+      const s=pad2(i); const item=pageItems[i-1]||{};
+      allFields['ODNO_1'+s]=item.code1?item.code1.padStart(3,'0'):'';
+      allFields['ODNO_2'+s]=item.code2?item.code2.padStart(4,'0'):'';
+      allFields['ODSU_1'+s]=item.qty||'';
+      allFields['ODNA_1'+s]=item.name||'';
+      allFields['ODPR_1'+s]=item.price||'';
     }
+
+    // 月報と同じフィールド書き込み処理
+    const f = (name, val) => {
+      try {
+        const str    = String(val || '');
+        const entry  = fieldMap.get(name);
+        if (!entry) return;
+        const annot  = entry.obj;
+        const origDA = entry.da || '';
+
+        // Printフラグ確実ON（月報の核心！）
+        annot.set(PDFName.of('F'), PDFNumber.of(4));
+
+        // DAからフォントサイズ取得
+        const sizeMatch = origDA.match(/(\d+\.?\d*)\s+Tf/);
+        const fontSize  = sizeMatch ? parseFloat(sizeMatch[1]) : 10;
+
+        // APを削除（updateAppearancesで再生成）
+        annot.delete(PDFName.of('AP'));
+
+        if (str !== '') {
+          // V値をUTF-16BE HexStringで書き込み
+          annot.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(str)));
+
+          // updateAppearances（月報と同じ）
+          try {
+            const field    = form.getTextField(name);
+            const useFont  = NUMERIC_FIELDS.has(name) ? helveticaFont : ipaFont;
+            field.updateAppearances(useFont);
+          } catch(e) {
+            console.warn('AP生成スキップ:', name, e.message);
+          }
+        }
+      } catch(e) {
+        console.warn('field error:', name, e);
+      }
+    };
+
+    // 全フィールドに書き込む
+    Object.entries(allFields).forEach(([k, v]) => f(k, v));
 
     const bytes = await pdfDoc.save({updateFieldAppearances: false});
     pageBytesList.push(bytes);
