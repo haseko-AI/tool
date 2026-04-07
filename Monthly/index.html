@@ -409,7 +409,7 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
 <body>
 <header>
   <div class="status-dot"></div>
-  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.55</span></h1>
+  <h1>管理業務月報 <span style="font-size:.7rem;font-weight:400;opacity:.7;margin-left:2px;">v7.56</span></h1>
   <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
     <button onclick="changeMonthBy(-1)" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:6px;color:#fff;font-size:.9rem;font-weight:700;padding:7px 12px;cursor:pointer;">◀</button>
     <div id="header-month" onclick="document.getElementById('sel-yearmonth').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('sel-yearmonth').focus();" style="font-size:.9rem;font-weight:700;background:rgba(255,255,255,.18);border-radius:6px;padding:7px 12px;white-space:nowrap;cursor:pointer;" title="クリックで年月選択へ">─</div>
@@ -555,7 +555,8 @@ input[type="date"].date-input.empty::-webkit-inner-spin-button{
   <div class="section-body" style="display:flex;flex-direction:column;gap:14px;">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;">確認日</span>
-      <input class="fi date-input" type="date" id="KEY_Check" onchange="checkRequiredFields()">
+      <input class="fi date-input" type="date" id="KEY_Check" onchange="checkRequiredFields();checkKeyDate()">
+      <span class="meter-date-warn" id="KEY_DateWarn">⚠️ 確認日が範囲外です</span>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div class="key-row">
@@ -1077,6 +1078,20 @@ function onDatePickDay(el, containerId, rowIdx, maxCount){
 }
 
 // 必須項目チェック（未入力時にセクションヘッダーを赤くする）
+function checkKeyDate(){
+  const el = document.getElementById('KEY_Check');
+  const warnEl = document.getElementById('KEY_DateWarn');
+  if(!el || !warnEl) return;
+  if(!el.value){ el.classList.remove('invalid'); warnEl.classList.remove('show'); return; }
+  const entered = new Date(el.value);
+  const lastDay = new Date(currentADYear, currentMonth, 0);
+  const minDate = new Date(lastDay); minDate.setDate(lastDay.getDate() - 7);
+  const maxDate = new Date(currentADYear, currentMonth, 7);
+  const isInvalid = entered < minDate || entered > maxDate;
+  el.classList.toggle('invalid', isInvalid);
+  warnEl.classList.toggle('show', isInvalid);
+}
+
 function checkRequiredFields(){
   // section-cardにrequired-cardクラスを付けてsection-bodyを赤枠に
   const toggle = (headerSel, isAlert) => {
@@ -1485,6 +1500,7 @@ function loadCurrentMonth(){
   restoreDynamicRows('rep-rows', ['Rep_D','Rep_C','Rep_E','Rep_N'], 3);
   recheckCapacities();
   checkRequiredFields();
+  checkKeyDate();
 
   // 印鑑復元（今月データがあればそれを、なければ前月から引継ぎ）
   const sealSrc = current?._sealImage || prevData?._sealImage || null;
