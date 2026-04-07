@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v2.08</title>
+<title>事務用品 注文シート v2.09</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -274,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v2.08</div>
+    <div class="app-subtitle">ナビリオン v2.09</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1100,7 +1100,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v2.08 ───
+// ─── PDF書き込み v2.09 ───
 // 月報と完全に同じ方式：
 // 1. ipaexg.ttf + fontkit でAPを生成（updateAppearances）
 // 2. form.flatten() でページに焼き付け（WinAnsiエラーはcatchで無視）
@@ -1159,7 +1159,7 @@ async function downloadPDF(){
   const btnTop = document.getElementById('downloadBtnTop');
   [btn,btnTop].forEach(b=>{if(b){b.disabled=true;}});
   btn.textContent='⏳ 作成中...';
-  if(btnTop){btnTop.disabled=true;btnTop.textContent='⏳';}
+  if(btnTop){btnTop.disabled=true;btnTop.textContent='⏳ 作成中';}
   // サイドバーのPDFボタンにも作成中を表示
   const origBtnHtml = btn.innerHTML;
   try{await generateAndDownload();}
