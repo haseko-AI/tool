@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.90</title>
+<title>事務用品 注文シート v1.92</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -273,7 +273,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.90</div>
+    <div class="app-subtitle">ナビリオン v1.92</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1067,8 +1067,8 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.90 ───
-// v1.90方式（PC完璧動作）に戻す
+// ─── PDF書き込み v1.92 ───
+// v1.92方式（PC完璧動作）に戻す
 // 分割フィールド(ODNO-100/-10/-1等)に対応
 // V値 + AP削除 + NeedAppearances=true + Printフラグ(F=4)
 
@@ -1168,13 +1168,66 @@ async function generateAndDownload(){
       if (fieldsArr) collect(fieldsArr);
     } catch(e) {}
 
-    // フィールドに1文字書き込む（v1.90方式：AP削除+V値+Printフラグ）
+    // スマホ判定
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+
+    // スマホ用Helveticaを埋め込む
+    let helvRef = null;
+    if (isMobile) {
+      try {
+        const hFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+        helvRef = hFont.ref;
+      } catch(e) {}
+    }
+
+    // フィールドに書き込む（PC: AP削除+NeedAppearances / スマホ: AP自前生成）
     const wf = (name, val) => {
       const obj = fm.get(name);
       if (!obj) return;
-      obj.set(PDFName.of('F'), PDFNumber.of(4));  // Printフラグ
-      obj.delete(PDFName.of('AP'));                // AP削除
-      obj.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(String(val || ''))));
+      const str = String(val || '');
+      obj.set(PDFName.of('F'), PDFNumber.of(4));
+      obj.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(str)));
+      if (isMobile && str && helvRef) {
+        // スマホ：APストリームを自前生成（Helvetica1文字）
+        try {
+          const rectObj = obj.get(PDFName.of('Rect'));
+          if (rectObj && rectObj.size) {
+            let x1=rectObj.get(0).asNumber(), y1=rectObj.get(1).asNumber();
+            let x2=rectObj.get(2).asNumber(), y2=rectObj.get(3).asNumber();
+            if(x1>x2)[x1,x2]=[x2,x1]; if(y1>y2)[y1,y2]=[y2,y1];
+            const w=x2-x1, h=y2-y1;
+            const daObj = obj.get(PDFName.of('DA'));
+            const daStr = daObj ? (daObj.decodeText ? daObj.decodeText() : String(daObj)) : '';
+            const fsM = daStr.match(/(\d+\.?\d*)\s+Tf/);
+            const fs  = fsM ? parseFloat(fsM[1]) : 14;
+            const ty  = Math.max(1, (h - fs) / 2);
+            const tx  = Math.max(1, (w - fs * 0.55) / 2);
+            const safe = str.replace(/[()\]/g, c => '\' + c);
+            const apStr = `/Tx BMC
+q
+0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n
+` +
+              `BT
+/Helv ${fs} Tf
+0 g
+${tx.toFixed(2)} ${ty.toFixed(2)} Td
+(${safe}) Tj
+ET
+Q
+EMC`;
+            const apBytes = new TextEncoder().encode(apStr);
+            const apDict  = pdfDoc.context.obj({
+              Type: PDFName.of('XObject'), Subtype: PDFName.of('Form'),
+              FormType: PDFNumber.of(1), BBox: pdfDoc.context.obj([0,0,w,h]),
+              Resources: pdfDoc.context.obj({ Font: pdfDoc.context.obj({ Helv: helvRef }) }),
+            });
+            const apRef = pdfDoc.context.register(pdfDoc.context.stream(apBytes, apDict.dict));
+            obj.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef}));
+          } else { obj.delete(PDFName.of('AP')); }
+        } catch(e) { obj.delete(PDFName.of('AP')); }
+      } else {
+        obj.delete(PDFName.of('AP'));  // PC: NeedAppearancesに任せる
+      }
     };
 
     // 桁分割フィールドに書き込む
