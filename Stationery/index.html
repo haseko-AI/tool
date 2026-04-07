@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.99</title>
+<title>事務用品 注文シート v2.00</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -273,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.99</div>
+    <div class="app-subtitle">ナビリオン v2.00</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1067,9 +1068,18 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.99 ───
-// v1.99完全再現：AP削除 + NeedAppearances=true + Printフラグ(F=4)のみ
+// ─── PDF書き込み v2.00 ───
+// v2.00完全再現：AP削除 + NeedAppearances=true + Printフラグ(F=4)のみ
 // スマホ分岐なし・fontkit不要・ipaexg不要
+
+let _fontBytes = null;
+async function loadFont() {
+  if (_fontBytes) return _fontBytes;
+  const res = await fetch('ipaexg.ttf');
+  if (!res.ok) throw new Error('ipaexg.ttf 読み込み失敗');
+  _fontBytes = await res.arrayBuffer();
+  return _fontBytes;
+}
 
 function toUtf16Hex(str) {
   if (!str) return '';
@@ -1170,13 +1180,19 @@ async function generateAndDownload(){
     // スマホ判定
     const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
 
-    // スマホ用Helveticaを埋め込む（APストリームのリソース参照用）
-    let helvRef = null;
+    // スマホ用フォントを埋め込む
+    let helvRef = null, ipaRef = null;
     if (isMobile) {
       try {
         const hFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
         helvRef = hFont.ref;
       } catch(e) {}
+      try {
+        pdfDoc.registerFontkit(fontkit);
+        const fb = await loadFont();
+        const iFont = await pdfDoc.embedFont(fb);
+        ipaRef = iFont.ref;
+      } catch(e) { console.warn('ipaFont load error:', e); }
     }
 
     const wf = (name, val) => {
@@ -1203,7 +1219,8 @@ async function generateAndDownload(){
             const tx  = Math.max(1, (w - fs * 0.55) / 2);
             // ASCII文字のみ（Helveticaは日本語不可）
             const isAscii = str.split('').every(c => c.charCodeAt(0) < 128);
-            if (isAscii) {
+            if (isAscii && helvRef) {
+              // ASCII（数字・英字）：Helveticaで中央配置
               const safe = str.replace(/[()\\]/g, c => '\\' + c);
               const apStr = `/Tx BMC
 q
@@ -1225,8 +1242,33 @@ EMC`;
               });
               const apRef = pdfDoc.context.register(pdfDoc.context.stream(apBytes, apDict.dict));
               obj.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef}));
+            } else if (!isAscii && ipaRef) {
+              // 日本語：ipaFontでAP生成（月報と同じ方式）
+              const actualFs = fs > 0 ? fs : Math.max(6, Math.floor(h * 0.6));
+              const ty2 = Math.max(1, (h - actualFs) / 2);
+              const hexVal = '<' + toUtf16Hex(str) + '>';
+              const apStr = `/Tx BMC
+q
+0 0 ${w.toFixed(2)} ${h.toFixed(2)} re W n
+` +
+                `BT
+/IPAG ${actualFs} Tf
+0 g
+2 ${ty2.toFixed(2)} Td
+${hexVal} Tj
+ET
+Q
+EMC`;
+              const apBytes = new TextEncoder().encode(apStr);
+              const apDict  = pdfDoc.context.obj({
+                Type: PDFName.of('XObject'), Subtype: PDFName.of('Form'),
+                FormType: PDFNumber.of(1), BBox: pdfDoc.context.obj([0,0,w,h]),
+                Resources: pdfDoc.context.obj({ Font: pdfDoc.context.obj({ IPAG: ipaRef }) }),
+              });
+              const apRef = pdfDoc.context.register(pdfDoc.context.stream(apBytes, apDict.dict));
+              obj.set(PDFName.of('AP'), pdfDoc.context.obj({N: apRef}));
             } else {
-              obj.delete(PDFName.of('AP')); // 日本語はNeedAppearancesに任せる
+              obj.delete(PDFName.of('AP'));
             }
           } else { obj.delete(PDFName.of('AP')); }
         } catch(e) { obj.delete(PDFName.of('AP')); }
