@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.97</title>
+<title>事務用品 注文シート v1.98</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -273,7 +273,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.97</div>
+    <div class="app-subtitle">ナビリオン v1.98</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1067,8 +1067,8 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.97 ───
-// v1.97完全再現：AP削除 + NeedAppearances=true + Printフラグ(F=4)のみ
+// ─── PDF書き込み v1.98 ───
+// v1.98完全再現：AP削除 + NeedAppearances=true + Printフラグ(F=4)のみ
 // スマホ分岐なし・fontkit不要・ipaexg不要
 
 function toUtf16Hex(str) {
