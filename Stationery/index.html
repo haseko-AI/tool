@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v2.05</title>
+<title>事務用品 注文シート v2.05-</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -1238,6 +1238,7 @@ async function generateAndDownload(){
             const useFont  = isNumeric ? helvFont : ipaFont;
             // Q値に応じてアライメント設定
             const q = entryQ || 0;
+            console.log('field:', name, 'q:', q, 'entryQ:', entryQ);
             if (q === 2) field.setAlignment(PDFLib.TextAlignment.Right);
             else if (q === 1) field.setAlignment(PDFLib.TextAlignment.Center);
             else field.setAlignment(PDFLib.TextAlignment.Left);
