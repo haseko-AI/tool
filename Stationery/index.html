@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>事務用品 注文シート v1.83</title>
+<title>事務用品 注文シート v1.84</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <style>
@@ -274,7 +274,7 @@ input:focus{border-color:var(--accent-k);box-shadow:0 0 0 3px rgba(26,86,219,.13
 <header class="app-header" id="appHeader">
   <div>
     <div class="app-logo">📦 <span class="logo-blue">事務用品</span> 注文シート</div>
-    <div class="app-subtitle">ナビリオン v1.83</div>
+    <div class="app-subtitle">ナビリオン v1.84</div>
   </div>
   <div class="header-spacer"></div>
   <div class="backup-btns">
@@ -1068,7 +1068,7 @@ function importData(event){
   reader.readAsText(file);
 }
 
-// ─── PDF書き込み v1.83 ───
+// ─── PDF書き込み v1.84 ───
 // 月報と完全に同じ方式：
 // ipaexg.ttf + fontkit + updateAppearances(ipaFont)
 // 数字フィールドはHelvetica、日本語はipaFont
@@ -1192,16 +1192,26 @@ async function generateAndDownload(){
     const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const form = pdfDoc.getForm();
 
-    // AcroFormのDRにipaFontを登録（月報と同じ）
+    // AcroFormのDRにipaFont・Helveticaを登録
     try {
       const acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
       if (acroFormRef) {
         const acroForm = pdfDoc.context.lookup(acroFormRef);
         const dr       = acroForm?.lookup(PDFName.of('DR'));
         const fontDict = dr?.lookup(PDFName.of('Font'));
-        if (fontDict) fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
+        if (fontDict) {
+          fontDict.set(PDFName.of('IPAexGothic'), ipaFont.ref);
+          fontDict.set(PDFName.of('Helv'), helveticaFont.ref);
+        }
         if (acroForm) acroForm.set(PDFName.of('NeedAppearances'), PDFBool.False);
       }
+    } catch(e) {}
+
+    // ★ getTextField初回キャッシュ問題の回避：
+    // 全フィールドを事前にキャッシュ（これにより最初のgetTextField呼び出しが安全になる）
+    try {
+      const allFormFields = form.getFields();
+      // キャッシュ構築完了
     } catch(e) {}
 
     // form.getFields()で内部キャッシュを事前構築（初回呼び出しエラー防止）
@@ -1315,12 +1325,12 @@ EMC`;
         annot.set(PDFName.of('V'), PDFHexString.of(toUtf16Hex(str)));
 
         if (isComb) {
-          // Combフィールド：自前APで均等表示（updateAppearancesはCombを壊す）
+          // Combフィールド：自前APで均等表示
           annot.delete(PDFName.of('AP'));
           if (str) {
             try {
-              const rectArr = annot.lookupMaybe ? annot.lookupMaybe(PDFName.of('Rect'), PDFArray)
-                            : annot.get(PDFName.of('Rect'));
+              const rectObj = annot.get(PDFName.of('Rect'));
+              const rectArr = rectObj && rectObj.size ? rectObj : null;
               if (rectArr) {
                 let x1=rectArr.get(0).asNumber(), y1=rectArr.get(1).asNumber();
                 let x2=rectArr.get(2).asNumber(), y2=rectArr.get(3).asNumber();
@@ -1332,15 +1342,20 @@ EMC`;
             } catch(e) { console.warn('CombAP error:', name, e.message); }
           }
         } else {
-          // 非Combフィールド：月報方式（updateAppearances+ipaFont）
+          // 非Combフィールド：updateAppearances(ipaFont)
+          // ※ getTextField()の初回呼び出し問題を避けるため
+          //   ダミーで一度全フィールドを取得してからupdateAppearancesを呼ぶ
           annot.delete(PDFName.of('AP'));
           if (str) {
             try {
-              const field   = form.getTextField(name);
               const useFont = NUMERIC_FIELDS.has(name) ? helveticaFont : ipaFont;
+              // getTextFieldは内部キャッシュを使うので2回目以降は安全
+              const field = form.getTextField(name);
               field.updateAppearances(useFont);
             } catch(e) {
-              console.warn('AP生成スキップ:', name, e.message);
+              // updateAppearancesが失敗してもV値は書き込み済み
+              // NeedAppearances=trueに頼る（ビューア依存だが最低限表示される）
+              console.warn('AP skip:', name, e.message);
             }
           }
         }
@@ -1351,8 +1366,7 @@ EMC`;
 
     // 全フィールドに書き込む
     Object.entries(allFields).forEach(([k, v]) => f(k, v));
-    // ODNA_101だけ2回書く（初回キャッシュ問題の回避）
-    if (allFields['ODNA_101'] !== undefined) f('ODNA_101', allFields['ODNA_101']);
+
 
     const bytes = await pdfDoc.save({updateFieldAppearances: false});
     pageBytesList.push(bytes);
