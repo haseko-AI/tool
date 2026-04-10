@@ -1032,7 +1032,7 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.78</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.79</div>
     <div class="container">
         <h1 id="calendar-title"><span id="title-full">月間カレンダー</span><span id="title-short">行事カレンダー</span></h1>
         
@@ -1329,7 +1329,7 @@
                 const year = parseInt(document.getElementById('year').value);
                 const month = parseInt(document.getElementById('month').value);
                 const mansionName = document.getElementById('mansion-name').value || 'カレンダー';
-                const fileName = `calendar_${year}_${String(month + 1).padStart(2, '0')}.pdf`;
+                const fileName = `カレンダー_${year}_${String(month + 1).padStart(2, '0')}.pdf`;
 
                 // PHPに送信
                 const formData = new FormData();
@@ -1469,7 +1469,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `calendar_data_${new Date().toISOString().slice(0,10)}.json`;
+            a.download = `カレンダーデータ_${new Date().toISOString().slice(0,10)}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1780,7 +1780,11 @@
             const year = document.getElementById('year').value;
             const month = parseInt(document.getElementById('month').value);
             const title = document.getElementById('calendar-title');
-            title.innerHTML = `<span class="title-year-month">${year}年${monthNames[month]}</span>カレンダー`;
+            if (window.innerWidth <= 768) {
+                title.innerHTML = `行事カレンダー`;
+            } else {
+                title.innerHTML = `<span class="title-year-month">${year}年${monthNames[month]}</span>カレンダー`;
+            }
         }
         
         function isMobile() {
@@ -2854,7 +2858,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `calendar_${year}_${String(month + 1).padStart(2, '0')}.pdf`;
+                a.download = `カレンダー_${year}_${String(month + 1).padStart(2, '0')}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
