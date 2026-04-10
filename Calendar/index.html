@@ -4,7 +4,8 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カレンダー帳票作成</title>
+    <title>行事カレンダー</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon-calendar.svg">
     <meta name="robots" content="noindex, nofollow">
     <style>
         * {
@@ -39,6 +40,15 @@
             text-align: center;
             color: #333;
             margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            h1 #title-full { display: none; }
+            h1 #title-short { display: inline; }
+        }
+        @media (min-width: 769px) {
+            h1 #title-full { display: inline; }
+            h1 #title-short { display: none; }
         }
         
         .device-selector {
@@ -84,6 +94,7 @@
             .controls {
                 flex-wrap: nowrap;
                 gap: 20px;
+                justify-content: center;
             }
         }
         
@@ -809,7 +820,9 @@
             font-size: 22px;
             font-weight: bold;
             cursor: pointer;
-            min-width: 160px;
+            min-width: auto;
+            width: auto;
+            height: 44px;
         }
 
         .year-month-display-btn:hover {
@@ -1019,9 +1032,9 @@
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.77</div>
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.78</div>
     <div class="container">
-        <h1 id="calendar-title">月間カレンダー</h1>
+        <h1 id="calendar-title"><span id="title-full">月間カレンダー</span><span id="title-short">行事カレンダー</span></h1>
         
         <div class="controls">
 
@@ -1037,7 +1050,9 @@
             </div>
 
             <input type="text" id="mansion-name" placeholder="マンション名を入力" 
-                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 18px; width: 220px;"
+                id="mansion-name"
+                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 18px; width: 220px; transition: background 0.3s;"
+                oninput="updateMansionNameStyle(this)"
                 onchange="saveMansionName(this.value)">
             <button class="pdf-output-btn" onclick="outputToPDF()">📄 PDF出力</button>
         </div>
@@ -1275,6 +1290,16 @@
             }
         });
 
+        function updateMansionNameStyle(input) {
+            if (!input.value.trim()) {
+                input.style.backgroundColor = '#ffe0e0';
+                input.style.border = '1px solid #f44336';
+            } else {
+                input.style.backgroundColor = '';
+                input.style.border = '1px solid #ddd';
+            }
+        }
+
         // メールアドレス保存・読み込み
         function saveEmailAddress(value) {
             localStorage.setItem('sendEmail', value);
@@ -1315,6 +1340,7 @@
                 formData.append('pdf_base64', pdfBase64);
 
                 const response = await fetch('https://aidirector.shop/sendmail.php', {
+                // const response = await fetch('https://aitech-jp.com/sendmail_proxy.php', {
                     method: 'POST',
                     body: formData
                 });
@@ -1633,7 +1659,9 @@
 
         function loadMansionName() {
             const name = localStorage.getItem('mansionName') || '';
-            document.getElementById('mansion-name').value = name;
+            const input = document.getElementById('mansion-name');
+            input.value = name;
+            updateMansionNameStyle(input);
         }
 
         // 年・月の初期化
