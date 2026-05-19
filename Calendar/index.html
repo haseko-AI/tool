@@ -2,12 +2,14 @@
 <html lang="ja">
 <head>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>行事カレンダー</title>
     <link rel="icon" type="image/svg+xml" href="/favicon-calendar.svg">
     <meta name="robots" content="noindex, nofollow">
     <style>
+/* ========== SECTION: 基本スタイル ========== */
         * {
             margin: 0;
             padding: 0;
@@ -41,6 +43,10 @@
             color: #333;
             margin-bottom: 20px;
         }
+        h1.ctrl-title {
+            margin: 0;
+            line-height: 1;
+        }
 
         @media (max-width: 768px) {
             h1 #title-full { display: none; }
@@ -50,61 +56,162 @@
             h1 #title-full { display: inline; }
             h1 #title-short { display: none; }
         }
-        
-        .device-selector {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .device-btn {
-            padding: 10px 20px;
-            border: 2px solid #ddd;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .device-btn:hover {
-            border-color: #2196F3;
-            background: #f0f8ff;
-        }
-        
-        .device-btn.active {
-            border-color: #2196F3;
-            background: #2196F3;
-            color: white;
-            font-weight: bold;
-        }
+/* ========== /SECTION: 基本スタイル ========== */
 
-        .controls {
+/* ========== SECTION: コントロールエリア ========== */
+        /* ===== 月カラー帯（PC/SP共通sticky） ===== */
+        .header-row1 {
+            position: sticky;
+            top: 0;
+            z-index: 500;
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            justify-content: center;
             align-items: center;
-            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            padding: 8px 20px;
+            background: var(--month-grad, #2196F3);
+            transition: background 0.4s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
 
-        @media (min-width: 769px) {
-            .controls {
-                flex-wrap: nowrap;
-                gap: 20px;
-                justify-content: center;
-            }
+        /* ===== ツールバー行（PC sticky / SP 非固定） ===== */
+        .header-row2 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 8px 20px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
         }
-        
+
+        /* タイトル（PCのみ） */
+        #calendar-title {
+            font-size: 22px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        /* ナビボタン */
+        .nav-btn {
+            padding: 6px 14px;
+            background: rgba(255,255,255,0.25);
+            color: white;
+            border: 1.5px solid rgba(255,255,255,0.6);
+            border-radius: 6px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.4); }
+
+        .year-month-dropdown-wrapper { position: relative; }
+
+        /* ドロップダウンボタン：白背景・黒文字 */
+        .year-month-display-btn {
+            padding: 4px 12px;
+            background: white;
+            border: 2px solid rgba(255,255,255,0.9);
+            border-radius: 6px;
+            font-size: 19px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            height: 38px;
+            white-space: nowrap;
+        }
+        .year-month-display-btn:hover { background: #f5f5f5; }
+
+        .year-month-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 9999;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-height: 300px;
+            overflow-y: auto;
+            min-width: 160px;
+        }
+        .year-month-option { padding: 8px 16px; cursor: pointer; font-size: 16px; }
+        .year-month-option:hover { background: #f0f0f0; }
+        .year-month-option.current { background: #e8f5e9; font-weight: bold; color: #4CAF50; }
+
+        /* マンション名入力 */
+        #mansion-name {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+            transition: background 0.3s;
+        }
+
         .controls select {
             padding: 10px;
             font-size: 16px;
             border: 2px solid #ddd;
             border-radius: 4px;
         }
-        
+
+        /* ===== PC版 ===== */
+        @media (min-width: 769px) {
+            .header-row1 { padding: 10px 24px; gap: 16px; }
+            #calendar-title { font-size: 22px; }
+            .pc-only-title { display: block; }
+
+            /* PC：ツールバーをstickyに */
+            .header-row2 {
+                position: sticky;
+                top: 56px; /* header-row1の高さ分下げる */
+                z-index: 490;
+                flex-wrap: nowrap;
+                gap: 10px;
+            }
+
+            /* PCでsp-row3・sp-row4をフラット横並び */
+            .sp-row3, .sp-row4 { display: contents; }
+
+            /* マンション名：15文字分（約240px）確保 */
+            #mansion-name { width: 240px; flex-shrink: 0; }
+        }
+
+        /* ===== SP版 ===== */
+        @media (max-width: 768px) {
+            .header-row1 { padding: 6px 10px; gap: 8px; }
+            .pc-only-title { display: none !important; }
+            .year-month-display-btn { font-size: 16px; height: 34px; }
+
+            /* SP：ツールバーは固定しない（通常フロー） */
+            .header-row2 {
+                position: relative; /* 非固定 */
+                flex-direction: column;
+                gap: 6px;
+                padding: 8px 10px;
+            }
+
+            /* SP行3：マンション名全幅 */
+            .sp-row3 { width: 100%; }
+            #mansion-name { width: 100% !important; font-size: 16px; box-sizing: border-box; }
+
+            /* SP行4：ボタン3つ横並び */
+            .sp-row4 {
+                display: flex;
+                gap: 6px;
+                flex-wrap: nowrap;
+                justify-content: center;
+                width: 100%;
+            }
+            .sp-row4 button { flex: 1; font-size: 13px; padding: 8px 4px; }
+        }
+/* ========== /SECTION: コントロールエリア ========== */
+
+/* ========== SECTION: カレンダーセル ========== */
         .calendar {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -129,7 +236,7 @@
         
         .day-header {
             font-weight: bold;
-            margin-bottom: 2px;  /* 8px → 2px に縮小 */
+            margin-bottom: 2px;
             color: #333;
         }
         
@@ -152,17 +259,16 @@
         }
         
         .image-selector {
-            margin: 0;  /* 10px → 0 に変更 */
+            margin: 0;
         }
 
-        /* 新規追加 */
         .day-image-row {
             display: flex;
             gap: 8px;
             align-items: stretch;
         }
 
-        .day-header {  /* 上書き */
+        .day-header {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -172,13 +278,12 @@
             border-right: 2px solid #ddd;
         }
 
-        .image-selector {  /* 上書き */
+        .image-selector {
             flex: 1;
             display: flex;
             flex-direction: column;
         }
 
-        /* 画像を横並びに（入力画面） */
         .image-row {
             grid-column: 2;
             grid-row: 1;
@@ -190,7 +295,6 @@
             flex: 1;
         }
 
-        /* 画像を上に寄せる */
         .day-cell .selected-image {
             margin: 0;
             padding: 2px;
@@ -206,6 +310,25 @@
             cursor: pointer;
             font-size: 14px;
         }
+        .img-btn-wrap {
+            display: flex;
+            gap: 2px;
+            width: 100%;
+        }
+        .img-btn-wrap .select-btn {
+            flex: 1;
+        }
+        .clear-img-btn {
+            padding: 8px 10px;
+            background: #e53935;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .clear-img-btn:hover { background: #c62828; }
         
         .select-btn:hover {
             background: #45a049;
@@ -247,8 +370,6 @@
             resize: none;
         }
         
-        /* ↓↓↓ ここに追加 ↓↓↓ */
-        /* 画像とコメントを強制的に高さいっぱいに（印刷時のみ） */
         #previewContent .day-cell .image-row .image-selector,
         #previewContent .day-cell .comment-input {
             min-height: 20mm !important;
@@ -259,14 +380,16 @@
             min-height: 20mm !important;
             height: 20mm !important;
         }
+/* ========== /SECTION: カレンダーセル ========== */
 
+/* ========== SECTION: ボタン類 ========== */
         .print-btn {
             display: block;
             width: 100%;
             max-width: 300px;
             margin: 0 auto;
             padding: 15px;
-            background: #2196F3;
+            background: #1565C0;
             color: white;
             border: none;
             border-radius: 4px;
@@ -309,22 +432,6 @@
             background: #455A64;
         }
 
-        .email-send-area {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f0f4f8;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .email-input-row {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
         .send-email-btn {
             padding: 8px 16px;
             background: #1976D2;
@@ -354,82 +461,97 @@
             cursor: pointer;
             font-weight: bold;
         }
+        .pdf-output-btn:hover { background: #e55a26; }
+        /* A3ボタンは濃い青 */
+        #btnA3  { background: #1565C0; }
+        #btnA3:hover  { background: #0d47a1; }
+        #btnA3b { background: #1565C0; }
+        #btnA3b:hover { background: #0d47a1; }
+/* ========== /SECTION: ボタン類 ========== */
 
-        .pdf-output-btn:hover {
-            background: #e55a26;
-        }
-        
+/* ========== SECTION: モーダル ========== */
         .modal {
             display: none;
             position: fixed;
             z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
             background-color: rgba(0,0,0,0.5);
         }
-        
+
         .modal-content {
             background-color: white;
             margin: 5% auto;
-            padding: 20px;
             border-radius: 8px;
             width: 90%;
             max-width: 600px;
             max-height: 80vh;
-            overflow-y: auto;
+            overflow: hidden; /* 内部でスクロール管理 */
+            display: flex;
+            flex-direction: column;
         }
-        
+
+        /* モーダルのstickyヘッダー */
+        .modal-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 16px 20px 10px;
+            border-bottom: 2px solid #eee;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        /* モーダルのスクロール可能エリア */
+        .modal-body {
+            overflow-y: auto;
+            padding: 10px 20px 20px;
+            flex: 1;
+        }
+
         .close {
             color: #aaa;
-            float: right;
+            margin-left: auto;
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            line-height: 1;
         }
-        
-        .close:hover {
-            color: black;
-        }
-        
+        .close:hover { color: black; }
+
         .image-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 3px;  /* 5px → 3px にさらに縮小 */
-            margin-top: 20px;
-        }  
+            gap: 3px;
+        }
 
-        /* ↓↓↓ ここに追加 ↓↓↓ */
         .clear-image-btn {
-            width: 100%;
-            padding: 12px;
-            margin-top: 15px;
+            width: auto;
+            padding: 6px 18px;
             background: #f44336;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 20px;
             font-size: 16px;
+            font-weight: 700;
             cursor: pointer;
+            white-space: nowrap;
         }
-
-        .clear-image-btn:hover {
-            background: #d32f2f;
-        }
+        .clear-image-btn:hover { background: #d32f2f; }
 
         .image-option {
-            padding: 2px;  /* 5px → 2px にさらに縮小 */
-            border: 1px solid #ddd;  /* 2px → 1px に細く */
+            padding: 2px;
+            border: 1px solid #ddd;
             border-radius: 4px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
         }
-        
-        .image-option:hover {
-            border-color: #4CAF50;
-            background: #f0f0f0;
-        }
+        .image-option:hover { border-color: #4CAF50; background: #f0f0f0; }
+/* ========== /SECTION: モーダル ========== */
         
         .image-icon {
             font-size: 32px;
@@ -437,19 +559,20 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 50px;  /* 100px → 50px に半分 */
+            height: 50px;
         }
         
         .image-label {
             font-size: 11px;
             color: #666;
         }
-        
+/* ========== /SECTION: モーダル ========== */
+
+/* ========== SECTION: プレビュー・印刷 ========== */
         .title-year-month {
             letter-spacing: 0.3em;
         }
         
-        /* プレビューモード用スタイル */
         .preview-mode {
             position: fixed;
             top: 0;
@@ -490,32 +613,12 @@
             transition: all 0.3s;
         }
         
-        .size-btn {
-            background: #4CAF50;
-            color: white;
-        }
-        
-        .size-btn:hover {
-            background: #45a049;
-        }
-        
-        .print-execute-btn {
-            background: #2196F3;
-            color: white;
-        }
-        
-        .print-execute-btn:hover {
-            background: #0b7dda;
-        }
-        
-        .close-preview-btn {
-            background: #f44336;
-            color: white;
-        }
-        
-        .close-preview-btn:hover {
-            background: #da190b;
-        }
+        .size-btn { background: #4CAF50; color: white; }
+        .size-btn:hover { background: #45a049; }
+        .print-execute-btn { background: #2196F3; color: white; }
+        .print-execute-btn:hover { background: #0b7dda; }
+        .close-preview-btn { background: #f44336; color: white; }
+        .close-preview-btn:hover { background: #da190b; }
         
         .size-indicator {
             text-align: center;
@@ -530,24 +633,11 @@
             margin: 0 auto;
         }
         
-        /* 印刷スタイル */
         @media print {
-            /* 元のカレンダー（プレビュー外）を隠す */
-            body > .container {
-                display: none !important;
-            }
-
-            /* プレビューモードを表示 */
-            .preview-mode {
-                display: block !important;
-                position: static !important;
-            }
-
-            .preview-controls {
-                display: none !important;
-            }
+            body > .container { display: none !important; }
+            .preview-mode { display: block !important; position: static !important; }
+            .preview-controls { display: none !important; }
             
-            /* プレビュー内のコンテナを全幅に */
             #previewContent {
                 display: block !important;
                 max-width: none !important;
@@ -561,7 +651,7 @@
                 max-width: none !important;
                 width: 100% !important;
                 padding: 0 !important;
-                padding-bottom: 2mm !important;  /* 8mm → 2mm */
+                padding-bottom: 2mm !important;
                 margin: 0 !important;
             }
 
@@ -571,15 +661,11 @@
             }
 
             @page {
-                size: A3 landscape;
                 size: 420mm 297mm;
-                margin: 10mm 7mm 2mm 7mm;  /* 上だけ5mm→10mmに */ /* 上 右 下 左 */
+                margin: 10mm 7mm 2mm 7mm;
             }
             
-            body {
-                background: white;
-                padding: 0;
-            }
+            body { background: white; padding: 0; }
             
             .container {
                 box-shadow: none;
@@ -588,13 +674,8 @@
                 max-width: 100%;
             }
 
-            .device-selector,
-            .controls,
-            .print-btn,
-            .print-instruction,
-            .select-btn,
-            .modal,
-            .weekday-defaults {  /* ← ここに追加 */
+            .device-selector, .controls, .print-btn,
+            .print-instruction, .select-btn, .modal, .weekday-defaults {
                 display: none !important;
             }
 
@@ -609,9 +690,7 @@
                 gap: 5mm;
             }
 
-            .title-year-month {
-                letter-spacing: 0.3em;
-            }
+            .title-year-month { letter-spacing: 0.3em; }
 
             .calendar {
                 gap: 0mm;
@@ -623,7 +702,7 @@
 
             .day-cell {
                 border: 1px solid #333;
-                padding: 0mm;        /* 1mm → 0mm に変更 */
+                padding: 0mm;
                 background: white;
                 page-break-inside: avoid;
                 display: grid;
@@ -637,54 +716,35 @@
                 z-index: 10;
             }
 
-            .day-cell.sunday {
-                border-color: #ffb3ba;
-            }
+            .day-cell.sunday { border-color: #ffb3ba; }
             
             .day-header {
                 display: flex;
                 flex-direction: column;
-                justify-content: space-between;  /* flex-start → space-between */
+                justify-content: space-between;
                 align-items: center;
                 border-right: 1px solid #ddd;
                 padding-right: 1mm;
                 margin-right: 1mm;
-                width: 14mm;  /* 12mm → 14mm に変更 */
-                padding-top: 0;    /* ← 追加 */
-                margin-top: 0;     /* ← 追加 */
+                width: 14mm;
+                padding-top: 0;
+                margin-top: 0;
             }
 
             .day-header img {
                 display: block;
                 margin: 0;
                 padding: 0;
-                /* vertical-align: top;  ← 削除 */
                 width: 100%;
-                height: 20mm;        /* ← 高さを直接指定 */
-                object-fit: contain; /* ← 縦横比を保ちながら収める */
+                height: 20mm;
+                object-fit: contain;
                 margin-left: -1mm;
             }
 
-            .day-number {
-                font-size: 16pt;
-                font-weight: bold;
-                line-height: 1;
-            }
-            
-            .day-number.sunday {
-                color: #d32f2f;
-            }
-            
-            .day-name {
-                font-size: 8pt;
-                color: #666;
-                margin: 0;
-                line-height: 1;
-            }
-            
-            .day-name.sunday {
-                color: #d32f2f;
-            }
+            .day-number { font-size: 16pt; font-weight: bold; line-height: 1; }
+            .day-number.sunday { color: #d32f2f; }
+            .day-name { font-size: 8pt; color: #666; margin: 0; line-height: 1; }
+            .day-name.sunday { color: #d32f2f; }
             
             .image-selector {
                 grid-column: 2;
@@ -705,21 +765,18 @@
                 padding: 0;
                 margin: 0;
                 width: 100%;
-                height: 100% !important;        /* 追加 */
-                min-height: 100% !important;    /* 追加 */
+                height: 100% !important;
+                min-height: 100% !important;
             }
 
-            .selected-image:empty {
-                background: white;
-                border: none;
-            }
+            .selected-image:empty { background: white; border: none; }
             
             .comment-input {
                 grid-column: 3;
                 grid-row: 1;
                 border: 1px solid #333;
                 background: white;
-                font-size: 9.6pt;  /* 8pt × 120% */
+                font-size: 9.6pt;
                 padding: 1mm;
                 line-height: 1.3;
                 overflow: hidden;
@@ -727,28 +784,21 @@
                 margin: 0;
             }
 
-            /* 画像①コメント画像②の順に */
-            .day-cell .image-row {
-                display: contents; /* 子要素を直接配置 */
-            }
+            .day-cell .image-row { display: contents; }
 
             .day-cell .image-row .image-selector:nth-child(1) {
-                grid-column: 2; /* 画像① */
+                grid-column: 2;
                 grid-row: 1;
-                align-self: stretch; /* 追加 */
+                align-self: stretch;
             }
 
             .day-cell .image-row .image-selector:nth-child(2) {
-                grid-column: 4; /* 画像② */
+                grid-column: 4;
                 grid-row: 1;
-                align-self: stretch; /* 追加 */
+                align-self: stretch;
             }
 
-            .day-cell .comment-input {
-                grid-column: 3; /* コメント（真ん中） */
-                grid-row: 1;
-                height: 100%; /* 追加 */
-            }
+            .day-cell .comment-input { grid-column: 3; grid-row: 1; height: 100%; }
 
             .day-cell .image-row .image-selector {
                 display: flex !important;
@@ -763,23 +813,16 @@
                 height: auto !important;
             }
 
-            .comment-input::placeholder {
-                color: transparent;
-            }
+            .comment-input::placeholder { color: transparent; }
         }
-        
-        /* スマホ用のスタイル */
+/* ========== /SECTION: プレビュー・印刷 ========== */
+
+/* ========== SECTION: 年月セレクター ========== */
         @media (max-width: 768px) {
-            .calendar {
-                grid-template-columns: 1fr;
-            }
-            
-            .image-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
+            .calendar { grid-template-columns: 1fr; }
+            .image-grid { grid-template-columns: repeat(3, 1fr); }
         }
 
-        /* 年月セレクター */
         .year-month-selector {
             display: flex;
             align-items: center;
@@ -797,9 +840,7 @@
             cursor: pointer;
         }
 
-        .nav-btn:hover {
-            background: #45a049;
-        }
+        .nav-btn:hover { background: #45a049; }
 
         #year-month-display {
             font-size: 22px;
@@ -808,9 +849,7 @@
             text-align: center;
         }
 
-        .year-month-dropdown-wrapper {
-            position: relative;
-        }
+        .year-month-dropdown-wrapper { position: relative; }
 
         .year-month-display-btn {
             padding: 8px 16px;
@@ -825,9 +864,7 @@
             height: 44px;
         }
 
-        .year-month-display-btn:hover {
-            background: #f5f5f5;
-        }
+        .year-month-display-btn:hover { background: #f5f5f5; }
 
         .year-month-dropdown {
             position: absolute;
@@ -843,24 +880,12 @@
             min-width: 160px;
         }
 
-        .year-month-option {
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 16px;
-        }
+        .year-month-option { padding: 8px 16px; cursor: pointer; font-size: 16px; }
+        .year-month-option:hover { background: #f0f0f0; }
+        .year-month-option.current { background: #e8f5e9; font-weight: bold; color: #4CAF50; }
+/* ========== /SECTION: 年月セレクター ========== */
 
-        .year-month-option:hover {
-            background: #f0f0f0;
-        }
-
-        .year-month-option.current {
-            background: #e8f5e9;
-            font-weight: bold;
-            color: #4CAF50;
-        }
-
-        /* ↓↓↓ ここに追加 ↓↓↓ */
-        /* 曜日別デフォルト設定 */
+/* ========== SECTION: 曜日デフォルト設定 ========== */
         .weekday-defaults {
             margin-top: 20px;
             padding: 15px;
@@ -868,11 +893,7 @@
             border-radius: 8px;
         }
 
-        .weekday-defaults h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            color: #333;
-        }
+        .weekday-defaults h3 { margin: 0 0 10px 0; font-size: 16px; color: #333; }
 
         .weekday-grid {
             display: grid;
@@ -880,30 +901,14 @@
             gap: 10px;
         }
 
-        .weekday-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+        .weekday-item { display: flex; align-items: center; gap: 5px; }
+        .weekday-item label { min-width: 30px; font-weight: bold; }
+        .weekday-item select { flex: 1; padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
 
-        .weekday-item label {
-            min-width: 30px;
-            font-weight: bold;
-        }
-
-        .weekday-item select {
-            flex: 1;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        /* ↓↓↓ ここに追加 ↓↓↓ */
         .selected-weekday-image {
             flex: 1;
-            padding: 2px;  /* 8px → 2px */
-            background: #fffef0;  /* 薄いクリーム色 */
+            padding: 2px;
+            background: #fffef0;
             border: 1px solid #ddd;
             border-radius: 4px;
             text-align: center;
@@ -914,17 +919,9 @@
             justify-content: center;
         }
 
-        .selected-weekday-image:hover {
-            background: #fffac2;  /* 少し濃いクリーム色 */
-        }
+        .selected-weekday-image:hover { background: #fffac2; }
+        .selected-weekday-image img { max-width: 100%; max-height: 40px; object-fit: contain; }
 
-        .selected-weekday-image img {
-            max-width: 100%;
-            max-height: 40px;
-            object-fit: contain;
-        }
-
-        /* ↓↓↓ ここに追加 ↓↓↓ */
         .apply-defaults-btn {
             width: 100%;
             padding: 12px;
@@ -938,20 +935,16 @@
             cursor: pointer;
         }
 
-        .apply-defaults-btn:hover {
-            background: #45a049;
-        }
+        .apply-defaults-btn:hover { background: #45a049; }
+/* ========== /SECTION: 曜日デフォルト設定 ========== */
 
-        /* ↓↓↓ ここに追加 ↓↓↓ */
-        /* カスタム確認ダイアログ */
+/* ========== SECTION: 確認ダイアログ ========== */
         .confirm-dialog {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
             z-index: 10000;
             align-items: center;
             justify-content: center;
@@ -961,45 +954,22 @@
             background: white;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             text-align: center;
             max-width: 400px;
             animation: slideIn 0.3s ease;
         }
 
         @keyframes slideIn {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+            from { transform: translateY(-50px); opacity: 0; }
+            to   { transform: translateY(0);     opacity: 1; }
         }
 
-        .confirm-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
+        .confirm-icon { font-size: 48px; margin-bottom: 15px; }
+        .confirm-dialog-content h3 { margin: 0 0 10px 0; font-size: 20px; color: #333; }
+        .confirm-dialog-content p  { margin: 0 0 25px 0; color: #666; font-size: 16px; }
 
-        .confirm-dialog-content h3 {
-            margin: 0 0 10px 0;
-            font-size: 20px;
-            color: #333;
-        }
-
-        .confirm-dialog-content p {
-            margin: 0 0 25px 0;
-            color: #666;
-            font-size: 16px;
-        }
-
-        .confirm-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
+        .confirm-buttons { display: flex; gap: 10px; justify-content: center; }
 
         .confirm-btn {
             padding: 12px 30px;
@@ -1010,154 +980,151 @@
             transition: all 0.2s;
         }
 
-        .confirm-btn.cancel {
-            background: #e0e0e0;
-            color: #333;
-        }
-
-        .confirm-btn.cancel:hover {
-            background: #d0d0d0;
-        }
+        .confirm-btn.cancel { background: #e0e0e0; color: #333; }
+        .confirm-btn.cancel:hover { background: #d0d0d0; }
 
         .confirm-btn.ok {
-            background: #4CAF50;
+            background: #0f766e;
             color: white;
+            font-weight: 700;
+            padding: 12px 36px;
+            box-shadow: 0 3px 10px rgba(15,118,110,0.4);
+            letter-spacing: 0.03em;
         }
 
         .confirm-btn.ok:hover {
-            background: #45a049;
+            background: #0d6460;
+            box-shadow: 0 4px 14px rgba(15,118,110,0.5);
+        }
+/* ========== /SECTION: 確認ダイアログ ========== */
+
+/* ========== SECTION: メール送信エリア ========== */
+        .email-send-area {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f4f8;
+            border-radius: 8px;
+            text-align: center;
         }
 
+        .email-input-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+/* ========== /SECTION: メール送信エリア ========== */
     </style>
 </head>
 
 <body>
-    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 8.79</div>
-    <div class="container">
-        <h1 id="calendar-title"><span id="title-full">月間カレンダー</span><span id="title-short">行事カレンダー</span></h1>
-        
-        <div class="controls">
+    <div style="position: fixed; top: 8px; right: 12px; color: #bbb; font-size: 11px; z-index: 9999;">Ver 10.122</div>
 
-            <div class="year-month-selector">
-                <button class="nav-btn" onclick="changeMonth(-1)">⟨</button>
-                <div class="year-month-dropdown-wrapper">
-                    <button class="year-month-display-btn" onclick="toggleYearMonthDropdown()">
-                        <span id="year-month-display">2026年4月</span> ▼
-                    </button>
-                    <div id="year-month-dropdown" class="year-month-dropdown" style="display:none;"></div>
-                </div>
-                <button class="nav-btn" onclick="changeMonth(1)">⟩</button>
-            </div>
+    <!-- ========== sticky：月カラー帯（PC/SP共通固定） ========== -->
+    <div class="header-row1" id="header-row1">
+        <button class="nav-btn" onclick="changeMonth(-1)">⟨</button>
+        <div class="year-month-dropdown-wrapper">
+            <button class="year-month-display-btn" onclick="toggleYearMonthDropdown()">
+                <span id="year-month-display">2026年6月</span> ▼
+            </button>
+            <div id="year-month-dropdown" class="year-month-dropdown" style="display:none;"></div>
+        </div>
+        <button class="nav-btn" onclick="changeMonth(1)">⟩</button>
+        <h1 id="calendar-title" class="pc-only-title">2026年6月 カレンダー</h1>
+    </div>
+    <!-- ========== /sticky月カラー帯 ========== -->
 
-            <input type="text" id="mansion-name" placeholder="マンション名を入力" 
-                id="mansion-name"
-                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 18px; width: 220px; transition: background 0.3s;"
+    <!-- ========== PC sticky：ツールバー行（PCのみ固定） ========== -->
+    <div class="header-row2" id="header-row2">
+        <div class="sp-row3">
+            <input type="text" id="mansion-name" placeholder="マンション名を入力"
                 oninput="updateMansionNameStyle(this)"
                 onchange="saveMansionName(this.value)">
-            <button class="pdf-output-btn" onclick="outputToPDF()">📄 PDF出力</button>
         </div>
+        <div class="sp-row4">
+            <button id="colorToggleBtn" onclick="toggleColor()"
+                style="background:linear-gradient(135deg,#ff99e6,#99ffcc,#8cccff);border:none;border-radius:20px;padding:6px 16px;font-size:15px;font-weight:700;cursor:pointer;color:#ff2060;white-space:nowrap;">🎨 パステルカラー</button>
+            <button id="btnA4" class="pdf-output-btn" style="background:#2d6a4f;white-space:nowrap;" onclick="outputToPDFA4()">✂️ Ａ４×２枚</button>
+            <button id="btnA3" class="pdf-output-btn" style="white-space:nowrap;" onclick="outputToPDF()">📄 PDF出力（A3）</button>
+        </div>
+    </div>
+    <!-- ========== /PCツールバー ========== -->
 
-        <!-- 非表示にした年月セレクト（内部処理用） -->
+    <div class="container">
+
         <select id="year" style="display:none;"></select>
         <select id="month" style="display:none;">
-            <option value="0">1月</option>
-            <option value="1">2月</option>
-            <option value="2">3月</option>
-            <option value="3">4月</option>
-            <option value="4">5月</option>
-            <option value="5">6月</option>
-            <option value="6">7月</option>
-            <option value="7">8月</option>
-            <option value="8">9月</option>
-            <option value="9">10月</option>
-            <option value="10">11月</option>
-            <option value="11">12月</option>
+            <option value="0">1月</option><option value="1">2月</option>
+            <option value="2">3月</option><option value="3">4月</option>
+            <option value="4">5月</option><option value="5">6月</option>
+            <option value="6">7月</option><option value="7">8月</option>
+            <option value="8">9月</option><option value="9">10月</option>
+            <option value="10">11月</option><option value="11">12月</option>
         </select>
 
         <div id="calendar" class="calendar"></div>
-        
-        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
-            <button class="clear-all-btn" onclick="clearAllImages()">🗑️ シール全削除</button>
-            <button class="print-btn" onclick="outputToPDF()">📄 PDFダウンロード</button>
+
+        <div style="display:flex;justify-content:center;gap:10px;margin-top:20px;">
+            <button class="clear-all-btn" onclick="clearAllImages()">🗑️ ｼｰﾙ全削除</button>
+            <button id="btnA4b" class="print-btn" style="background:#2d6a4f;" onclick="outputToPDFA4()">✂️ Ａ４×２枚</button>
+            <button id="btnA3b" class="print-btn" onclick="outputToPDF()">📄 Ａ３×１枚</button>
         </div>
-            <!-- ↓↓↓ ここに追加 ↓↓↓ -->
-            <div class="weekday-defaults">
-                <h3>曜日別デフォルト設定（画像①）</h3>
-                <div class="weekday-grid">
-                    <div class="weekday-item">
-                        <label>月:</label>
-                        <div class="selected-weekday-image" id="weekday-mon-display" onclick="openWeekdayImageSelector(1)">
-                            画像選択
-                        </div>
-                    </div>
-                    <div class="weekday-item">
-                        <label>火:</label>
-                        <div class="selected-weekday-image" id="weekday-tue-display" onclick="openWeekdayImageSelector(2)">
-                            画像選択
-                        </div>
-                    </div>
-                    <div class="weekday-item">
-                        <label>水:</label>
-                        <div class="selected-weekday-image" id="weekday-wed-display" onclick="openWeekdayImageSelector(3)">
-                            画像選択
-                        </div>
-                    </div>
-                    <div class="weekday-item">
-                        <label>木:</label>
-                        <div class="selected-weekday-image" id="weekday-thu-display" onclick="openWeekdayImageSelector(4)">
-                            画像選択
-                        </div>
-                    </div>
-                    <div class="weekday-item">
-                        <label>金:</label>
-                        <div class="selected-weekday-image" id="weekday-fri-display" onclick="openWeekdayImageSelector(5)">
-                            画像選択
-                        </div>
-                    </div>
-                    <div class="weekday-item">
-                        <label>土:</label>
-                        <div class="selected-weekday-image" id="weekday-sat-display" onclick="openWeekdayImageSelector(6)">
-                            画像選択
-                        </div>
-                    </div>
-                    <div class="weekday-item">
-                        <label>日:</label>
-                        <div class="selected-weekday-image" id="weekday-mon-display" onclick="openWeekdayImageSelector(0)">
-                            画像選択
-                        </div>
-                    </div>
-                        <!-- ↓↓↓ ここに追加 ↓↓↓ -->
-                        <button class="apply-defaults-btn" onclick="applyDefaultsToCurrentMonth()">この月に適用</button>
+
+        <div class="weekday-defaults">
+            <h3>曜日別デフォルト設定（画像左）</h3>
+            <div class="weekday-grid">
+                <div class="weekday-item"><label>月:</label><div class="selected-weekday-image" id="weekday-mon-display" onclick="openWeekdayImageSelector(1)">画像選択</div></div>
+                <div class="weekday-item"><label>火:</label><div class="selected-weekday-image" id="weekday-tue-display" onclick="openWeekdayImageSelector(2)">画像選択</div></div>
+                <div class="weekday-item"><label>水:</label><div class="selected-weekday-image" id="weekday-wed-display" onclick="openWeekdayImageSelector(3)">画像選択</div></div>
+                <div class="weekday-item"><label>木:</label><div class="selected-weekday-image" id="weekday-thu-display" onclick="openWeekdayImageSelector(4)">画像選択</div></div>
+                <div class="weekday-item"><label>金:</label><div class="selected-weekday-image" id="weekday-fri-display" onclick="openWeekdayImageSelector(5)">画像選択</div></div>
+                <div class="weekday-item"><label>土:</label><div class="selected-weekday-image" id="weekday-sat-display" onclick="openWeekdayImageSelector(6)">画像選択</div></div>
+                <div class="weekday-item"><label>日:</label><div class="selected-weekday-image" id="weekday-sun-display" onclick="openWeekdayImageSelector(0)">画像選択</div></div>
+                <button class="apply-defaults-btn" onclick="applyDefaultsToCurrentMonth()">この月に適用</button>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 10px;">
+            <button class="data-download-btn" onclick="downloadData()">💾 データダウンロード</button>
+        </div>
+
+        <div class="email-send-area">
+            <div class="email-input-row">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;">
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                        <input type="radio" name="pdfSize" value="a3" checked onchange="savePdfSize(this.value)"> A3
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                        <input type="radio" name="pdfSize" value="a4" onchange="savePdfSize(this.value)"> Ａ４×２枚
+                    </label>
                 </div>
+                <input type="email" id="send-email" placeholder="送信先メールアドレス" 
+                    style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 260px;"
+                    onchange="saveEmailAddress(this.value)">
+                <button class="send-email-btn" onclick="sendPDFByEmail()">📧 PDFをメール送信</button>
             </div>
-            <div style="text-align: center; margin-top: 10px;">
-                <button class="data-download-btn" onclick="downloadData()">💾 データダウンロード</button>
-            </div>
-            <div class="email-send-area">
-                <div class="email-input-row">
-                    <input type="email" id="send-email" placeholder="送信先メールアドレス" 
-                        style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 260px;"
-                        onchange="saveEmailAddress(this.value)">
-                    <button class="send-email-btn" onclick="sendPDFByEmail()">📧 PDFをメール送信</button>
-                </div>
-            </div>
+        </div>
     </div>
 
-    
     <div id="imageModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h2>画像を選択</h2>
-            <div id="imageGrid" class="image-grid"></div>
-            <button class="clear-image-btn" onclick="clearImageSelection()">画像を解除</button>
+            <!-- stickyヘッダー -->
+            <div class="modal-header">
+                <h2 style="margin:0;font-size:18px;">画像を選択</h2>
+                <button class="clear-image-btn" onclick="clearImageSelection()">画像を解除</button>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <!-- スクロール可能エリア -->
+            <div class="modal-body" id="modalBody">
+                <div id="imageGrid" class="image-grid"></div>
+            </div>
         </div>
     </div>
     
     <div id="previewMode" class="preview-mode">
         <div class="preview-controls">
-            <div class="size-indicator">
-                セルサイズ: <span id="currentSize">22</span>mm
-            </div>
+            <div class="size-indicator">セルサイズ: <span id="currentSize">22</span>mm</div>
             <button class="size-btn" onclick="adjustSize(0.5)">＋ 大きく</button>
             <button class="size-btn" onclick="adjustSize(-0.5)">－ 小さく</button>
             <button class="print-execute-btn" onclick="executePrint()">🖨️ 印刷実行</button>
@@ -1167,101 +1134,196 @@
     </div>
 
     <script>
+/* ========== SECTION: images配列（キャッシュバスター付き） ========== */
+        // バージョンアップ時は V の値だけ変える！
+        const V = '?v=10121';
+
         const images = [
-            { icon: 'images/000.gif', label: '000' },  // ← 追加（先頭）
-            { icon: 'images/010.gif', label: '010' },
-            { icon: 'images/020.gif', label: '020' },
-            { icon: 'images/030.gif', label: '030' },
-            { icon: 'images/040.gif', label: '040' },
-            { icon: 'images/050.gif', label: '050' },
-            { icon: 'images/060.gif', label: '060' },
-            { icon: 'images/070.gif', label: '070' },
-            { icon: 'images/080.gif', label: '080' },
-            { icon: 'images/090.gif', label: '090' },
-            { icon: 'images/100.gif', label: '100' },
-            { icon: 'images/110.gif', label: '110' },
-            { icon: 'images/120.gif', label: '120' },
-            { icon: 'images/200.gif', label: '200' },
-            { icon: 'images/210.gif', label: '210' },
-            { icon: 'images/220.gif', label: '220' },
-            { icon: 'images/660.gif', label: '660' },
-            { icon: 'images/670.gif', label: '670' },
-            { icon: 'images/680.gif', label: '680' },
-            { icon: 'images/690.gif', label: '690' },
-            { icon: 'images/720.gif', label: '720' },
-            { icon: 'images/730.gif', label: '730' },
-            { icon: 'images/740.gif', label: '740' },
-            { icon: 'images/750.gif', label: '750' },
-            { icon: 'images/760.gif', label: '760' },
-            { icon: 'images/770.gif', label: '770' },
-            { icon: 'images/780.gif', label: '780' },
-            { icon: 'images/790.gif', label: '790' },
-            { icon: 'images/830.gif', label: '830' },
-            { icon: 'images/840.gif', label: '840' },
-            { icon: 'images/850.gif', label: '850' },
-            { icon: 'images/860.gif', label: '860' },
-            { icon: 'images/870.gif', label: '870' },
-            { icon: 'images/880.gif', label: '880' },
-            { icon: 'images/890.gif', label: '890' },
-            { icon: 'images/970.gif', label: '970' },
-            { icon: 'images/980.gif', label: '980' },
-            { icon: 'images/990.gif', label: '990' },
-            { icon: 'images/999.gif', label: '999' }   // ← 追加（最後）
+            // ===== ごみ・資源系 =====
+            { icon: `images/011.png${V}`, label: '可燃ごみ' },
+            { icon: `images/021.png${V}`, label: '不燃ごみ' },
+            { icon: `images/101.png${V}`, label: 'リサイクル' },
+            { icon: `images/111.png${V}`, label: '資源ごみ' },
+            { icon: `images/121.png${V}`, label: '資源' },
+            { icon: `images/131.png${V}`, label: '資源①' },
+            { icon: `images/141.png${V}`, label: '資源②' },
+            { icon: `images/201.png${V}`, label: '容器包装' },
+            { icon: `images/211.png${V}`, label: '容器包装P' },
+            { icon: `images/221.png${V}`, label: 'トレー類' },
+            { icon: `images/301.png${V}`, label: '紙製容器' },
+            { icon: `images/311.png${V}`, label: '紙・布' },
+            { icon: `images/321.png${V}`, label: 'ミックスペーパー' },
+            { icon: `images/331.png${V}`, label: '段ボール' },
+            { icon: `images/411.png${V}`, label: '古着ダンボール' },
+            { icon: `images/421.png${V}`, label: '金属ガラス' },
+            { icon: `images/431.png${V}`, label: '金属' },
+            { icon: `images/441.png${V}`, label: 'ガラス' },
+            { icon: `images/451.png${V}`, label: '色付びん' },
+            { icon: `images/461.png${V}`, label: '透明びん' },
+            { icon: `images/471.png${V}`, label: '粗大有害' },
+            { icon: `images/481.png${V}`, label: 'スプレー缶' },
+            { icon: `images/491.png${V}`, label: 'びん缶ペット' },
+            { icon: `images/501.png${V}`, label: 'プラスチック' },
+            { icon: `images/511.png${V}`, label: 'ペットボトル' },
+            { icon: `images/521.png${V}`, label: 'ゴム・プラ' },
+            { icon: `images/531.png${V}`, label: 'プラマーク' },
+            { icon: `images/541.png${V}`, label: 'その他' },
+            { icon: `images/597.png${V}`, label: '（青枠）' },
+            { icon: `images/598.png${V}`, label: '（黒枠）' },
+            { icon: `images/599.png${V}`, label: '（赤枠）' },
+            // ===== ガス系（新設） =====
+            { icon: `images/2500.png${V}`, label: 'ガス給湯器(点検)' },
+            { icon: `images/2600.png${V}`, label: 'ガス設備定期点検' },
+            { icon: `images/2700.png${V}`, label: 'ガス消費機器調査' },
+            { icon: `images/2800.png${V}`, label: 'ガス警報器(交換)' },
+            { icon: `images/2900.png${V}`, label: 'ガスガバナー室点検' },
+            // ===== 工事・作業系 =====
+            { icon: `images/3400.png${V}`, label: '停電作業' },
+            { icon: `images/3500.png${V}`, label: '断水作業' },
+            { icon: `images/3600.png${V}`, label: '交換工事' },
+            { icon: `images/3700.png${V}`, label: '補修工事' },
+            { icon: `images/3800.png${V}`, label: '点検作業' },
+            { icon: `images/3900.png${V}`, label: 'リフォーム' },
+            // ===== 建物点検系 =====
+            { icon: `images/4600.png${V}`, label: '特殊建築物 定期調査' },
+            { icon: `images/4700.png${V}`, label: '特定建築物 定期調査' },
+            { icon: `images/4800.png${V}`, label: '建築設備 定期調査' },
+            { icon: `images/4900.png${V}`, label: '建物点検' },
+            // ===== 設備点検系 =====
+            { icon: `images/5250.png${V}`, label: '設備点検' },
+            { icon: `images/5300.png${V}`, label: '排水ポンプ点検' },
+            { icon: `images/5350.png${V}`, label: '給水設備点検' },
+            { icon: `images/5400.png${V}`, label: '給水ポンプ 法定' },
+            { icon: `images/5450.png${V}`, label: '給水ポンプ' },
+            { icon: `images/5500.png${V}`, label: 'TV共聴設備 点検' },
+            { icon: `images/5550.png${V}`, label: '電気設備点検' },
+            { icon: `images/5600.png${V}`, label: '自家用変電 法定' },
+            { icon: `images/5650.png${V}`, label: '自家用変電 点検' },
+            { icon: `images/5700.png${V}`, label: '連結送水管耐圧試験' },
+            { icon: `images/5750.png${V}`, label: '防火設備 点検' },
+            { icon: `images/5800.png${V}`, label: '消防設備 総合点検' },
+            { icon: `images/5850.png${V}`, label: '消防設備 機器点検' },
+            { icon: `images/5900.png${V}`, label: '消防設備 点検' },
+            // ===== 植栽系 =====
+            { icon: `images/6700.png${V}`, label: '植栽作業 維持管理' },
+            { icon: `images/6800.png${V}`, label: '消毒作業 植栽' },
+            { icon: `images/6900.png${V}`, label: '剪定作業 植栽' },
+            // ===== 清掃・設備系 =====
+            { icon: `images/7100.png${V}`, label: '汚泥引き抜き' },
+            { icon: `images/7200.png${V}`, label: '雨水貯留槽清掃' },
+            { icon: `images/7300.png${V}`, label: '貯水槽 清掃' },
+            { icon: `images/7400.png${V}`, label: 'ディスポーザー点検' },
+            { icon: `images/7500.png${V}`, label: '屋上ドレン' },
+            { icon: `images/7600.png${V}`, label: 'ルーフバルコニー' },
+            { icon: `images/7650.png${V}`, label: '高所ガラス' },
+            { icon: `images/7700.png${V}`, label: '雑排水管 洗浄' },
+            { icon: `images/7800.png${V}`, label: '特別清掃' },
+            { icon: `images/7900.png${V}`, label: '定期清掃' },
+            // ===== 点検系 =====
+            { icon: `images/8600.png${V}`, label: '防犯カメラ点検' },
+            { icon: `images/8700.png${V}`, label: '宅配ロッカー点検' },
+            { icon: `images/8800.png${V}`, label: '自動ドア点検' },
+            { icon: `images/8900.png${V}`, label: 'エレベーター点検' },
+            // ===== 会議・訓練系 =====
+            { icon: `images/9100.png${V}`, label: '避難訓練(地震津波)' },
+            { icon: `images/9150.png${V}`, label: '避難訓練' },
+            { icon: `images/9200.png${V}`, label: '防災訓練(消火器)' },
+            { icon: `images/9250.png${V}`, label: '防災訓練(安否)' },
+            { icon: `images/9300.png${V}`, label: '防災訓練' },
+            { icon: `images/9400.png${V}`, label: '説明会' },
+            { icon: `images/9450.png${V}`, label: '委員会' },
+            { icon: `images/9500.png${V}`, label: '修繕委員会' },
+            { icon: `images/9600.png${V}`, label: '臨時総会' },
+            { icon: `images/9700.png${V}`, label: '臨時理事会' },
+            { icon: `images/9800.png${V}`, label: '定期総会' },
+            { icon: `images/9900.png${V}`, label: '理事会' },
         ];
+/* ========== /SECTION: images配列 ========== */
 
-        // ↓↓↓ ここに追加 ↓↓↓
+/* ========== SECTION: カラー設定 ========== */
         const monthColors = [
-            'rgb(223, 0, 127)',    // 1月
-            'rgb(143, 195, 31)',   // 2月
-            'rgb(251, 224, 84)',   // 3月
-            'rgb(230, 0, 18)',     // 4月
-            'rgb(187, 87, 48)',    // 5月
-            'rgb(101, 148, 46)',   // 6月
-            'rgb(0, 160, 233)',    // 7月
-            'rgb(239, 124, 0)',    // 8月
-            'rgb(68, 105, 25)',    // 9月
-            'rgb(236, 115, 158)',  // 10月
-            'rgb(255, 0, 0)',      // 11月
-            'rgb(143, 125, 184)'   // 12月
+            'rgb(223, 0, 127)',   'rgb(143, 195, 31)',  'rgb(251, 224, 84)',
+            'rgb(230, 0, 18)',    'rgb(187, 87, 48)',   'rgb(101, 148, 46)',
+            'rgb(0, 160, 233)',   'rgb(239, 124, 0)',   'rgb(68, 105, 25)',
+            'rgb(236, 115, 158)','rgb(255, 0, 0)',      'rgb(143, 125, 184)',
         ];
+        const pastelColors = [
+            'rgb(255,153,230)', 'rgb(153,255,128)', 'rgb(230,242,77)',
+            'rgb(255,153,255)', 'rgb(217,255,102)', 'rgb(153,255,204)',
+            'rgb(140,204,255)', 'rgb(255,191,128)', 'rgb(153,255,204)',
+            'rgb(153,153,255)', 'rgb(255,128,178)', 'rgb(191,128,255)',
+        ];
+        let isPastel = true;
 
+        function toggleColor() {
+            isPastel = !isPastel;
+            const btn = document.getElementById('colorToggleBtn');
+            if (isPastel) {
+                btn.textContent = '🎨 パステルカラー';
+                btn.style.background = 'linear-gradient(135deg,#ff99e6,#99ffcc,#8cccff)';
+                btn.style.color = '#ff2060';
+            } else {
+                btn.textContent = '🎨 通常カラー';
+                btn.style.background = 'linear-gradient(135deg,#df007f,#5f9430,#00a0e9)';
+                btn.style.color = '#fff';
+            }
+            applyMonthGradient();
+        }
+
+        function getMonthColor(month) {
+            return isPastel ? pastelColors[month] : monthColors[month];
+        }
+
+        // 月カラーをヘッダーに適用（通常=ベタ、パステル=グラデーション）
+        function applyMonthGradient() {
+            const month = parseInt(document.getElementById('month').value);
+            const header = document.getElementById('header-row1');
+            if (!header) return;
+            if (isPastel) {
+                // パステル：近似色グラデーション
+                const base = pastelColors[month];
+                const match = base.match(/\d+/g).map(Number);
+                // 隣月の色を混ぜてグラデーション
+                const prev = pastelColors[(month + 11) % 12].match(/\d+/g).map(Number);
+                const next = pastelColors[(month + 1) % 12].match(/\d+/g).map(Number);
+                const c1 = `rgb(${prev[0]},${prev[1]},${prev[2]})`;
+                const c2 = `rgb(${match[0]},${match[1]},${match[2]})`;
+                const c3 = `rgb(${next[0]},${next[1]},${next[2]})`;
+                header.style.background = `linear-gradient(135deg, ${c1} 0%, ${c2} 50%, ${c3} 100%)`;
+            } else {
+                // 通常：ベタ塗り
+                header.style.background = monthColors[month];
+            }
+            // CSS変数にも設定（PDF生成用）
+            document.body.style.setProperty('--month-grad', header.style.background);
+        }
+/* ========== /SECTION: カラー設定 ========== */
+
+/* ========== SECTION: 祝日・年月初期化 ========== */
         let holidaysData = {};
-
-        // ↓↓↓ ここに追加 ↓↓↓
-        // 曜日別デフォルト設定
-        let weekdayDefaults = {
-            0: null, // 日
-            1: null, // 月
-            2: null, // 火
-            3: null, // 水
-            4: null, // 木
-            5: null, // 金
-            6: null  // 土
-        };
+        let weekdayDefaults = { 0:null, 1:null, 2:null, 3:null, 4:null, 5:null, 6:null };
+        const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+        let currentDay = null;
+        let calendarData = {};
+        let allMonthData = {};
+        var monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
         function toggleYearMonthDropdown() {
             const dropdown = document.getElementById('year-month-dropdown');
             if (dropdown.style.display === 'none') {
-                // ドロップダウンを生成
                 dropdown.innerHTML = '';
-                const currentYear = parseInt(document.getElementById('year').value);
+                const currentYear  = parseInt(document.getElementById('year').value);
                 const currentMonth = parseInt(document.getElementById('month').value);
-                
                 for (let y = currentYear - 3; y <= currentYear + 5; y++) {
                     for (let m = 0; m <= 11; m++) {
                         const option = document.createElement('div');
-                        option.className = 'year-month-option';
-                        if (y === currentYear && m === currentMonth) {
-                            option.className += ' current';
-                        }
+                        option.className = 'year-month-option' + (y===currentYear && m===currentMonth ? ' current' : '');
                         option.textContent = `${y}年${monthNames[m]}`;
                         option.onclick = () => selectYearMonth(y, m);
                         dropdown.appendChild(option);
                     }
                 }
-                
                 dropdown.style.display = 'block';
-                // 現在の月までスクロール
                 const current = dropdown.querySelector('.current');
                 if (current) current.scrollIntoView({ block: 'center' });
             } else {
@@ -1272,17 +1334,12 @@
         function selectYearMonth(year, month) {
             document.getElementById('year').value = year;
             document.getElementById('month').value = month;
-            document.getElementById('year-month-display').textContent = 
-                `${year}年${monthNames[month]}`;
+            document.getElementById('year-month-display').textContent = `${year}年${monthNames[month]}`;
             document.getElementById('year-month-dropdown').style.display = 'none';
-            // 現在月を保存してから新月へ
             saveCurrentMonthData();
-            loadHolidays().then(() => {
-                initCalendar(false);
-            });
+            loadHolidays().then(() => initCalendar(false));
         }
 
-        // ドロップダウン外クリックで閉じる
         document.addEventListener('click', function(e) {
             const wrapper = document.querySelector('.year-month-dropdown-wrapper');
             if (wrapper && !wrapper.contains(e.target)) {
@@ -1300,173 +1357,443 @@
             }
         }
 
-        // メールアドレス保存・読み込み
-        function saveEmailAddress(value) {
-            localStorage.setItem('sendEmail', value);
+        function saveMansionName(value) {
+            if (value.trim() === '') localStorage.removeItem('mansionName');
+            else localStorage.setItem('mansionName', value);
         }
 
+        function loadMansionName() {
+            const saved = localStorage.getItem('mansionName') || '';
+            let profileName = '';
+            try {
+                const profile = JSON.parse(localStorage.getItem('aitechjp_profile') || '{}');
+                profileName = profile.Ma_Name || '';
+            } catch(e) {}
+            const input = document.getElementById('mansion-name');
+            input.value = saved || profileName;
+            updateMansionNameStyle(input);
+        }
+
+        function saveEmailAddress(value) { localStorage.setItem('sendEmail', value); }
         function loadEmailAddress() {
-            const email = localStorage.getItem('sendEmail') || '';
-            document.getElementById('send-email').value = email;
+            document.getElementById('send-email').value = localStorage.getItem('sendEmail') || '';
+        }
+        function savePdfSize(val) { localStorage.setItem('calendarPdfSize', val); }
+
+        async function loadHolidays() {
+            try {
+                const response = await fetch(`holidays.json${V}`);
+                const raw = await response.json();
+                if (Array.isArray(raw)) {
+                    holidaysData = {};
+                    raw.forEach(item => {
+                        if (!item.date) return;
+                        const year = parseInt(item.date.split('-')[0]);
+                        if (!holidaysData[year]) holidaysData[year] = [];
+                        const existing = holidaysData[year].find(h => h.date === item.date);
+                        if (existing) {
+                            if (item.name) existing.name = existing.name ? existing.name + '\r\n' + item.name : item.name;
+                            existing.isHoliday = existing.isHoliday || item.isHoliday;
+                        } else {
+                            holidaysData[year].push(Object.assign({}, item));
+                        }
+                    });
+                } else {
+                    holidaysData = raw;
+                }
+            } catch (error) {
+                console.error('祝日データの読み込みに失敗:', error);
+            }
         }
 
-        // PDFをメール送信
-        async function sendPDFByEmail() {
-            const email = document.getElementById('send-email').value.trim();
-            if (!email) {
-                await showConfirmDialog('❌ エラー', '送信先メールアドレスを入力してください。', false);
+        function getHolidayInfo(year, month, day) {
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            return (holidaysData[year] || []).find(h => h.date === dateStr) || null;
+        }
+
+        function getCurrentMonthKey() {
+            const year  = document.getElementById('year').value;
+            const month = String(parseInt(document.getElementById('month').value)+1).padStart(2,'0');
+            return `${year}-${month}`;
+        }
+
+        function saveCurrentMonthData() {
+            const key = getCurrentMonthKey();
+            allMonthData[key] = JSON.parse(JSON.stringify(calendarData));
+            localStorage.setItem('allMonthData', JSON.stringify(allMonthData));
+        }
+
+        function loadCurrentMonthData() {
+            const key = getCurrentMonthKey();
+            if (allMonthData[key]) {
+                calendarData = JSON.parse(JSON.stringify(allMonthData[key]));
+                return true;
+            }
+            return false;
+        }
+
+        function loadAllMonthData() {
+            const saved = localStorage.getItem('allMonthData');
+            if (saved) allMonthData = JSON.parse(saved);
+        }
+
+        function initYearMonth() {
+            const today = new Date();
+            const currentYear  = today.getFullYear();
+            const currentMonth = today.getMonth();
+            let nextMonth = currentMonth + 1;
+            let nextYear  = currentYear;
+            if (nextMonth > 11) { nextMonth = 0; nextYear++; }
+
+            const yearSelect = document.getElementById('year');
+            for (let y = currentYear - 3; y <= currentYear + 5; y++) {
+                const option = document.createElement('option');
+                option.value = y;
+                option.textContent = y + '年';
+                if (y === nextYear) option.selected = true;
+                yearSelect.appendChild(option);
+            }
+            document.getElementById('month').value = nextMonth;
+            loadMansionName();
+            loadEmailAddress();
+            const y = parseInt(document.getElementById('year').value);
+            const m = parseInt(document.getElementById('month').value);
+            document.getElementById('year-month-display').textContent = `${y}年${monthNames[m]}`;
+            initCalendar(false);
+        }
+/* ========== /SECTION: 祝日・年月初期化 ========== */
+
+/* ========== SECTION: カレンダー描画 ========== */
+        let selectedDevice  = 'pc';
+        let currentCellSize = 22;
+
+        function updateTitle() {
+            const year  = document.getElementById('year').value;
+            const month = parseInt(document.getElementById('month').value);
+            const title = document.getElementById('calendar-title');
+            // PC/SP共通：年月ナビの右にタイトル（PCのみ表示はCSSで制御）
+            if (title) {
+                title.innerHTML = `<span style="letter-spacing:0.05em;">${year}年${monthNames[month]}&nbsp;カレンダー</span>`;
+            }
+            // 年月ボタンの表示テキストも更新
+            const disp = document.getElementById('year-month-display');
+            if (disp) disp.textContent = `${year}年${monthNames[month]}`;
+            applyMonthGradient();
+        }
+
+        function isMobile() { return window.innerWidth <= 768; }
+
+        function initCalendar(clearData = false) {
+            const year        = parseInt(document.getElementById('year').value);
+            const month       = parseInt(document.getElementById('month').value);
+            const daysInMonth = new Date(year, month+1, 0).getDate();
+            const firstDay    = new Date(year, month, 1).getDay();
+
+            updateTitle();
+
+            if (clearData) {
+                calendarData = {};
+            } else {
+                if (!loadCurrentMonthData()) calendarData = {};
+            }
+
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+
+            if (Object.keys(calendarData).length === 0) {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dow = (firstDay + day - 1) % 7;
+                    const def = weekdayDefaults[dow];
+                    calendarData[day] = {
+                        image1: def ? { icon: def, label: images.find(i=>i.icon===def)?.label||'' } : null,
+                        image2: null, comment: ''
+                    };
+                }
+            } else if (!clearData) {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dow = (firstDay + day - 1) % 7;
+                    const def = weekdayDefaults[dow];
+                    if (!calendarData[day]) calendarData[day] = { image1: null, image2: null, comment: '' };
+                    if (def && !calendarData[day].image1) {
+                        calendarData[day].image1 = { icon: def, label: images.find(i=>i.icon===def)?.label||'' };
+                    }
+                }
+            }
+
+            if (isMobile()) {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    calendar.appendChild(createDayCell(day, (firstDay+day-1)%7));
+                }
+            } else {
+                const allDays = [];
+                for (let day = 1; day <= daysInMonth; day++) {
+                    allDays.push(createDayCell(day, (firstDay+day-1)%7));
+                }
+                const col1 = allDays.slice(0, 10);
+                const col2 = allDays.slice(10, 20);
+                const col3 = allDays.slice(20);
+                while (col3.length < 11) {
+                    const e = document.createElement('div');
+                    e.className = 'day-cell';
+                    e.style.visibility = 'hidden';
+                    col3.push(e);
+                }
+                for (let i = 0; i < 10; i++) {
+                    if (col1[i]) calendar.appendChild(col1[i]);
+                    if (col2[i]) calendar.appendChild(col2[i]);
+                    if (col3[i]) calendar.appendChild(col3[i]);
+                }
+                const e1 = document.createElement('div'); e1.className='day-cell'; e1.style.visibility='hidden'; calendar.appendChild(e1);
+                const e2 = document.createElement('div'); e2.className='day-cell'; e2.style.visibility='hidden'; calendar.appendChild(e2);
+                if (col3[10]) calendar.appendChild(col3[10]);
+            }
+            populateWeekdaySelects();
+        }
+
+        function createDayCell(day, dayOfWeek) {
+            if (!calendarData[day]) calendarData[day] = { image1: null, image2: null, comment: '' };
+
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+
+            const year  = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+            const holidayInfo = getHolidayInfo(year, month, day);
+            const isSundayOrHoliday = dayOfWeek === 0 || (holidayInfo && holidayInfo.isHoliday);
+
+            const dayNumberClass = isSundayOrHoliday ? 'day-number sunday' : 'day-number';
+            const dayNameClass   = isSundayOrHoliday ? 'day-name sunday'   : 'day-name';
+            const displayDayName = (holidayInfo && holidayInfo.isHoliday) ? '休' : dayNames[dayOfWeek];
+
+            const image1Html   = calendarData[day]?.image1 ? calendarData[day].image1.icon : (weekdayDefaults[dayOfWeek] || '');
+            const image2Html   = calendarData[day]?.image2 ? calendarData[day].image2.icon : '';
+            const commentValue = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
+
+            cell.innerHTML = `
+                <div class="day-header">
+                    <span class="${dayNumberClass}">${day}</span>
+                    <span class="${dayNameClass}">(${displayDayName})</span>
+                </div>
+                <div class="image-row">
+                    <div class="image-selector">
+                        ${image1Html
+                            ? `<div id="selected1-${day}" class="selected-image" style="display:flex;cursor:pointer;" onclick="openModal(${day},1)"><img src="${image1Html}" style="max-width:100%;max-height:100%;"></div>`
+                            : `<button class="select-btn" onclick="openModal(${day},1)">(左)画像</button><div id="selected1-${day}" class="selected-image" style="display:none;"></div>`
+                        }
+                    </div>
+                    <div class="image-selector">
+                        ${image2Html
+                            ? `<div id="selected2-${day}" class="selected-image" style="display:flex;cursor:pointer;" onclick="openModal(${day},2)"><img src="${image2Html}" style="max-width:100%;max-height:100%;"></div>`
+                            : `<button class="select-btn" onclick="openModal(${day},2)">画像(右)</button><div id="selected2-${day}" class="selected-image" style="display:none;"></div>`
+                        }
+                    </div>
+                </div>
+                <textarea class="comment-input" placeholder="コメント..." maxlength="48" rows="4" cols="12"
+                    data-day="${day}" onchange="updateComment(${day},this.value)">${commentValue}</textarea>
+            `;
+            return cell;
+        }
+/* ========== /SECTION: カレンダー描画 ========== */
+
+/* ========== SECTION: 画像選択モーダル ========== */
+        let currentImageSlot      = 1;
+        let currentWeekdaySelection = null;
+
+        function openModal(day, slot = 1) {
+            currentWeekdaySelection = null;
+            currentDay = day;
+            currentImageSlot = slot;
+            const modal = document.getElementById('imageModal');
+            const grid  = document.getElementById('imageGrid');
+            grid.innerHTML = '';
+            const sortedImages = slot === 2 ? [...images].reverse() : images;
+            sortedImages.forEach(img => {
+                const option = document.createElement('div');
+                option.className = 'image-option';
+                option.onclick = () => currentWeekdaySelection !== null
+                    ? selectWeekdayImage(img.icon, img.label)
+                    : selectImage(currentDay, img);
+                option.innerHTML = `
+                    <div class="image-icon"><img src="${img.icon}" style="width:100%;height:100%;object-fit:contain;"></div>
+                    <div class="image-label">${img.label}</div>
+                `;
+                grid.appendChild(option);
+            });
+            modal.style.display = 'block';
+            // 開くたびに最上部にリセット
+            const modalBody = document.getElementById('modalBody');
+            if (modalBody) modalBody.scrollTop = 0;
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+            currentWeekdaySelection = null;
+        }
+
+        function selectImage(day, image) {
+            if (currentImageSlot === 1) calendarData[day].image1 = image;
+            else                        calendarData[day].image2 = image;
+            const selector = document.querySelector(`#selected${currentImageSlot}-${day}`).parentElement;
+            selector.innerHTML = `<div id="selected${currentImageSlot}-${day}" class="selected-image" style="display:flex;cursor:pointer;" onclick="openModal(${day},${currentImageSlot})"><img src="${image.icon}" style="max-width:100%;max-height:100%;"></div>`;
+            saveCurrentMonthData();
+            closeModal();
+        }
+
+        function clearImageSelection() {
+            if (currentWeekdaySelection !== null) {
+                const dayNamesEn = ['sun','mon','tue','wed','thu','fri','sat'];
+                const displayDiv = document.getElementById(`weekday-${dayNamesEn[currentWeekdaySelection]}-display`);
+                if (displayDiv) displayDiv.innerHTML = '画像選択';
+                weekdayDefaults[currentWeekdaySelection] = null;
+                saveWeekdayDefaults();
+                closeModal();
                 return;
             }
+            if (currentDay && currentImageSlot) {
+                if (currentImageSlot === 1) calendarData[currentDay].image1 = null;
+                else                        calendarData[currentDay].image2 = null;
+                const selector = document.querySelector(`#selected${currentImageSlot}-${currentDay}`).parentElement;
+                const label = currentImageSlot === 1 ? '(左)画像' : '画像(右)';
+                selector.innerHTML = `
+                    <button class="select-btn" onclick="openModal(${currentDay},${currentImageSlot})">${label}</button>
+                    <div id="selected${currentImageSlot}-${currentDay}" class="selected-image" style="display:none;"></div>
+                `;
+                closeModal();
+            }
+        }
 
-            const btn = document.querySelector('.send-email-btn');
-            if (btn) { btn.disabled = true; btn.textContent = '⏳ 送信中...'; }
+        function updateComment(day, comment) {
+            calendarData[day].comment = comment;
+            saveCurrentMonthData();
+        }
 
-            try {
-                // PDFを生成してBase64に変換
-                const pdfBase64 = await generatePDFBase64();
-                if (!pdfBase64) throw new Error('PDF生成に失敗しました');
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('imageModal')) closeModal();
+        };
+/* ========== /SECTION: 画像選択モーダル ========== */
 
-                const year = parseInt(document.getElementById('year').value);
-                const month = parseInt(document.getElementById('month').value);
-                const mansionName = document.getElementById('mansion-name').value || 'カレンダー';
-                const fileName = `カレンダー_${year}_${String(month + 1).padStart(2, '0')}.pdf`;
+/* ========== SECTION: 曜日デフォルト設定 ========== */
+        function populateWeekdaySelects() { loadWeekdayDefaults(); }
 
-                // PHPに送信
-                const formData = new FormData();
-                formData.append('to', email);
-                formData.append('subject', `【${mansionName}】${year}年${monthNames[month]}カレンダー`);
-                formData.append('body', `${mansionName}\n${year}年${monthNames[month]}のカレンダーをお送りします。\n\n─────────────────────────\nこのメールは送信専用アドレスから自動送信されています。\nご返信いただいてもお答えできませんのでご了承ください。\nなお、送信履歴はサーバーには保存されません。\n\nPowered by Claude with AI director\n─────────────────────────`);
-                formData.append('filename', fileName);
-                formData.append('pdf_base64', pdfBase64);
+        function saveWeekdayDefaults() {
+            localStorage.setItem('weekdayDefaults', JSON.stringify(weekdayDefaults));
+        }
 
-                const response = await fetch('https://aidirector.shop/sendmail.php', {
-                // const response = await fetch('https://aitech-jp.com/sendmail_proxy.php', {
-                    method: 'POST',
-                    body: formData
+        function loadWeekdayDefaults() {
+            const saved = localStorage.getItem('weekdayDefaults');
+            if (saved) {
+                weekdayDefaults = JSON.parse(saved);
+                ['sun','mon','tue','wed','thu','fri','sat'].forEach((name, index) => {
+                    const div = document.getElementById(`weekday-${name}-display`);
+                    if (div && weekdayDefaults[index]) {
+                        div.innerHTML = `<img src="${weekdayDefaults[index]}" style="max-width:100%;max-height:100%;">`;
+                    }
                 });
-
-                const result = await response.json();
-                if (result.success) {
-                    await showConfirmDialog('✅ 送信完了', `${email} にPDFを送信しました！`, false);
-                } else {
-                    throw new Error(result.message || '送信に失敗しました');
-                }
-
-            } catch (e) {
-                console.error('メール送信エラー:', e);
-                await showConfirmDialog('❌ エラー', `送信に失敗しました。\n${e.message}`, false);
-            } finally {
-                if (btn) { btn.disabled = false; btn.textContent = '📧 PDFをメール送信'; }
             }
         }
 
-        // PDFをBase64で生成（outputToPDFと同じ処理）
-        async function generatePDFBase64() {
-            const year = parseInt(document.getElementById('year').value);
-            const month = parseInt(document.getElementById('month').value);
-            const mansionName = document.getElementById('mansion-name').value || '';
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const firstDay = new Date(year, month, 1).getDay();
-
-            const pdfBytes = await fetch('calendar_v8.pdf?v=' + Date.now()).then(res => res.arrayBuffer());
-            const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, {
-                ignoreEncryption: true,
-                updateMetadata: false,
+        function openWeekdayImageSelector(dayOfWeek) {
+            currentWeekdaySelection = dayOfWeek;
+            const modal = document.getElementById('imageModal');
+            modal.querySelector('h2').textContent = `${'日月火水木金土'[dayOfWeek]}曜日のデフォルト画像を選択`;
+            modal.style.display = 'flex';
+            const grid = document.getElementById('imageGrid');
+            grid.innerHTML = '';
+            images.forEach(img => {
+                const option = document.createElement('div');
+                option.className = 'image-option';
+                option.onclick = () => selectWeekdayImage(img.icon, img.label);
+                option.innerHTML = `
+                    <div class="image-icon"><img src="${img.icon}" style="width:100%;height:100%;object-fit:contain;"></div>
+                    <div class="image-label">${img.label}</div>
+                `;
+                grid.appendChild(option);
             });
-            const form = pdfDoc.getForm();
-
-            function setTextField(fieldName, value) {
-                try {
-                    const field = form.getTextField(fieldName);
-                    field.setText(value);
-                } catch (e) {}
-            }
-
-            // 基本情報
-            setTextField('BASE_Year', String(year));
-            setTextField('AM_Name', mansionName);
-            setTextField('VER_No', '8.75');
-
-            // 月カラー
-            const colorStr = monthColors[month];
-            const colorMatch = colorStr.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-            const r = parseInt(colorMatch[1]) / 255;
-            const g = parseInt(colorMatch[2]) / 255;
-            const b = parseInt(colorMatch[3]) / 255;
-
-            const page = pdfDoc.getPages()[0];
-            page.drawRectangle({ x: 790.0, y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
-            page.drawRectangle({ x: 16.5,  y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
-            page.drawRectangle({ x: 16.5,  y: 15.6,  width: 1157.4, height: 13.3, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
-
-            // MONTHフィールドの色・テキスト・読み取り専用を設定
-            const daString = `/HeBo 70 Tf ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg`;
-            const monthField = form.getTextField('MONTH');
-            monthField.acroField.dict.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
-            monthField.setText(String(month + 1));
-            monthField.enableReadOnly();
-
-            for (let day = 1; day <= 31; day++) {
-                const dayOfWeek = (firstDay + day - 1) % 7;
-                const dayStr = String(day).padStart(2, '0');
-                const dayStr3 = String(day).padStart(3, '0');
-
-                if (day <= daysInMonth) {
-                    const holidayInfo = getHolidayInfo(year, month, day);
-                    const isHoliday = holidayInfo && holidayInfo.isHoliday;
-                    const isSundayOrHoliday = dayOfWeek === 0 || isHoliday;
-
-                    if (isSundayOrHoliday) {
-                        const dayNumStr = String(day).padStart(2, '0');
-                        await embedDayImage(pdfDoc, day, `days/D${dayNumStr}h.png`);
-                    }
-
-                    setTextField(`WEEK_${dayStr}`, weekdayNamesEn[dayOfWeek]);
-                    setTextField(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
-                    const comment = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
-                    setTextField(`MEMO_${dayStr3}`, comment);
-                    if (day >= 29) setTextField(`WHITE_${day}`, '');
-
-                    const image1 = calendarData[day]?.image1?.icon;
-                    if (image1) await embedImageToField(pdfDoc, `SIMAGE_${dayStr}1`, image1);
-                    const image2 = calendarData[day]?.image2?.icon;
-                    if (image2) await embedImageToField(pdfDoc, `SIMAGE_${dayStr}3`, image2);
-
-                } else {
-                    if (day >= 29) {
-                        const [x1, y1, x2, y2] = maskCoords[day];
-                        page.drawRectangle({ x: x1, y: y1, width: x2-x1, height: y2-y1, color: PDFLib.rgb(1,1,1), borderWidth: 0 });
-                    }
-                    setTextField(`WEEK_${dayStr}`, '');
-                    setTextField(`YOUBI_${dayStr}`, '');
-                    setTextField(`MEMO_${dayStr3}`, '');
-                }
-            }
-
-            // NeedAppearancesをTrueに設定（フィールドの再描画を指示）
-            const acroFormRef1 = pdfDoc.catalog.get(PDFLib.PDFName.of('AcroForm'));
-            if (acroFormRef1) {
-                const acroFormObj1 = pdfDoc.context.lookup(acroFormRef1);
-                if (acroFormObj1) acroFormObj1.set(PDFLib.PDFName.of('NeedAppearances'), PDFLib.PDFBool.True);
-            }
-
-            const pdfBytesOut = await pdfDoc.save({ updateFieldAppearances: false });
-            const binary = Array.from(new Uint8Array(pdfBytesOut))
-                .map(b => String.fromCharCode(b)).join('');
-            return btoa(binary);
         }
 
-        // データダウンロード
+        function selectWeekdayImage(imagePath, imageLabel) {
+            if (currentWeekdaySelection === null) return;
+            const dayNamesEn = ['sun','mon','tue','wed','thu','fri','sat'];
+            const displayDiv = document.getElementById(`weekday-${dayNamesEn[currentWeekdaySelection]}-display`);
+            if (displayDiv) displayDiv.innerHTML = `<img src="${imagePath}" style="max-width:100%;max-height:100%;">`;
+            weekdayDefaults[currentWeekdaySelection] = imagePath;
+            saveWeekdayDefaults();
+            closeModal();
+        }
+
+        async function applyDefaultsToCurrentMonth() {
+            const year        = parseInt(document.getElementById('year').value);
+            const month       = parseInt(document.getElementById('month').value);
+            const daysInMonth = new Date(year, month+1, 0).getDate();
+            const firstDay    = new Date(year, month, 1).getDay();
+
+            let overwriteCount = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dow = (firstDay+day-1)%7;
+                if (weekdayDefaults[dow] && calendarData[day]?.image1?.icon) overwriteCount++;
+            }
+            if (overwriteCount > 0) {
+                const result = await showConfirmDialog('画像の上書き確認', `${overwriteCount}日分の画像が上書きされます。よろしいですか？`);
+                if (!result) return;
+            }
+            let appliedCount = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dow = (firstDay+day-1)%7;
+                const def = weekdayDefaults[dow];
+                if (def) {
+                    calendarData[day].image1 = { icon: def, label: images.find(i=>i.icon===def)?.label||'' };
+                    appliedCount++;
+                }
+            }
+            saveCurrentMonthData();
+            initCalendar(false);
+            await showConfirmDialog('✅ 適用完了', `${appliedCount}日分のデフォルト画像を適用しました！`, false);
+        }
+/* ========== /SECTION: 曜日デフォルト設定 ========== */
+
+/* ========== SECTION: 月操作・シール削除・データ保存 ========== */
+        function changeMonth(delta) {
+            const year  = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+            let newMonth = month + delta;
+            let newYear  = year;
+            if (newMonth > 11) { newMonth = 0; newYear++; }
+            else if (newMonth < 0) { newMonth = 11; newYear--; }
+            saveCurrentMonthData();
+            document.getElementById('year').value  = newYear;
+            document.getElementById('month').value = newMonth;
+            document.getElementById('year-month-display').textContent = `${newYear}年${monthNames[newMonth]}`;
+            loadHolidays().then(() => initCalendar(false));
+        }
+
+        async function clearAllImages() {
+            const result = await showConfirmDialog('🗑️ シール全削除', 'この月の全シール画像を削除します。よろしいですか？');
+            if (!result) return;
+            const year        = parseInt(document.getElementById('year').value);
+            const month       = parseInt(document.getElementById('month').value);
+            const daysInMonth = new Date(year, month+1, 0).getDate();
+            const firstDay    = new Date(year, month, 1).getDay();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dow = (firstDay+day-1)%7;
+                const def = weekdayDefaults[dow];
+                calendarData[day] = {
+                    image1: def ? { icon: def, label: images.find(i=>i.icon===def)?.label||'' } : null,
+                    image2: null,
+                    comment: calendarData[day]?.comment || ''
+                };
+            }
+            saveCurrentMonthData();
+            initCalendar(false);
+        }
+
         function downloadData() {
             const data = {
-                allMonthData: allMonthData,
-                weekdayDefaults: weekdayDefaults,
+                allMonthData, weekdayDefaults,
                 mansionName: localStorage.getItem('mansionName') || '',
                 exportDate: new Date().toISOString()
             };
-            const json = JSON.stringify(data, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url  = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `カレンダーデータ_${new Date().toISOString().slice(0,10)}.json`;
@@ -1476,1060 +1803,256 @@
             URL.revokeObjectURL(url);
         }
 
-        // シール全削除
-        async function clearAllImages() {
-            const result = await showConfirmDialog(
-                '🗑️ シール全削除',
-                'この月の全シール画像を削除します。よろしいですか？'
-            );
-            if (!result) return;
+        document.getElementById('year').addEventListener('change',  () => initCalendar(false));
+        document.getElementById('month').addEventListener('change', () => initCalendar(false));
 
-            const year = parseInt(document.getElementById('year').value);
-            const month = parseInt(document.getElementById('month').value);
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const firstDay = new Date(year, month, 1).getDay();
+        document.addEventListener('keydown', e => {
+            const tag = document.activeElement?.tagName;
+            if (tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+            if (window.innerWidth <= 600) return;
+            if (e.key==='ArrowRight') changeMonth(1);
+            if (e.key==='ArrowLeft')  changeMonth(-1);
+        });
+/* ========== /SECTION: 月操作・シール削除・データ保存 ========== */
 
-            // 全日付のシールをクリアしてデフォルトのみ適用
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayOfWeek = (firstDay + day - 1) % 7;
-                const defaultImage = weekdayDefaults[dayOfWeek];
-                calendarData[day] = {
-                    image1: defaultImage ? {
-                        icon: defaultImage,
-                        label: images.find(img => img.icon === defaultImage)?.label || ''
-                    } : null,
-                    image2: null,
-                    comment: calendarData[day]?.comment || ''
-                };
-            }
-            saveCurrentMonthData();
-            initCalendar(false);
-        }
-
-        function changeMonth(delta) {
-            const year = parseInt(document.getElementById('year').value);
-            const month = parseInt(document.getElementById('month').value);
-            
-            let newMonth = month + delta;
-            let newYear = year;
-            
-            if (newMonth > 11) {
-                newMonth = 0;
-                newYear++;
-            } else if (newMonth < 0) {
-                newMonth = 11;
-                newYear--;
-            }
-
-            // 現在月のコメントだけ保存（シールは引き継がない）
-            saveCurrentMonthData();
-            
-            document.getElementById('year').value = newYear;
-            document.getElementById('month').value = newMonth;
-            
-            // 表示を更新
-            document.getElementById('year-month-display').textContent = 
-                `${newYear}年${monthNames[newMonth]}`;
-            
-            // カレンダーを再描画
-            loadHolidays().then(() => {
-                initCalendar(false);
-            });
-        }
-
-        // セレクトボックスに画像リストを追加
-        function populateWeekdaySelects() {
-            const selects = [
-                'default-sun', 'default-mon', 'default-tue', 'default-wed',
-                'default-thu', 'default-fri', 'default-sat'
-            ];
-            
-            selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (!select) return;
-                
-                // 既存のオプションをクリア（「なし」以外）
-                select.innerHTML = '<option value="">なし</option>';
-                
-                // 画像リストを追加
-                images.forEach(img => {
-                    const option = document.createElement('option');
-                    option.value = img.icon;
-                    option.textContent = img.label;
-                    select.appendChild(option);
-                });
-            });
-            
-            // 保存された設定を読み込む
-            loadWeekdayDefaults();
-        }
-
-        // 曜日別デフォルトを保存
-        function saveWeekdayDefaults() {
-            // weekdayDefaults[0] = document.getElementById('default-sun').value || null; は selectWeekdayImage() で既に更新済み
-            // weekdayDefaults[1] = document.getElementById('default-mon').value || null;
-            // weekdayDefaults[2] = document.getElementById('default-tue').value || null;
-            // weekdayDefaults[3] = document.getElementById('default-wed').value || null;
-            // weekdayDefaults[4] = document.getElementById('default-thu').value || null;
-            // weekdayDefaults[5] = document.getElementById('default-fri').value || null;
-            // weekdayDefaults[6] = document.getElementById('default-sat').value || null;
-            
-            localStorage.setItem('weekdayDefaults', JSON.stringify(weekdayDefaults));
-        }
-
-        // 曜日別デフォルトを読み込む
-        function loadWeekdayDefaults() {
-            const saved = localStorage.getItem('weekdayDefaults');
-            if (saved) {
-                weekdayDefaults = JSON.parse(saved);
-                
-                // 画像表示に反映
-                const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-                dayNames.forEach((name, index) => {
-                    const displayDiv = document.getElementById(`weekday-${name}-display`);
-                    if (displayDiv && weekdayDefaults[index]) {
-                        displayDiv.innerHTML = `<img src="${weekdayDefaults[index]}" style="max-width: 100%; max-height: 100%;">`;
-                    }
-                });
-            }
-        }
-
-        // ↓↓↓ ここに追加 ↓↓↓
-        // 曜日別画像選択モーダルを開く
-        let currentWeekdaySelection = null;
-
-        function openWeekdayImageSelector(dayOfWeek) {
-            currentWeekdaySelection = dayOfWeek; // 曜日選択開始
-            
-            const modal = document.getElementById('imageModal'); // モーダル:
-            const modalTitle = modal.querySelector('h2'); // タイトル:
-            
-            const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-            
-            modalTitle.textContent = `${dayNames[dayOfWeek]}曜日のデフォルト画像を選択`;
-            modal.style.display = 'flex';
-
-            // 画像グリッドを生成
-            const grid = document.getElementById('imageGrid');
-            grid.innerHTML = '';
-
-            images.forEach((img) => {
-                const option = document.createElement('div');
-                option.className = 'image-option';
-                option.onclick = () => selectWeekdayImage(img.icon, img.label);
-                option.innerHTML = `
-                    <div class="image-icon"><img src="${img.icon}" style="width: 100%; height: 100%; object-fit: contain;"></div>
-                    <div class="image-label">${img.label}</div>
-                `;
-                grid.appendChild(option);
-            });
-
-        }
-
-        // 曜日別画像を選択
-        function selectWeekdayImage(imagePath, imageLabel) {
-            if (currentWeekdaySelection === null) return;
-            
-            const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-            const displayDiv = document.getElementById(`weekday-${dayNames[currentWeekdaySelection]}-display`);
-            
-            if (displayDiv) {
-                displayDiv.innerHTML = `<img src="${imagePath}" style="max-width: 100%; max-height: 100%;">`;
-            }
-            
-            weekdayDefaults[currentWeekdaySelection] = imagePath;
-            saveWeekdayDefaults();
-            
-            closeModal();
-        }
-
-        const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-        let currentDay = null;
-        let calendarData = {};  // 現在の月のデータ
-        let allMonthData = {};  // 全月のデータ
-        var monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-
-        // 年月を初期化してから、祝日データを読み込んでカレンダー初期化
-        initYearMonth();
-//        loadMansionName(); // ← ここに追加
-
-        function saveMansionName(value) {
-            localStorage.setItem('mansionName', value);
-        }
-
-        function loadMansionName() {
-            const name = localStorage.getItem('mansionName') || '';
-            const input = document.getElementById('mansion-name');
-            input.value = name;
-            updateMansionNameStyle(input);
-        }
-
-        // 年・月の初期化
-        function initYearMonth() {
-            const today = new Date();
-            const currentYear = today.getFullYear();
-            const currentMonth = today.getMonth();
-            
-            // 翌月を計算
-            let nextMonth = currentMonth + 1;
-            let nextYear = currentYear;
-            if (nextMonth > 11) {
-                nextMonth = 0;
-                nextYear++;
-            }
-            
-            // 年のセレクトボックスを作成（前3年〜後5年）
-            const yearSelect = document.getElementById('year');
-            for (let y = currentYear - 3; y <= currentYear + 5; y++) {
-                const option = document.createElement('option');
-                option.value = y;
-                option.textContent = y + '年';
-                if (y === nextYear) {
-                    option.selected = true;
-                }
-                yearSelect.appendChild(option);
-            }
-
-            // 月を選択 ← initCalendarの前に移動
-            document.getElementById('month').value = nextMonth;
-
-            // マンション名を読み込み
-            loadMansionName();
-            loadEmailAddress();
-
-            // 表示を更新
-            const y = parseInt(document.getElementById('year').value);
-            const m = parseInt(document.getElementById('month').value);
-            document.getElementById('year-month-display').textContent = 
-                `${y}年${monthNames[m]}`;
-
-            // カレンダーを初期化 ← 最後に
-            initCalendar(false);
-
-        }
-
-        // 祝日データを読み込む
-        async function loadHolidays() {
-            try {
-                const response = await fetch('holidays.json');
-                holidaysData = await response.json();
-            } catch (error) {
-                console.error('祝日データの読み込みに失敗:', error);
-            }
-        }
-
-        // 指定日が祝日・記念日かチェック
-        function getHolidayInfo(year, month, day) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const yearData = holidaysData[year] || [];
-            return yearData.find(h => h.date === dateStr) || null;
-        }
-
-            // ↓↓↓ ここに追加 ↓↓↓
-            // 現在の月のキーを取得
-            function getCurrentMonthKey() {
-                const year = document.getElementById('year').value;
-                const month = String(parseInt(document.getElementById('month').value) + 1).padStart(2, '0');
-                return `${year}-${month}`;
-            }
-
-            // 現在の月のデータを保存
-            function saveCurrentMonthData() {
-                const monthKey = getCurrentMonthKey();
-                allMonthData[monthKey] = JSON.parse(JSON.stringify(calendarData));
-                console.log('保存:', monthKey, calendarData);
-                localStorage.setItem('allMonthData', JSON.stringify(allMonthData));
-            }
-
-            // 現在の月のデータを読み込む
-            function loadCurrentMonthData() {
-                const monthKey = getCurrentMonthKey();
-                console.log('読み込み試行:', monthKey);
-                if (allMonthData[monthKey]) {
-                    calendarData = JSON.parse(JSON.stringify(allMonthData[monthKey]));
-                    console.log('読み込み成功:', calendarData);
-                    return true;
-                }
-                console.log('読み込み失敗: データなし');
-                return false;
-            }
-
-            // 全月のデータを読み込む
-            function loadAllMonthData() {
-                const saved = localStorage.getItem('allMonthData');
-                if (saved) {
-                    allMonthData = JSON.parse(saved);
-                }
-            }
-
-            // 月変更時の処理
-
-        let selectedDevice = 'pc';
-        let currentCellSize = 22;
-        
-        function selectDevice(device) {
-            selectedDevice = device;
-            localStorage.setItem('selectedDevice', device);
-            document.querySelectorAll('.device-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-        }
-        
-        function updateTitle() {
-            const year = document.getElementById('year').value;
-            const month = parseInt(document.getElementById('month').value);
-            const title = document.getElementById('calendar-title');
-            if (window.innerWidth <= 768) {
-                title.innerHTML = `行事カレンダー`;
-            } else {
-                title.innerHTML = `<span class="title-year-month">${year}年${monthNames[month]}</span>カレンダー`;
-            }
-        }
-        
-        function isMobile() {
-            return window.innerWidth <= 768;
-        }
-        
-        function initCalendar(clearData = false) {
-            console.log('===== initCalendar 開始 =====', clearData);
-
-            const year = parseInt(document.getElementById('year').value);
-            const month = parseInt(document.getElementById('month').value);
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const firstDay = new Date(year, month, 1).getDay();
-            
-            updateTitle();
-            
-            if (clearData) {
-                calendarData = {};
-            } else {
-                // 月別データを読み込む
-                if (!loadCurrentMonthData()) {
-                    calendarData = {};  // 新規月は空にする
-                }
-            }
-            
-            const calendar = document.getElementById('calendar');
-            calendar.innerHTML = '';
-            
-            // 新規月のみ日付データを初期化してデフォルト適用
-            if (Object.keys(calendarData).length === 0) {
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dayOfWeek = (firstDay + day - 1) % 7;
-                    const defaultImage = weekdayDefaults[dayOfWeek];
-                    calendarData[day] = { 
-                        image1: defaultImage ? {
-                            icon: defaultImage,
-                            label: images.find(img => img.icon === defaultImage)?.label || ''
-                        } : null,
-                        image2: null,
-                        comment: ''
-                    };
-                }
-            } else {
-                // 既存月でもデフォルト適用（image1が未設定の日のみ）
-                if (!clearData) {
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        const dayOfWeek = (firstDay + day - 1) % 7;
-                        const defaultImage = weekdayDefaults[dayOfWeek];
-                        if (!calendarData[day]) {
-                            calendarData[day] = { image1: null, image2: null, comment: '' };
-                        }
-                        if (defaultImage && !calendarData[day].image1) {
-                            calendarData[day].image1 = {
-                                icon: defaultImage,
-                                label: images.find(img => img.icon === defaultImage)?.label || ''
-                            };
-                        }
-                    }
-                }
-            }
-
-            if (isMobile()) {
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dayOfWeek = (firstDay + day - 1) % 7;
-                    const cell = createDayCell(day, dayOfWeek);
-                    calendar.appendChild(cell);
-                }
-            } else {
-                const allDays = [];
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dayOfWeek = (firstDay + day - 1) % 7;
-                    allDays.push(createDayCell(day, dayOfWeek));
-                }
-                
-                const col1 = allDays.slice(0, 10);
-                const col2 = allDays.slice(10, 20);
-                const col3 = allDays.slice(20);
-
-                // col3を10個に揃える（空セルで埋める）
-                while (col3.length < 11) {
-                    const emptyCell = document.createElement('div');
-                    emptyCell.className = 'day-cell';
-                    emptyCell.style.visibility = 'hidden';
-                    col3.push(emptyCell);
-                }
-
-                // 3列×11行で配置
-                for (let i = 0; i < 10; i++) {
-                    if (col1[i]) calendar.appendChild(col1[i]);
-                    if (col2[i]) calendar.appendChild(col2[i]);
-                    if (col3[i]) calendar.appendChild(col3[i]);
-                }
-
-                // 最後の行（空・空・31日）
-                const emptyCell1 = document.createElement('div');
-                emptyCell1.className = 'day-cell';
-                emptyCell1.style.visibility = 'hidden';
-                calendar.appendChild(emptyCell1);
-
-                const emptyCell2 = document.createElement('div');
-                emptyCell2.className = 'day-cell';
-                emptyCell2.style.visibility = 'hidden';
-                calendar.appendChild(emptyCell2);
-
-                if (col3[10]) {
-                    calendar.appendChild(col3[10]);
-                }                
-            }
-                // ↓↓↓ 最後に追加 ↓↓↓
-                populateWeekdaySelects();
-        }
-        
-        function createDayCell(day, dayOfWeek) {
-            console.log(`createDayCell ${day}日:`, calendarData[day]?.image1);
-
-            // calendarDataが初期化されていない場合のフォールバック
-            if (!calendarData[day]) {
-                calendarData[day] = { image1: null, image2: null, comment: '' };
-            }
-
-            const cell = document.createElement('div');
-            cell.className = 'day-cell';
-            
-            const year = parseInt(document.getElementById('year').value);
-            const month = parseInt(document.getElementById('month').value);
-            const holidayInfo = getHolidayInfo(year, month, day);
-
-            // 日曜日または祝日かチェック
-            const isSundayOrHoliday = dayOfWeek === 0 || (holidayInfo && holidayInfo.isHoliday);
-
-            const dayNumberClass = isSundayOrHoliday ? 'day-number sunday' : 'day-number';
-            const dayNameClass = isSundayOrHoliday ? 'day-name sunday' : 'day-name';
-
-            // 曜日別デフォルトを取得
-            let defaultImage1 = weekdayDefaults[dayOfWeek];
-
-            // calendarDataに保存されていればそれを優先、なければデフォルト
-            const image1Html = calendarData[day]?.image1 
-                ? calendarData[day].image1.icon 
-                : (defaultImage1 || '');
-
-            const image2Html = calendarData[day]?.image2 ? calendarData[day].image2.icon : '';
-            const commentValue = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
-
-            // 曜日表示（祝日なら「休」）
-            const displayDayName = (holidayInfo && holidayInfo.isHoliday) ? '休' : dayNames[dayOfWeek];
-
-                cell.innerHTML = `
-                    <div class="day-header">
-                        <span class="${dayNumberClass}">${day}</span>
-                        <span class="${dayNameClass}">(${displayDayName})</span>
-                    </div>
-
-                    <div class="image-row">
-                    <div class="image-selector">
-                        ${image1Html ? 
-                            `<div id="selected1-${day}" class="selected-image" style="display: flex; cursor: pointer;" onclick="openModal(${day}, 1)"><img src="${image1Html}" style="max-width: 100%; max-height: 100%;"></div>` :
-                            `<button class="select-btn" onclick="openModal(${day}, 1)">画像①</button>
-                            <div id="selected1-${day}" class="selected-image" style="display: none;"></div>`
-                        }
-                    </div>
-                    <div class="image-selector">
-                        ${image2Html ? 
-                            `<div id="selected2-${day}" class="selected-image" style="display: flex; cursor: pointer;" onclick="openModal(${day}, 2)"><img src="${image2Html}" style="max-width: 100%; max-height: 100%;"></div>` :
-                            `<button class="select-btn" onclick="openModal(${day}, 2)">画像②</button>
-                            <div id="selected2-${day}" class="selected-image" style="display: none;"></div>`
-                        }
-                    </div>
-                </div>
-                <textarea
-                    class="comment-input" 
-                    placeholder="コメント..."
-                    maxlength="48"
-                    rows="4"
-                    cols="12"
-                    data-day="${day}"
-                    onchange="updateComment(${day}, this.value)"
-                >${commentValue}</textarea>
-            `;
-
-            return cell;
-        }
-        
-        let currentImageSlot = 1; // 1 or 2
-
-        function openModal(day, slot = 1) {
-            currentWeekdaySelection = null; // ← 追加（曜日選択をリセット）
-            currentDay = day;
-            currentImageSlot = slot;
-            const modal = document.getElementById('imageModal');
-            const grid = document.getElementById('imageGrid');
-            
-            grid.innerHTML = '';
-            
-            // 画像②なら降順、画像①なら昇順
-            const sortedImages = slot === 2 ? [...images].reverse() : images;
-            
-            sortedImages.forEach((img, index) => {
-                const option = document.createElement('div');
-                option.className = 'image-option';
-                option.onclick = () => {
-                    // 曜日別デフォルト選択中
-                    if (currentWeekdaySelection !== null) {
-                        selectWeekdayImage(img.icon, img.label);
-                    } else {
-                        // 日付の画像選択
-                        selectImage(currentDay, img);
-                    }
-                };
-                option.innerHTML = `
-                    <div class="image-icon"><img src="${img.icon}" style="width: 100%; height: 100%; object-fit: contain;"></div>
-                    <div class="image-label">${img.label}</div>
-                `;
-                grid.appendChild(option);
-            });
-
-            modal.style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('imageModal').style.display = 'none';
-            currentWeekdaySelection = null;
-        }
-
-        // 画像選択を解除
-        function clearImageSelection() {
-            // 曜日別デフォルトの解除
-            if (currentWeekdaySelection !== null) {
-                const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-                const displayDiv = document.getElementById(`weekday-${dayNames[currentWeekdaySelection]}-display`);
-                
-                if (displayDiv) {
-                    displayDiv.innerHTML = '画像選択';
-                }
-                
-                weekdayDefaults[currentWeekdaySelection] = null;
-                saveWeekdayDefaults();
-                closeModal();
-                return;
-            }
-            
-            // 日付の画像解除
-            if (currentDay && currentImageSlot) {
-                if (currentImageSlot === 1) {
-                    calendarData[currentDay].image1 = null;
-                } else {
-                    calendarData[currentDay].image2 = null;
-                }
-                
-                const selector = document.querySelector(`#selected${currentImageSlot}-${currentDay}`).parentElement;
-                selector.innerHTML = `
-                    <button class="select-btn" onclick="openModal(${currentDay}, ${currentImageSlot})">画像${currentImageSlot === 1 ? '①' : '②'}</button>
-                    <div id="selected${currentImageSlot}-${currentDay}" class="selected-image" style="display: none;"></div>
-                `;
-                
-                closeModal();
-            }
-        }
-        
-        // この月に曜日別デフォルトを適用
-        async function applyDefaultsToCurrentMonth() {
-            const year = parseInt(document.getElementById('year').value);
-            const month = parseInt(document.getElementById('month').value);
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const firstDay = new Date(year, month, 1).getDay();
-            
-            // 上書きされる日数をカウント
-            let overwriteCount = 0;
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayOfWeek = (firstDay + day - 1) % 7;
-                const defaultImage = weekdayDefaults[dayOfWeek];
-                
-                if (defaultImage && calendarData[day]?.image1 && calendarData[day].image1.icon) {
-                    overwriteCount++;
-                }
-            }
-            
-            // 上書き確認
-            if (overwriteCount > 0) {
-                const result = await showConfirmDialog(
-                    '画像の上書き確認',
-                    `${overwriteCount}日分の画像が上書きされます。よろしいですか？`
-                );
-                if (!result) {
-                    return;
-                }
-            }
-            
-            // 適用処理
-            let appliedCount = 0;
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayOfWeek = (firstDay + day - 1) % 7;
-                const defaultImage = weekdayDefaults[dayOfWeek];
-                
-                if (defaultImage) {
-                    calendarData[day].image1 = {
-                        icon: defaultImage,
-                        label: images.find(img => img.icon === defaultImage)?.label || ''
-                    };
-                    appliedCount++;
-                }
-            }
-            
-            // データを保存
-            saveCurrentMonthData();
-            
-            // カレンダーを再描画（データは保持）
-            initCalendar(false);
-            
-            await showConfirmDialog(
-                '✅ 適用完了',
-                `${appliedCount}日分のデフォルト画像を適用しました！`,
-                false  // キャンセルボタン非表示
-            );
-        }
-
-        // ↓↓↓ ここに追加 ↓↓↓
-        // カスタム確認ダイアログ
+/* ========== SECTION: 確認ダイアログ ========== */
         let confirmDialogCallback = null;
 
+        function showSendingDialog(message) {
+            document.getElementById('confirmTitle').textContent = '⏳ 送信準備中...';
+            document.getElementById('confirmMessage').innerHTML = message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+            document.querySelector('.confirm-btn.cancel').style.display = 'none';
+            document.querySelector('.confirm-btn.ok').style.display = 'none';
+            document.getElementById('confirmDialog').style.display = 'flex';
+        }
+
+        function hideSendingDialog() {
+            document.getElementById('confirmDialog').style.display = 'none';
+            document.querySelector('.confirm-btn.ok').style.display = '';
+        }
+
         function showConfirmDialog(title, message, showCancel = true) {
-            return new Promise((resolve) => {
+            return new Promise(resolve => {
                 confirmDialogCallback = resolve;
                 document.getElementById('confirmTitle').textContent = title;
-                document.getElementById('confirmMessage').textContent = message;
-                
-                // キャンセルボタンの表示/非表示
-                const cancelBtn = document.querySelector('.confirm-btn.cancel');
-                cancelBtn.style.display = showCancel ? 'block' : 'none';
-                
+                document.getElementById('confirmMessage').innerHTML = message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+                document.querySelector('.confirm-btn.cancel').style.display = showCancel ? 'block' : 'none';
                 document.getElementById('confirmDialog').style.display = 'flex';
             });
         }
 
         function closeConfirmDialog(result) {
             document.getElementById('confirmDialog').style.display = 'none';
-            if (confirmDialogCallback) {
-                confirmDialogCallback(result);
-                confirmDialogCallback = null;
+            if (confirmDialogCallback) { confirmDialogCallback(result); confirmDialogCallback = null; }
+        }
+/* ========== /SECTION: 確認ダイアログ ========== */
+
+/* ========== SECTION: メール送信 ========== */
+        async function sendPDFByEmail() {
+            const pdfSize = document.querySelector('input[name="pdfSize"]:checked')?.value || 'a3';
+            const email   = document.getElementById('send-email').value.trim();
+            if (!email) { await showConfirmDialog('❌ エラー', '送信先メールアドレスを入力してください。', false); return; }
+
+            const year        = parseInt(document.getElementById('year').value);
+            const month       = parseInt(document.getElementById('month').value);
+            const mansionName = document.getElementById('mansion-name').value || 'カレンダー';
+
+            const confirmed = await showConfirmDialog('📧 送信確認',
+                `以下の内容でPDFを送信します。よろしいですか？\n宛先：${email}\n内容：${mansionName}\n${year}年${monthNames[month]}カレンダー`, true);
+            if (!confirmed) return;
+
+            const btn = document.querySelector('.send-email-btn');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ 送信中...'; }
+            showSendingDialog('PDFを生成しています...\nしばらくお待ちください。');
+
+            try {
+                const pdfBase64 = pdfSize === 'a4' ? await generateA4Base64() : await generatePDFBase64();
+                if (!pdfBase64) throw new Error('PDF生成に失敗しました');
+                document.getElementById('confirmTitle').textContent = '✉️ 送信中...';
+                document.getElementById('confirmMessage').innerHTML = 'メールを送信しています...<br>しばらくお待ちください。';
+
+                const fileName = `カレンダー_${year}_${String(month+1).padStart(2,'0')}.pdf`;
+                const formData = new FormData();
+                formData.append('to',          email);
+                formData.append('fromName',    'カレンダー送信システム');
+                formData.append('subject',     `【${mansionName}】${year}年${monthNames[month]}カレンダー`);
+                formData.append('title',       `${year}年${monthNames[month]} カレンダー`);
+                formData.append('bgColor1',    '#669C35');
+                formData.append('bgColor2',    '#96D35F');
+                formData.append('lineColor',   '#FFFC41');
+                formData.append('titleColor',  '#ffffff');
+                formData.append('bodyContent', `<p><strong>${mansionName}</strong></p><p>${year}年${monthNames[month]}のカレンダーをお送りします。</p>`);
+                formData.append('filename',    fileName);
+                formData.append('pdf_base64',  pdfBase64);
+
+                const response = await fetch('https://aitech-jp.com/sendmail_proxy.php', { method: 'POST', body: formData });
+                const result   = await response.json();
+                if (result.success) {
+                    hideSendingDialog();
+                    await showConfirmDialog('✅ 送信完了', `${email} に\nPDFを送信しました！`, false);
+                } else {
+                    throw new Error(result.message || '送信に失敗しました');
+                }
+            } catch (e) {
+                console.error('メール送信エラー:', e);
+                hideSendingDialog();
+                await showConfirmDialog('❌ エラー', `送信に失敗しました。\n${e.message}`, false);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '📧 PDFをメール送信'; }
             }
         }
+/* ========== /SECTION: メール送信 ========== */
 
-        function selectImage(day, image) {
-            // 日付の画像選択（曜日選択ではない）
-            // 画像①か②かを判定
-            if (currentImageSlot === 1) {
-                calendarData[day].image1 = image;
-            } else {
-                calendarData[day].image2 = image;
-            }
-            
-            // ボタンを画像に置き換え
-            const selector = document.querySelector(`#selected${currentImageSlot}-${day}`).parentElement;
-            selector.innerHTML = `<div id="selected${currentImageSlot}-${day}" class="selected-image" style="display: flex; cursor: pointer;" onclick="openModal(${day}, ${currentImageSlot})"><img src="${image.icon}" style="max-width: 100%; max-height: 100%;"></div>`;
-            
-            saveCurrentMonthData();  // ← 追加
-            closeModal();
-        }         
-
-        function updateComment(day, comment) {
-            calendarData[day].comment = comment;
-            saveCurrentMonthData();  // ← 追加
-        }
-        
+/* ========== SECTION: プレビュー・印刷 ========== */
         function openPreview() {
-            if (selectedDevice === 'pc') {
-                currentCellSize = 22;
-            } else if (selectedDevice === 'ipad') {
-                currentCellSize = 20;
-            } else if (selectedDevice === 'android') {
-                currentCellSize = 21.5;
-            } else if (selectedDevice === 'mobile') {
-                currentCellSize = 20;
-            }
-            
-            const previewContent = document.getElementById('previewContent');
+            currentCellSize = 22;
+            const previewContent  = document.getElementById('previewContent');
             const originalContent = document.querySelector('.container').cloneNode(true);
-            
-            originalContent.querySelector('.device-selector').remove();
-            originalContent.querySelector('.controls').remove();
-            originalContent.querySelector('.print-btn').remove();
-            
+            originalContent.querySelector('.device-selector')?.remove();
+            originalContent.querySelector('.controls')?.remove();
+            originalContent.querySelector('.print-btn')?.remove();
             previewContent.innerHTML = '';
             previewContent.appendChild(originalContent);
-            
             document.getElementById('previewMode').classList.add('active');
 
-            // ↓↓↓ ここに追加 ↓↓↓
-            // 色帯を追加（プレビュー用）
-            const month = parseInt(document.getElementById('month').value);
+            const month     = parseInt(document.getElementById('month').value);
             const container = document.querySelector('#previewContent .container');
             if (container) {
-                // 上部左の色帯
-                const topLeft = document.createElement('div');
-                topLeft.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 120mm;
-                    height: 10mm;
-                    background-color: ${monthColors[month]};
-                    z-index: 1;
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;
-                `;
-                
-                // 上部右の色帯
-                const topRight = document.createElement('div');
-                topRight.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    width: 120mm;
-                    height: 10mm;
-                    background-color: ${monthColors[month]};
-                    z-index: 1;
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;                `;
-                
-                // 下部の色帯
-                const bottom = document.createElement('div');
-                bottom.style.cssText = `
-                    position: relative;
-                    margin-top: -7mm;  /* ← ここを変更 */
-                    left: 0;
-                    width: 100%;
-                    height: 5mm;
-                    background-color: ${monthColors[month]};
-                    z-index: 1;
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;
-                `;
-
+                const mkDiv = css => { const d=document.createElement('div'); d.style.cssText=css; return d; };
+                const c = getMonthColor(month);
                 container.style.position = 'relative';
-                container.insertBefore(topLeft, container.firstChild);
-                container.insertBefore(topRight, container.firstChild);
-                // カレンダーの直後に挿入（containerの最後ではなく）
-                const calendar = container.querySelector('#calendar');
-                if (calendar && calendar.nextSibling) {
-                    container.insertBefore(bottom, calendar.nextSibling);
-                } else {
-                    container.appendChild(bottom);
-                }
-            }            
-            
+                container.insertBefore(mkDiv(`position:absolute;top:0;left:0;width:120mm;height:10mm;background-color:${c};z-index:1;-webkit-print-color-adjust:exact;print-color-adjust:exact;`), container.firstChild);
+                container.insertBefore(mkDiv(`position:absolute;top:0;right:0;width:120mm;height:10mm;background-color:${c};z-index:1;-webkit-print-color-adjust:exact;print-color-adjust:exact;`), container.firstChild);
+                const bottom = mkDiv(`position:relative;margin-top:-7mm;left:0;width:100%;height:5mm;background-color:${c};z-index:1;-webkit-print-color-adjust:exact;print-color-adjust:exact;`);
+                const cal = container.querySelector('#calendar');
+                if (cal && cal.nextSibling) container.insertBefore(bottom, cal.nextSibling);
+                else container.appendChild(bottom);
+            }
             applyCellSize();
             updateSizeIndicator();
         }
-        
-        function closePreview() {
-            document.getElementById('previewMode').classList.remove('active');
-        }
-        
+
+        function closePreview() { document.getElementById('previewMode').classList.remove('active'); }
+
         function adjustSize(delta) {
-            currentCellSize += delta;
-            
-            if (currentCellSize < 15) currentCellSize = 15;
-            if (currentCellSize > 25) currentCellSize = 25;
-            
+            currentCellSize = Math.min(25, Math.max(15, currentCellSize + delta));
             applyCellSize();
             updateSizeIndicator();
         }
-        
+
         function applyCellSize() {
-            const imageSize = currentCellSize * 0.35;
-            const commentSize = currentCellSize * 0.48;
-            
-            const previewContent = document.getElementById('previewContent');
+            const existingStyle = document.getElementById('dynamicPreviewStyle');
+            if (existingStyle) existingStyle.remove();
             const style = document.createElement('style');
             style.id = 'dynamicPreviewStyle';
-            
-            const existingStyle = document.getElementById('dynamicPreviewStyle');
-            if (existingStyle) {
-                existingStyle.remove();
-            }
-            
+            const img = currentCellSize * 0.35;
+            const cmt = currentCellSize * 0.48;
             style.textContent = `
-                #previewContent .day-cell {
-                    min-height: ${currentCellSize}mm !important;
-                    max-height: ${currentCellSize}mm !important;
-                    height: ${currentCellSize}mm !important;
-                }
-                
-                #previewContent .image-selector {
-                    min-height: ${imageSize}mm !important;
-                    max-height: ${imageSize}mm !important;
-                    height: ${imageSize}mm !important;
-                }
-                
-                #previewContent .selected-image {
-                    min-height: ${imageSize}mm !important;
-                    max-height: ${imageSize}mm !important;
-                    height: ${imageSize}mm !important;
-                }
-                
-                #previewContent .comment-input {
-                    min-height: ${commentSize}mm !important;
-                    max-height: ${commentSize}mm !important;
-                    height: ${commentSize}mm !important;
-                }
+                #previewContent .day-cell { min-height:${currentCellSize}mm !important; max-height:${currentCellSize}mm !important; height:${currentCellSize}mm !important; }
+                #previewContent .image-selector { min-height:${img}mm !important; max-height:${img}mm !important; height:${img}mm !important; }
+                #previewContent .selected-image { min-height:${img}mm !important; max-height:${img}mm !important; height:${img}mm !important; }
+                #previewContent .comment-input { min-height:${cmt}mm !important; max-height:${cmt}mm !important; height:${cmt}mm !important; }
             `;
-            
             document.head.appendChild(style);
         }
-        
+
         function updateSizeIndicator() {
             document.getElementById('currentSize').textContent = currentCellSize.toFixed(1);
         }
-        
-        function adjustPageHeight() {
-            // 互換性のため残す
-        }
-        
+
         function executePrint() {
-            document.body.className = '';
-            document.body.classList.add(`print-${selectedDevice}`);
             document.body.style.setProperty('--custom-cell-size', currentCellSize + 'mm');
-            
-            // 月ごとの色を設定
-            const month = parseInt(document.getElementById('month').value);
-            document.body.style.setProperty('--month-color', monthColors[month]);
-            
+            document.body.style.setProperty('--month-color', getMonthColor(parseInt(document.getElementById('month').value)));
             closePreview();
 
             const calendar = document.querySelector('#previewContent #calendar');
+            if (!calendar) return;
 
-            if (!calendar) {
-                return;
-            }
+            const addDayImages = (cells) => {
+                cells.forEach(cell => {
+                    const dayHeader = cell.querySelector('.day-header');
+                    const dayNumEl  = cell.querySelector('.day-number');
+                    if (!dayHeader || !dayNumEl) return;
+                    const day  = parseInt(dayNumEl.textContent);
+                    const isSunday = cell.querySelector('.day-number.sunday') !== null;
+                    const year  = parseInt(document.getElementById('year').value);
+                    const month = parseInt(document.getElementById('month').value);
+                    const dow   = new Date(year, month, day).getDay();
+                    const hi    = getHolidayInfo(year, month, day);
+                    const displayText = (hi && hi.isHoliday) ? '休' : dayNames[dow];
+                    const file  = isSunday ? `D${String(day).padStart(2,'0')}h.png` : `D${String(day).padStart(2,'0')}w.png`;
+                    dayHeader.style.cssText = 'position:relative;width:12mm;';
+                    dayHeader.innerHTML = `
+                        <img src="days/${file}" style="width:100%;height:auto;display:block;">
+                        <div style="position:absolute;bottom:2mm;left:0;width:100%;text-align:center;font-size:16pt;font-weight:bold;color:${isSunday?'white':'#333'};-webkit-print-color-adjust:exact;print-color-adjust:exact;">${displayText}</div>
+                    `;
+                });
+            };
+
+            const restoreData = (cells) => {
+                cells.forEach(cell => {
+                    const dayNum = cell.querySelector('.day-number');
+                    if (!dayNum) return;
+                    const day = parseInt(dayNum.textContent);
+                    if (calendarData[day]?.image1) {
+                        const div = cell.querySelector(`#selected1-${day}`);
+                        if (div) { div.innerHTML = `<img src="${calendarData[day].image1.icon}" style="max-width:100%;max-height:100%;">`; div.style.display='flex'; }
+                    }
+                    if (calendarData[day]?.image2) {
+                        const div = cell.querySelector(`#selected2-${day}`);
+                        if (div) { div.innerHTML = `<img src="${calendarData[day].image2.icon}" style="max-width:100%;max-height:100%;">`; div.style.display='flex'; }
+                    }
+                    if (calendarData[day]?.comment) {
+                        const ta = cell.querySelector('.comment-input');
+                        if (ta) ta.value = calendarData[day].comment;
+                    }
+                });
+            };
 
             if (isMobile()) {
                 const cells = Array.from(calendar.querySelectorAll('.day-cell'));
-                
-                cells.sort((a, b) => {
-                    const getDayNum = (cell) => {
-                        const dayEl = cell.querySelector('.day-number');
-                        if (!dayEl) return 999;
-                        return parseInt(dayEl.textContent);
-                    };
-                    return getDayNum(a) - getDayNum(b);
-                });
-                
-                const col1 = cells.slice(0, 10);
-                const col2 = cells.slice(10, 20);
-                const col3 = cells.slice(20);
-                
+                cells.sort((a,b) => parseInt(a.querySelector('.day-number')?.textContent||999) - parseInt(b.querySelector('.day-number')?.textContent||999));
+                const col1=cells.slice(0,10), col2=cells.slice(10,20), col3=cells.slice(20);
                 const reordered = [];
-                const maxRows = Math.max(col1.length, col2.length, col3.length);
-                for (let i = 0; i < maxRows; i++) {
+                for (let i=0; i<Math.max(col1.length,col2.length,col3.length); i++) {
                     if (col1[i]) reordered.push(col1[i]);
                     if (col2[i]) reordered.push(col2[i]);
                     if (col3[i]) reordered.push(col3[i]);
                 }
-                
-                // デバッグ：並び替え後の順番
                 calendar.innerHTML = '';
-                
-                for (let i = 0; i < 30; i++) {
-                    if (reordered[i]) {
-                        calendar.appendChild(reordered[i]);
-                    }
-                }
-                
-                for (let i = 0; i < 2; i++) {
-                    const emptyCell = document.createElement('div');
-                    emptyCell.className = 'day-cell';
-                    emptyCell.style.visibility = 'hidden';
-                    calendar.appendChild(emptyCell);
-                }
-                
-                if (reordered[30]) {
-                    calendar.appendChild(reordered[30]);
-                }
-                
-                // ↓↓↓ ここに追加 ↓↓↓
-                calendar.style.display = 'grid';
-                calendar.style.gridTemplateColumns = 'repeat(3, 1fr)';
-                calendar.style.gridAutoFlow = 'row';
-
-                // 各セルに順番を強制指定
-                Array.from(calendar.children).forEach((cell, index) => {
-                    cell.style.order = index;
-                });
-
-                // 日付画像を追加
-                reordered.forEach((cell) => {
-                    const dayHeader = cell.querySelector('.day-header');
-                    const dayNumEl = cell.querySelector('.day-number');
-                    if (dayHeader && dayNumEl) {
-                        const day = parseInt(dayNumEl.textContent);
-                        const isSunday = cell.classList.contains('sunday');
-                        const dayImageFile = isSunday ? `D${String(day).padStart(2, '0')}h.png` : `D${String(day).padStart(2, '0')}w.png`;
-                        
-                        dayHeader.style.position = 'relative';
-                        dayHeader.style.width = '12mm';
-                        const year = parseInt(document.getElementById('year').value);
-                        const month = parseInt(document.getElementById('month').value);
-                        const cellDayOfWeek = new Date(year, month, day).getDay();
-                        const cellHolidayInfo = getHolidayInfo(year, month, day);
-                        const displayText = (cellHolidayInfo && cellHolidayInfo.isHoliday) ? '休' : dayNames[cellDayOfWeek];
-
-                        dayHeader.innerHTML = `
-                            <img src="days/${dayImageFile}" style="width: 100%; height: auto; display: block;">
-                            <div style="position: absolute; bottom: 2mm; left: 0; width: 100%; text-align: center; font-size: 16pt; font-weight: bold; color: ${isSunday ? 'white !important' : '#333 !important'}; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${displayText}</div>
-                        `;
-                    }
-                });
-
-                // データ復元
-                reordered.forEach((cell, index) => {
-                    const dayNum = cell.querySelector('.day-number');
-                    if (dayNum) {
-                        const day = parseInt(dayNum.textContent);
-                        
-                        // 画像①を復元
-                        if (calendarData[day]?.image1) {
-                            const img1Div = cell.querySelector(`#selected1-${day}`);
-                            if (img1Div) {
-                                img1Div.innerHTML = `<img src="${calendarData[day].image1.icon}" style="max-width: 100%; max-height: 100%;">`;
-                                img1Div.style.display = 'flex';
-                            }
-                        }
-                        
-                        // 画像②を復元
-                        if (calendarData[day]?.image2) {
-                            const img2Div = cell.querySelector(`#selected2-${day}`);
-                            if (img2Div) {
-                                img2Div.innerHTML = `<img src="${calendarData[day].image2.icon}" style="max-width: 100%; max-height: 100%;">`;
-                                img2Div.style.display = 'flex';
-                            }
-                        }
-                        
-                        // コメントを復元
-                        if (calendarData[day]?.comment) {
-                            const commentInput = cell.querySelector('.comment-input');
-                            if (commentInput) {
-                                commentInput.value = calendarData[day].comment;
-                            }
-                        }
-                    }
-                });                
+                reordered.slice(0,30).forEach(c => calendar.appendChild(c));
+                for (let i=0; i<2; i++) { const e=document.createElement('div'); e.className='day-cell'; e.style.visibility='hidden'; calendar.appendChild(e); }
+                if (reordered[30]) calendar.appendChild(reordered[30]);
+                calendar.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);grid-auto-flow:row;';
+                Array.from(calendar.children).forEach((c,i) => c.style.order=i);
+                addDayImages(reordered);
+                restoreData(reordered);
             } else {
-                // PC・タブレットはデータ復元だけ
                 const cells = Array.from(calendar.querySelectorAll('.day-cell'));
-
-                // 日付画像を追加
-                cells.forEach((cell) => {
-                    const dayHeader = cell.querySelector('.day-header');
-                    const dayNumEl = cell.querySelector('.day-number');
-                    if (dayHeader && dayNumEl) {
-                        const day = parseInt(dayNumEl.textContent);
-                        const isSunday = cell.classList.contains('sunday');
-                        const dayImageFile = isSunday ? `D${String(day).padStart(2, '0')}h.png` : `D${String(day).padStart(2, '0')}w.png`;
-                        
-                        dayHeader.style.position = 'relative';
-                        dayHeader.style.width = '12mm';
-                        const year = parseInt(document.getElementById('year').value);
-                        const month = parseInt(document.getElementById('month').value);
-                        const cellDayOfWeek = new Date(year, month, day).getDay();
-                        const cellHolidayInfo = getHolidayInfo(year, month, day);
-                        const displayText = (cellHolidayInfo && cellHolidayInfo.isHoliday) ? '休' : dayNames[cellDayOfWeek];
-
-                        dayHeader.innerHTML = `
-                            <img src="days/${dayImageFile}" style="width: 100%; height: auto; display: block;">
-                            <div style="position: absolute; bottom: 2mm; left: 0; width: 100%; text-align: center; font-size: 16pt; font-weight: bold; color: ${isSunday ? 'white !important' : '#333 !important'}; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${displayText}</div>
-                        `;
-                    }
-                });
-
-                cells.forEach((cell, index) => {
-                    const dayNum = cell.querySelector('.day-number');
-                    if (dayNum) {
-                        const day = parseInt(dayNum.textContent);
-                        
-                        // 画像①を復元
-                        if (calendarData[day]?.image1) {
-                            const img1Div = cell.querySelector(`#selected1-${day}`);
-                            if (img1Div) {
-                                img1Div.innerHTML = `<img src="${calendarData[day].image1.icon}" style="max-width: 100%; max-height: 100%;">`;
-                                img1Div.style.display = 'flex';
-                            }
-                        }
-                        
-                        // 画像②を復元
-                        if (calendarData[day]?.image2) {
-                            const img2Div = cell.querySelector(`#selected2-${day}`);
-                            if (img2Div) {
-                                img2Div.innerHTML = `<img src="${calendarData[day].image2.icon}" style="max-width: 100%; max-height: 100%;">`;
-                                img2Div.style.display = 'flex';
-                            }
-                        }
-                        
-                        // コメントを復元
-                        if (calendarData[day]?.comment) {
-                            const commentInput = cell.querySelector('.comment-input');
-                            if (commentInput) {
-                                commentInput.value = calendarData[day].comment;
-                            }
-                        }
-                    }
-                });                
+                addDayImages(cells);
+                restoreData(cells);
             }
 
             setTimeout(() => {
                 window.print();
-                
-                setTimeout(() => {
-                    initCalendar();
-                }, 100);
+                setTimeout(() => initCalendar(), 100);
             }, 200);
         }
-        
-        document.getElementById('year').addEventListener('change', () => {
-            initCalendar(false);
-        });
-        document.getElementById('month').addEventListener('change', () => {
-            initCalendar(false);
-        });
-        
-        window.onclick = function(event) {
-            const modal = document.getElementById('imageModal');
-            if (event.target == modal) {
-                closeModal();
-            }
-        }
-        
-        const savedDevice = localStorage.getItem('selectedDevice');
-        if (savedDevice) {
-            selectedDevice = savedDevice;
-            document.querySelectorAll('.device-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.onclick.toString().includes(savedDevice)) {
-                    btn.classList.add('active');
-                }
-            });
-        }
-        
-        // 年月を初期化してから、全月データと祝日データを読み込んでカレンダー初期化
+/* ========== /SECTION: プレビュー・印刷 ========== */
+
+/* ========== SECTION: 起動処理 ========== */
+        if (typeof loadCommonData === 'function') loadCommonData();
         initYearMonth();
         loadAllMonthData();
         loadHolidays().then(() => {
             initCalendar();
+            applyMonthGradient();
         });
+        window.addEventListener('resize', updateTitle);
+/* ========== /SECTION: 起動処理 ========== */
     </script>
-    <!-- ↓↓↓ ここに追加 ↓↓↓ -->
+
+    <!-- 確認ダイアログHTML -->
     <div id="confirmDialog" class="confirm-dialog">
         <div class="confirm-dialog-content">
             <div class="confirm-icon">⚠️</div>
@@ -2537,346 +2060,349 @@
             <p id="confirmMessage">本当によろしいですか？</p>
             <div class="confirm-buttons">
                 <button class="confirm-btn cancel" onclick="closeConfirmDialog(false)">キャンセル</button>
-                <button class="confirm-btn ok" onclick="closeConfirmDialog(true)">OK</button>
+                <button class="confirm-btn ok"     onclick="closeConfirmDialog(true)">OK</button>
             </div>
         </div>
     </div>
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-        <script>
-        const weekdayNamesEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        // 29〜31日マスク座標（グローバル）
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+    <script>
+/* ========== SECTION: PDF生成（座標マップ） ========== */
+        const weekdayNamesEn = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
         const maskCoords = {
             29: [787.0, 159.1, 1177.7, 225.1],
             30: [787.0,  93.9, 1177.7, 160.0],
             31: [787.0,  28.9, 1177.7,  94.6],
         };
 
-        // ==========================================
-        // SIMAGE座標マップ
-        // 全て上方向に +0.75mm = +2.126pt（yを増やす）
-        // 011〜101: x変更なし
-        // 013〜103: 左 -0.75mm = -2.126pt
-        // 111〜201: 右 +0.5mm = +1.417pt
-        // 113〜203: 右 +0.5mm = +1.417pt
-        // 211〜311: 右 +2.5mm = +7.087pt
-        // 213〜313: 右 +1.5mm = +4.252pt
-        // ==========================================
         const simageCoords = {
-            // 011〜101: x変更なし、y+2.126
-            'SIMAGE_011': [54.5, 682.1, 170.1, 738.0],
-            'SIMAGE_021': [54.5, 616.9, 170.1, 672.8],
-            'SIMAGE_031': [54.5, 551.7, 170.1, 607.6],
-            'SIMAGE_041': [54.5, 486.5, 170.1, 542.4],
-            'SIMAGE_051': [54.5, 421.3, 170.1, 477.2],
-            'SIMAGE_061': [54.5, 356.1, 170.1, 412.0],
-            'SIMAGE_071': [54.5, 290.9, 170.1, 346.8],
-            'SIMAGE_081': [54.5, 225.7, 170.1, 281.6],
-            'SIMAGE_091': [54.5, 160.5, 170.1, 216.4],
-            'SIMAGE_101': [54.5, 95.3, 170.1, 151.2],
-            // 013〜103: x-2.126、y+2.126
-            'SIMAGE_013': [282.2, 682.1, 397.8, 738.0],
-            'SIMAGE_023': [282.2, 616.9, 397.8, 672.8],
-            'SIMAGE_033': [282.2, 551.7, 397.8, 607.6],
-            'SIMAGE_043': [282.2, 486.5, 397.8, 542.4],
-            'SIMAGE_053': [282.2, 421.3, 397.8, 477.2],
-            'SIMAGE_063': [282.2, 356.1, 397.8, 412.0],
-            'SIMAGE_073': [282.2, 290.9, 397.8, 346.8],
-            'SIMAGE_083': [282.2, 225.7, 397.8, 281.6],
-            'SIMAGE_093': [282.2, 160.5, 397.8, 216.4],
-            'SIMAGE_103': [282.2, 95.3, 397.8, 151.2],
-            // 111〜201: x+1.417、y+2.126
-            'SIMAGE_111': [440.1, 682.1, 555.7, 738.0],
-            'SIMAGE_121': [440.1, 616.9, 555.7, 672.8],
-            'SIMAGE_131': [440.1, 551.7, 555.7, 607.6],
-            'SIMAGE_141': [440.1, 486.5, 555.7, 542.4],
-            'SIMAGE_151': [440.1, 421.3, 555.7, 477.2],
-            'SIMAGE_161': [440.1, 356.1, 555.7, 412.0],
-            'SIMAGE_171': [440.1, 290.9, 555.7, 346.8],
-            'SIMAGE_181': [440.1, 225.7, 555.7, 281.6],
-            'SIMAGE_191': [440.1, 160.5, 555.7, 216.4],
-            'SIMAGE_201': [440.1, 95.3, 555.7, 151.2],
-            // 113〜203: x+1.417、y+2.126
-            'SIMAGE_113': [669.9, 682.1, 785.5, 738.0],
-            'SIMAGE_123': [669.9, 616.9, 785.5, 672.8],
-            'SIMAGE_133': [669.9, 551.7, 785.5, 607.6],
-            'SIMAGE_143': [669.9, 486.5, 785.5, 542.4],
-            'SIMAGE_153': [669.9, 421.3, 785.5, 477.2],
-            'SIMAGE_163': [669.9, 356.1, 785.5, 412.0],
-            'SIMAGE_173': [669.9, 290.9, 785.5, 346.8],
-            'SIMAGE_183': [669.9, 225.7, 785.5, 281.6],
-            'SIMAGE_193': [669.9, 160.5, 785.5, 216.4],
-            'SIMAGE_203': [669.9, 95.3, 785.5, 151.2],
-            // 211〜311: x+7.087、y+2.126
-            'SIMAGE_211': [830.0, 682.1, 945.6, 738.0],
-            'SIMAGE_221': [830.0, 616.9, 945.6, 672.8],
-            'SIMAGE_231': [830.0, 551.7, 945.6, 607.6],
-            'SIMAGE_241': [830.0, 486.5, 945.6, 542.4],
-            'SIMAGE_251': [830.0, 421.3, 945.6, 477.2],
-            'SIMAGE_261': [830.0, 356.1, 945.6, 412.0],
-            'SIMAGE_271': [830.0, 290.9, 945.6, 346.8],
-            'SIMAGE_281': [830.0, 225.7, 945.6, 281.6],
-            'SIMAGE_291': [830.0, 160.5, 945.6, 216.4],
-            'SIMAGE_301': [830.0, 95.3, 945.6, 151.2],
-            'SIMAGE_311': [830.0, 30.1, 945.6, 86.0],
-            // 213〜313: x+4.252、y+2.126
-            'SIMAGE_213': [1057.0, 682.1, 1172.6, 738.0],
-            'SIMAGE_223': [1057.0, 616.9, 1172.6, 672.8],
-            'SIMAGE_233': [1057.0, 551.7, 1172.6, 607.6],
-            'SIMAGE_243': [1057.0, 486.5, 1172.6, 542.4],
-            'SIMAGE_253': [1057.0, 421.3, 1172.6, 477.2],
-            'SIMAGE_263': [1057.0, 356.1, 1172.6, 412.0],
-            'SIMAGE_273': [1057.0, 290.9, 1172.6, 346.8],
-            'SIMAGE_283': [1057.0, 225.7, 1172.6, 281.6],
-            'SIMAGE_293': [1057.0, 160.5, 1172.6, 216.4],
-            'SIMAGE_303': [1057.0, 95.3, 1172.6, 151.2],
-            'SIMAGE_313': [1057.0, 30.1, 1172.6, 86.0],
+            'SIMAGE_011':[54.5,682.1,170.1,738.0],  'SIMAGE_021':[54.5,616.9,170.1,672.8],
+            'SIMAGE_031':[54.5,551.7,170.1,607.6],  'SIMAGE_041':[54.5,486.5,170.1,542.4],
+            'SIMAGE_051':[54.5,421.3,170.1,477.2],  'SIMAGE_061':[54.5,356.1,170.1,412.0],
+            'SIMAGE_071':[54.5,290.9,170.1,346.8],  'SIMAGE_081':[54.5,225.7,170.1,281.6],
+            'SIMAGE_091':[54.5,160.5,170.1,216.4],  'SIMAGE_101':[54.5,95.3,170.1,151.2],
+            'SIMAGE_013':[282.2,682.1,397.8,738.0], 'SIMAGE_023':[282.2,616.9,397.8,672.8],
+            'SIMAGE_033':[282.2,551.7,397.8,607.6], 'SIMAGE_043':[282.2,486.5,397.8,542.4],
+            'SIMAGE_053':[282.2,421.3,397.8,477.2], 'SIMAGE_063':[282.2,356.1,397.8,412.0],
+            'SIMAGE_073':[282.2,290.9,397.8,346.8], 'SIMAGE_083':[282.2,225.7,397.8,281.6],
+            'SIMAGE_093':[282.2,160.5,397.8,216.4], 'SIMAGE_103':[282.2,95.3,397.8,151.2],
+            'SIMAGE_111':[440.1,682.1,555.7,738.0], 'SIMAGE_121':[440.1,616.9,555.7,672.8],
+            'SIMAGE_131':[440.1,551.7,555.7,607.6], 'SIMAGE_141':[440.1,486.5,555.7,542.4],
+            'SIMAGE_151':[440.1,421.3,555.7,477.2], 'SIMAGE_161':[440.1,356.1,555.7,412.0],
+            'SIMAGE_171':[440.1,290.9,555.7,346.8], 'SIMAGE_181':[440.1,225.7,555.7,281.6],
+            'SIMAGE_191':[440.1,160.5,555.7,216.4], 'SIMAGE_201':[440.1,95.3,555.7,151.2],
+            'SIMAGE_113':[669.9,682.1,785.5,738.0], 'SIMAGE_123':[669.9,616.9,785.5,672.8],
+            'SIMAGE_133':[669.9,551.7,785.5,607.6], 'SIMAGE_143':[669.9,486.5,785.5,542.4],
+            'SIMAGE_153':[669.9,421.3,785.5,477.2], 'SIMAGE_163':[669.9,356.1,785.5,412.0],
+            'SIMAGE_173':[669.9,290.9,785.5,346.8], 'SIMAGE_183':[669.9,225.7,785.5,281.6],
+            'SIMAGE_193':[669.9,160.5,785.5,216.4], 'SIMAGE_203':[669.9,95.3,785.5,151.2],
+            'SIMAGE_211':[830.0,682.1,945.6,738.0], 'SIMAGE_221':[830.0,616.9,945.6,672.8],
+            'SIMAGE_231':[830.0,551.7,945.6,607.6], 'SIMAGE_241':[830.0,486.5,945.6,542.4],
+            'SIMAGE_251':[830.0,421.3,945.6,477.2], 'SIMAGE_261':[830.0,356.1,945.6,412.0],
+            'SIMAGE_271':[830.0,290.9,945.6,346.8], 'SIMAGE_281':[830.0,225.7,945.6,281.6],
+            'SIMAGE_291':[830.0,160.5,945.6,216.4], 'SIMAGE_301':[830.0,95.3,945.6,151.2],
+            'SIMAGE_311':[830.0,30.1,945.6,86.0],
+            'SIMAGE_213':[1057.0,682.1,1172.6,738.0],'SIMAGE_223':[1057.0,616.9,1172.6,672.8],
+            'SIMAGE_233':[1057.0,551.7,1172.6,607.6],'SIMAGE_243':[1057.0,486.5,1172.6,542.4],
+            'SIMAGE_253':[1057.0,421.3,1172.6,477.2],'SIMAGE_263':[1057.0,356.1,1172.6,412.0],
+            'SIMAGE_273':[1057.0,290.9,1172.6,346.8],'SIMAGE_283':[1057.0,225.7,1172.6,281.6],
+            'SIMAGE_293':[1057.0,160.5,1172.6,216.4],'SIMAGE_303':[1057.0,95.3,1172.6,151.2],
+            'SIMAGE_313':[1057.0,30.1,1172.6,86.0],
         };
 
-        async function embedImageToField(pdfDoc, fieldName, imagePath) {
-            try {
-                const coords = simageCoords[fieldName];
-                if (!coords) {
-                    console.warn(`座標未登録: ${fieldName}`);
-                    return;
-                }
-
-                // GIF→PNGパスに変換
-                const pngPath = imagePath.replace('.gif', '.png');
-                const imgBytes = await fetch(pngPath).then(res => res.arrayBuffer());
-                const pngImage = await pdfDoc.embedPng(imgBytes);
-
-                // ページに直接描画
-                const page = pdfDoc.getPages()[0];
-                const [x1, y1, x2, y2] = coords;
-                const width = x2 - x1;
-                const height = y2 - y1;
-
-                page.drawImage(pngImage, {
-                    x: x1,
-                    y: y1,
-                    width: width,
-                    height: height,
-                });
-            } catch (e) {
-                console.warn(`画像埋め込み失敗: ${fieldName}`, e);
-            }
-        }
-
-        // 1mm = 2.8346pt
-        // 左方向 = x を減らす、右方向 = x を増やす、上方向 = y を増やす
-        
-        // ==========================================
-        // DAYNO座標マップ（祝日画像用）
-        // 左列: -0.4mm = -1.134pt
-        // 中列: -0.1mm = -0.283pt
-        // 右列: -0.25mm = -0.709pt
-        // ==========================================
         const daynoCoordsMap = {
-            // 左列（1〜10日）x調整: -1.134
             1:[10.9,708.6,58.3,741.1],  2:[10.9,643.4,58.3,675.9],
             3:[10.9,578.2,58.3,610.7],  4:[10.9,513.0,58.3,545.5],
             5:[10.9,447.8,58.3,480.3],  6:[10.9,382.6,58.3,415.1],
             7:[10.9,317.4,58.3,349.9],  8:[10.9,252.2,58.3,284.7],
             9:[10.9,186.9,58.3,219.4], 10:[10.9,121.7,58.3,154.2],
-            // 中列（11〜20日）x調整: -0.283
-            11:[395.6,708.6,443.0,741.1], 12:[395.6,643.4,443.0,675.9],
-            13:[395.6,578.2,443.0,610.7], 14:[395.6,513.0,443.0,545.5],
-            15:[395.6,447.8,443.0,480.3], 16:[395.6,382.6,443.0,415.1],
-            17:[395.6,317.4,443.0,349.9], 18:[395.6,252.2,443.0,284.7],
-            19:[395.6,186.9,443.0,219.4], 20:[396.6,121.7,444.0,154.2],
-            // 右列（21〜31日）x調整: -0.709
-            21:[786.4,708.6,833.8,741.1], 22:[786.4,643.4,833.8,675.9],
-            23:[786.4,578.2,833.8,610.7], 24:[786.4,513.0,833.8,545.5],
-            25:[786.4,447.8,833.8,480.3], 26:[786.4,382.6,833.8,415.1],
-            27:[786.4,317.4,833.8,349.9], 28:[786.4,252.2,833.8,284.7],
-            29:[786.4,186.9,833.8,219.4], 30:[786.4,121.7,833.8,154.2],
+            11:[395.6,708.6,443.0,741.1],12:[395.6,643.4,443.0,675.9],
+            13:[395.6,578.2,443.0,610.7],14:[395.6,513.0,443.0,545.5],
+            15:[395.6,447.8,443.0,480.3],16:[395.6,382.6,443.0,415.1],
+            17:[395.6,317.4,443.0,349.9],18:[395.6,252.2,443.0,284.7],
+            19:[395.6,186.9,443.0,219.4],20:[396.6,121.7,444.0,154.2],
+            21:[786.4,708.6,833.8,741.1],22:[786.4,643.4,833.8,675.9],
+            23:[786.4,578.2,833.8,610.7],24:[786.4,513.0,833.8,545.5],
+            25:[786.4,447.8,833.8,480.3],26:[786.4,382.6,833.8,415.1],
+            27:[786.4,317.4,833.8,349.9],28:[786.4,252.2,833.8,284.7],
+            29:[786.4,186.9,833.8,219.4],30:[786.4,121.7,833.8,154.2],
             31:[786.4,56.5,833.8,89.0],
         };
+/* ========== /SECTION: PDF生成（座標マップ） ========== */
+
+/* ========== SECTION: PDF生成（コア関数） ========== */
+        async function embedImageToField(pdfDoc, fieldName, imagePath) {
+            try {
+                const coords = simageCoords[fieldName];
+                if (!coords) return;
+                const cleanPath = imagePath.split('?')[0];
+                const imgBytes  = await fetch(cleanPath).then(r => r.arrayBuffer());
+                const pngImage  = await pdfDoc.embedPng(imgBytes);
+                const page = pdfDoc.getPages()[0];
+                const [x1,y1,x2,y2] = coords;
+                page.drawImage(pngImage, { x:x1, y:y1, width:x2-x1, height:y2-y1 });
+            } catch(e) { console.warn(`画像埋め込み失敗: ${fieldName}`, e); }
+        }
 
         async function embedDayImage(pdfDoc, day, imagePath) {
             try {
                 const coords = daynoCoordsMap[day];
                 if (!coords) return;
-
-                const imgBytes = await fetch(imagePath).then(res => res.arrayBuffer());
+                const imgBytes = await fetch(imagePath).then(r => r.arrayBuffer());
                 const pngImage = await pdfDoc.embedPng(imgBytes);
-
                 const page = pdfDoc.getPages()[0];
-                const [x1, y1, x2, y2] = coords;
-                const origWidth = x2 - x1;
-                const origHeight = y2 - y1;
-                const drawWidth = origWidth * 0.80;
-                const drawHeight = origHeight * 1.8;  // 1.6 → 1.8 に変更
-
+                const [x1,y1,x2,y2] = coords;
+                const origW = x2-x1, origH = y2-y1;
                 page.drawImage(pngImage, {
-                    x: x1 + 5.5,                        // シールの位置 右に1mm（1mm≒2.8pt）
-                    y: y1 - (drawHeight - origHeight) + 3.5,  // もうちょっと上に 上に1mm（1mm≒2.8pt）
-                    width: drawWidth,
-                    height: drawHeight,
+                    x: x1+5.5, y: y1-(origH*1.8-origH)+3.5,
+                    width: origW*0.80, height: origH*1.8,
                 });
-            } catch (e) {
-                console.warn(`日付画像埋め込み失敗: day=${day}`, e);
+            } catch(e) { console.warn(`日付画像埋め込み失敗: day=${day}`, e); }
+        }
+
+        async function _buildCalendarPDF(year, month, mansionName) {
+            const daysInMonth = new Date(year, month+1, 0).getDate();
+            const firstDay    = new Date(year, month, 1).getDay();
+
+            const [pdfBytes, fontBytes] = await Promise.all([
+                fetch('calendar_v8.pdf?v=' + Date.now()).then(r => r.arrayBuffer()),
+                fetch('ipaexg.ttf').then(r => r.arrayBuffer()),
+            ]);
+
+            const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, { ignoreEncryption:true, updateMetadata:false });
+            pdfDoc.registerFontkit(fontkit);
+
+            const usedChars = new Set();
+            const cc = s => { for (const ch of String(s||'')) usedChars.add(ch); };
+            cc(mansionName);
+            for (let day=1; day<=31; day++) {
+                if (calendarData[day]?.comment) cc(calendarData[day].comment);
+                const hi = getHolidayInfo(year, month, day);
+                if (hi) cc(hi.name);
             }
+            '月火水木金土日休年'.split('').forEach(c => usedChars.add(c));
+            'MonTueWedThuFriSatSun'.split('').forEach(c => usedChars.add(c));
+            String(year).split('').forEach(c => usedChars.add(c));
+
+            const ipaFont  = await pdfDoc.embedFont(fontBytes, { subset:true, characters:[...usedChars].join('') });
+            const helvBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+
+            const FIELD_DATA = {"LOGO_Image":{"rect":[415.97,24.86,781.08,96.58],"size":10.5,"color":[0,0,0],"q":0},"MONTH":{"rect":[412.79,770.91,507.62,838.8],"size":70.0,"color":[1.0,0.6,1.0],"q":1},"WEEK_01":{"rect":[10.15,700.56,61.75,713.07],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_02":{"rect":[10.15,635.38,61.75,647.89],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_03":{"rect":[10.15,570.19,61.75,582.7],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_04":{"rect":[10.15,505.01,61.75,517.51],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_05":{"rect":[10.15,439.82,61.75,452.33],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_06":{"rect":[10.15,374.63,61.75,387.14],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_07":{"rect":[10.15,309.45,61.75,321.96],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_08":{"rect":[10.15,244.26,61.75,256.77],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_09":{"rect":[10.15,179.08,61.75,191.59],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_10":{"rect":[10.15,113.89,61.75,126.4],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_11":{"rect":[394.67,700.56,446.27,713.07],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_12":{"rect":[394.67,635.38,446.27,647.89],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_13":{"rect":[394.67,570.19,446.27,582.7],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_14":{"rect":[394.67,505.01,446.27,517.51],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_15":{"rect":[394.67,439.82,446.27,452.33],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_16":{"rect":[394.67,374.63,446.27,387.14],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_17":{"rect":[394.67,309.45,446.27,321.96],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_18":{"rect":[394.67,244.26,446.27,256.77],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_19":{"rect":[394.67,179.08,446.27,191.59],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_20":{"rect":[394.67,113.89,446.27,126.4],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_21":{"rect":[785.58,700.56,837.18,713.07],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_22":{"rect":[785.58,635.38,837.18,647.89],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_23":{"rect":[785.58,570.19,837.18,582.7],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_24":{"rect":[785.58,505.01,837.18,517.51],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_25":{"rect":[785.58,439.82,837.18,452.33],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_26":{"rect":[785.58,374.63,837.18,387.14],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_27":{"rect":[785.58,309.45,837.18,321.96],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_28":{"rect":[785.58,244.26,837.18,256.77],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_29":{"rect":[785.58,179.08,837.18,191.59],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_30":{"rect":[785.58,113.89,837.18,126.4],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"WEEK_31":{"rect":[785.58,48.71,837.18,61.22],"size":8.0,"color":[0.466,0.47,0.465],"q":1},"YOUBI_01":{"rect":[21.38,684.39,49.29,706.1],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_02":{"rect":[21.38,619.18,49.29,640.89],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_03":{"rect":[21.38,553.97,49.29,575.68],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_04":{"rect":[21.38,488.76,49.29,510.47],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_05":{"rect":[21.38,423.56,49.29,445.27],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_06":{"rect":[21.38,358.35,49.29,380.06],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_07":{"rect":[21.38,293.14,49.29,314.85],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_08":{"rect":[21.38,227.93,49.29,249.64],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_09":{"rect":[21.38,162.72,49.29,184.43],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_10":{"rect":[21.38,97.52,49.29,119.23],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_11":{"rect":[406.07,684.39,433.99,706.1],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_12":{"rect":[406.07,619.18,433.99,640.89],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_13":{"rect":[406.07,553.97,433.99,575.68],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_14":{"rect":[406.07,488.76,433.99,510.47],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_15":{"rect":[406.07,423.56,433.99,445.27],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_16":{"rect":[406.07,358.35,433.99,380.06],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_17":{"rect":[406.07,293.14,433.99,314.85],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_18":{"rect":[406.07,227.93,433.99,249.64],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_19":{"rect":[406.07,162.72,433.99,184.43],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_20":{"rect":[406.07,97.52,433.99,119.23],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_21":{"rect":[796.8,684.39,824.71,706.1],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_22":{"rect":[796.8,619.18,824.71,640.89],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_23":{"rect":[796.8,553.97,824.71,575.68],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_24":{"rect":[796.8,488.76,824.71,510.47],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_25":{"rect":[796.8,423.56,824.71,445.27],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_26":{"rect":[796.8,358.35,824.71,380.06],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_27":{"rect":[796.8,293.14,824.71,314.85],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_28":{"rect":[796.8,227.93,824.71,249.64],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_29":{"rect":[796.8,162.72,824.71,184.43],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_30":{"rect":[796.8,97.52,824.71,119.23],"size":17.0,"color":[0,0,0],"q":1},"YOUBI_31":{"rect":[796.8,32.31,824.71,54.02],"size":17.0,"color":[0,0,0],"q":1},"MEMO_001":{"rect":[171.26,674.92,397.12,750.0],"size":14.0,"color":[0,0,0],"q":0},"MEMO_002":{"rect":[171.26,609.73,397.12,684.8],"size":14.0,"color":[0,0,0],"q":0},"MEMO_003":{"rect":[171.26,544.53,397.12,619.6],"size":14.0,"color":[0,0,0],"q":0},"MEMO_004":{"rect":[171.26,479.33,397.12,554.4],"size":14.0,"color":[0,0,0],"q":0},"MEMO_005":{"rect":[171.26,414.13,397.12,489.2],"size":14.0,"color":[0,0,0],"q":0},"MEMO_006":{"rect":[171.26,348.93,397.12,424.0],"size":14.0,"color":[0,0,0],"q":0},"MEMO_007":{"rect":[171.26,283.73,397.12,358.8],"size":14.0,"color":[0,0,0],"q":0},"MEMO_008":{"rect":[171.26,218.53,397.12,293.6],"size":14.0,"color":[0,0,0],"q":0},"MEMO_009":{"rect":[171.26,153.33,397.12,228.4],"size":14.0,"color":[0,0,0],"q":0},"MEMO_010":{"rect":[171.26,88.13,397.12,163.2],"size":14.0,"color":[0,0,0],"q":0},"MEMO_011":{"rect":[556.34,674.92,782.2,750.0],"size":14.0,"color":[0,0,0],"q":0},"MEMO_012":{"rect":[556.34,609.73,782.2,684.8],"size":14.0,"color":[0,0,0],"q":0},"MEMO_013":{"rect":[556.34,544.53,782.2,619.6],"size":14.0,"color":[0,0,0],"q":0},"MEMO_014":{"rect":[556.34,479.33,782.2,554.4],"size":14.0,"color":[0,0,0],"q":0},"MEMO_015":{"rect":[556.34,414.13,782.2,489.2],"size":14.0,"color":[0,0,0],"q":0},"MEMO_016":{"rect":[556.34,348.93,782.2,424.0],"size":14.0,"color":[0,0,0],"q":0},"MEMO_017":{"rect":[556.34,283.73,782.2,358.8],"size":14.0,"color":[0,0,0],"q":0},"MEMO_018":{"rect":[556.34,218.53,782.2,293.6],"size":14.0,"color":[0,0,0],"q":0},"MEMO_019":{"rect":[556.34,153.33,782.2,228.4],"size":14.0,"color":[0,0,0],"q":0},"MEMO_020":{"rect":[556.34,88.13,782.2,163.2],"size":14.0,"color":[0,0,0],"q":0},"MEMO_021":{"rect":[946.35,674.92,1172.21,750.0],"size":14.0,"color":[0,0,0],"q":0},"MEMO_022":{"rect":[946.35,609.73,1172.21,684.8],"size":14.0,"color":[0,0,0],"q":0},"MEMO_023":{"rect":[946.35,544.53,1172.21,619.6],"size":14.0,"color":[0,0,0],"q":0},"MEMO_024":{"rect":[946.35,479.33,1172.21,554.4],"size":14.0,"color":[0,0,0],"q":0},"MEMO_025":{"rect":[946.35,414.13,1172.21,489.2],"size":14.0,"color":[0,0,0],"q":0},"MEMO_026":{"rect":[946.35,348.93,1172.21,424.0],"size":14.0,"color":[0,0,0],"q":0},"MEMO_027":{"rect":[946.35,283.73,1172.21,358.8],"size":14.0,"color":[0,0,0],"q":0},"MEMO_028":{"rect":[946.35,218.53,1172.21,293.6],"size":14.0,"color":[0,0,0],"q":0},"MEMO_029":{"rect":[946.35,153.33,1172.21,228.4],"size":14.0,"color":[0,0,0],"q":0},"MEMO_030":{"rect":[946.35,88.13,1172.21,163.2],"size":14.0,"color":[0,0,0],"q":0},"MEMO_031":{"rect":[946.35,22.8,1172.21,97.87],"size":14.0,"color":[0,0,0],"q":0},"VER_No":{"rect":[704.45,751.11,785.33,770.27],"size":10.5,"color":[0.867,0.869,0.863],"q":2},"BASE_Year":{"rect":[1021.39,771.7,1177.5,833.4],"size":60.0,"color":[1.0,1.0,1.0],"q":1},"AM_Name":{"rect":[789.96,746.68,1173.87,768.68],"size":14.0,"color":[0,0,0],"q":2}}
+            const fieldMap = new Map(Object.entries(FIELD_DATA).map(([k,v])=>[k,v]));
+            const page = pdfDoc.getPages()[0];
+
+            function drawField(name, text, overrideColor, overrideSize, xShift=0, yShift=0) {
+                if (!text) return;
+                const entry = fieldMap.get(name);
+                if (!entry) return;
+                const [rx1,ry1,rx2,ry2] = entry.rect;
+                const h=ry2-ry1, w=rx2-rx1;
+                const size  = overrideSize || entry.size || 12;
+                const color = overrideColor || PDFLib.rgb(...(entry.color||[0,0,0]));
+                const isMemo = name.startsWith('MEMO');
+                const q = entry.q||0;
+                let xPos = rx1+2;
+                if (q===1) { try { xPos=rx1+(w-ipaFont.widthOfTextAtSize(text,size))/2; } catch(e){} }
+                if (q===2) { try { xPos=rx2-ipaFont.widthOfTextAtSize(text,size)-2; } catch(e){} }
+                try {
+                    if (isMemo) {
+                        const rx2m=rx2+8.505, lineH=size*1.05+1.42;
+                        let curY=ry2-size-2;
+                        const wrap=(str,maxW)=>{
+                            const res=[]; let cur='';
+                            for(const ch of str){
+                                const test=cur+ch;
+                                let w2=0; try{w2=ipaFont.widthOfTextAtSize(test,size);}catch(e){w2=size*test.length;}
+                                if(w2>maxW&&cur){res.push(cur);cur=ch;}else cur=test;
+                            }
+                            if(cur)res.push(cur); return res;
+                        };
+                        const allLines=[];
+                        for(const ln of text.split('\n')) allLines.push(...wrap(ln,(rx2m-rx1)-6));
+                        for(const ln of allLines){
+                            if(curY<ry1-4.25) break;
+                            page.drawText(ln,{x:rx1+2+2.835,y:curY,size,font:ipaFont,color});
+                            curY-=lineH;
+                        }
+                    } else {
+                        page.drawText(text,{x:Math.max(rx1,xPos)+xShift,y:(ry1+(h-size)/2)+yShift,size,font:ipaFont,color,maxWidth:w-4,lineHeight:size*1.3});
+                    }
+                } catch(e){ console.warn('drawField:',name,e); }
+            }
+
+            const colorStr   = getMonthColor(month);
+            const [cr,cg,cb] = colorStr.match(/\d+/g).map(n=>parseInt(n)/255);
+            const monthColor = PDFLib.rgb(cr,cg,cb);
+            const white = PDFLib.rgb(1,1,1);
+
+            page.drawRectangle({x:790.0,y:765.0,width:383.9,height:55.9,color:monthColor,borderWidth:0});
+            page.drawRectangle({x:16.5, y:765.0,width:383.9,height:55.9,color:monthColor,borderWidth:0});
+            page.drawRectangle({x:16.5, y:15.6, width:1157.4,height:13.3,color:monthColor,borderWidth:0});
+
+            // 月数字
+            const mE=fieldMap.get('MONTH');
+            if(mE){const[mx,my,mx2,my2]=mE.rect,mH=my2-my,mW=mx2-mx,mSz=mE.size||70;
+                try{const tw=helvBold.widthOfTextAtSize(String(month+1),mSz);
+                    page.drawText(String(month+1),{x:mx+(mW-tw)/2,y:my+(mH-mSz)/2-1.701,size:mSz,font:helvBold,color:monthColor});}catch(e){}}
+            // 年
+            const yE=fieldMap.get('BASE_Year');
+            if(yE){const[yx,yy,yx2,yy2]=yE.rect,yH=yy2-yy,yW=yx2-yx,ySz=yE.size||55;
+                try{const tw=helvBold.widthOfTextAtSize(String(year),ySz);
+                    page.drawText(String(year),{x:yx+(yW-tw)/2,y:yy+(yH-ySz)/2-1.701,size:ySz,font:helvBold,color:white});}catch(e){}}
+
+            drawField('AM_Name', mansionName);
+            drawField('VER_No',  'Ver 10.116');
+
+            // ロゴ
+            const LOGO_FILE = isPastel ? 'haseko_logo_g.png' : 'haseko_logo.png';
+            try {
+                const logoRes = await fetch(LOGO_FILE);
+                if (logoRes.ok) {
+                    const logoBytes = await logoRes.arrayBuffer();
+                    const logoImg   = LOGO_FILE.endsWith('.jpg')||LOGO_FILE.endsWith('.jpeg')
+                        ? await pdfDoc.embedJpg(logoBytes)
+                        : await pdfDoc.embedPng(logoBytes);
+                    page.drawImage(logoImg, {x:415.97,y:24.9,width:365.1,height:71.7});
+                }
+            } catch(e){}
+
+            for (let day=1; day<=31; day++) {
+                const dow    = (firstDay+day-1)%7;
+                const dayStr = String(day).padStart(2,'0');
+                const dayStr3= String(day).padStart(3,'0');
+
+                if (day <= daysInMonth) {
+                    const hi = getHolidayInfo(year, month, day);
+                    const isHoliday = hi && hi.isHoliday;
+                    const isSunOrHol = dow===0 || isHoliday;
+
+                    if (isSunOrHol) await embedDayImage(pdfDoc, day, `days/D${dayStr}h.png`);
+
+                    const youbiText  = isHoliday ? '休' : dayNames[dow];
+                    const youbiColor = isSunOrHol ? white : null;
+                    drawField(`YOUBI_${dayStr}`, youbiText, youbiColor, undefined, 0,   1.417);
+                    drawField(`YOUBI_${dayStr}`, youbiText, youbiColor, undefined, 0.3, 1.417);
+
+                    const wEntry = fieldMap.get(`WEEK_${dayStr}`);
+                    if (wEntry) {
+                        const [wx1,wy1,wx2,wy2]=wEntry.rect, wH=wy2-wy1, wW=wx2-wx1, wSz=wEntry.size||8;
+                        const [wr,wg,wb]=wEntry.color||[0.466,0.47,0.465];
+                        const wColor = isSunOrHol ? PDFLib.rgb(1,0.95,0) : PDFLib.rgb(wr,wg,wb);
+                        try{const tw=helvBold.widthOfTextAtSize(weekdayNamesEn[dow],wSz);
+                            page.drawText(weekdayNamesEn[dow],{x:wx1+(wW-tw)/2,y:wy1+(wH-wSz)/2,size:wSz,font:helvBold,color:wColor});}catch(e){}
+                    }
+
+                    const comment = calendarData[day]?.comment || (hi ? hi.name : '');
+                    drawField(`MEMO_${dayStr3}`, comment);
+
+                    const img1 = calendarData[day]?.image1?.icon;
+                    if (img1) await embedImageToField(pdfDoc, `SIMAGE_${dayStr}1`, img1);
+                    const img2 = calendarData[day]?.image2?.icon;
+                    if (img2) await embedImageToField(pdfDoc, `SIMAGE_${dayStr}3`, img2);
+                }
+            }
+
+            for (let d=29; d<=31; d++) {
+                if (d > daysInMonth) {
+                    const [x1,y1,x2,y2] = maskCoords[d];
+                    page.drawRectangle({x:x1,y:y1,width:x2-x1,height:y2-y1,color:white,borderWidth:0});
+                }
+            }
+
+            try { pdfDoc.catalog.delete(PDFLib.PDFName.of('AcroForm')); } catch(e){}
+            try { pdfDoc.getPages()[0].node.delete(PDFLib.PDFName.of('Annots')); } catch(e){}
+
+            return await pdfDoc.save({ updateFieldAppearances: false });
+        }
+/* ========== /SECTION: PDF生成（コア関数） ========== */
+
+/* ========== SECTION: PDF出力（A3・A4） ========== */
+        async function generateCalendarPDFBytes() {
+            loadCurrentMonthData();
+            const year        = parseInt(document.getElementById('year').value);
+            const month       = parseInt(document.getElementById('month').value);
+            const mansionName = document.getElementById('mansion-name').value || '';
+            return await _buildCalendarPDF(year, month, mansionName);
+        }
+
+        async function generatePDFBase64() {
+            const bytes  = await generateCalendarPDFBytes();
+            const binary = Array.from(new Uint8Array(bytes)).map(b=>String.fromCharCode(b)).join('');
+            return btoa(binary);
+        }
+
+        async function generateA4Base64() {
+            const a3Bytes = await generateCalendarPDFBytes();
+            const {PDFDocument} = PDFLib;
+            const a3Doc   = await PDFDocument.load(a3Bytes, {ignoreEncryption:true});
+            const splitDoc= await PDFDocument.create();
+            const [emb]   = await splitDoc.embedPages([a3Doc.getPages()[0]]);
+            const a3W=1190.55,a3H=841.89,a4W=595.28,a4H=841.89,ov=14.17,xAdj=-6.977;
+            splitDoc.addPage([a4W,a4H]).drawPage(emb,{x:xAdj,y:0,width:a3W,height:a3H});
+            splitDoc.addPage([a4W,a4H]).drawPage(emb,{x:-(a3W-a4W-ov)+xAdj,y:0,width:a3W,height:a3H});
+            const bytes  = await splitDoc.save();
+            const binary = Array.from(new Uint8Array(bytes)).map(b=>String.fromCharCode(b)).join('');
+            return btoa(binary);
         }
 
         async function outputToPDF() {
+            const btn=document.getElementById('btnA3'), btn2=document.getElementById('btnA3b');
+            const inp=document.getElementById('mansion-name');
+            if (!inp?.value.trim()) { await showConfirmDialog('⚠️ 入力エラー','マンション名を入力してください。',false); return; }
+            if(btn){btn.disabled=true;btn.textContent='⏳ PDF作成中...';}
+            if(btn2){btn2.disabled=true;btn2.textContent='⏳ PDF作成中...';}
             try {
-                // 現在の月のデータを読み込む
-                loadCurrentMonthData();
-
-                const btn = document.querySelector('.pdf-output-btn');
-                const btn2 = document.querySelector('.print-btn');
-                if (btn) { btn.disabled = true; btn.textContent = '⏳ PDF作成中...'; }
-                if (btn2) { btn2.disabled = true; btn2.textContent = '⏳ PDF作成中...'; }
-
-                const year = parseInt(document.getElementById('year').value);
-                const month = parseInt(document.getElementById('month').value);
-
-                console.log('year:', year, 'month:', month, 'MONTH値:', String(month + 1));
-
-                const mansionName = document.getElementById('mansion-name').value || '';
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const firstDay = new Date(year, month, 1).getDay();
-
-                // const pdfBytes = await fetch('calendar_v8.pdf').then(res => res.arrayBuffer());
-                const pdfBytes = await fetch('calendar_v8.pdf?v=' + Date.now()).then(res => res.arrayBuffer());
-                const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, {
-                    ignoreEncryption: true,
-                    updateMetadata: false,
-                });
-                const form = pdfDoc.getForm();
-
-                function setTextField(fieldName, value) {
-                    try {
-                        const field = form.getTextField(fieldName);
-                        field.setText(value);
-                    } catch (e) {
-                        console.warn(`フィールド未検出: ${fieldName}`);
-                    }
-                }
-
-                // 月の色を取得（rgb(r,g,b)形式から数値に変換）
-                const colorStr = monthColors[month];
-                const colorMatch = colorStr.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-                const r = parseInt(colorMatch[1]) / 255;
-                const g = parseInt(colorMatch[2]) / 255;
-                const b = parseInt(colorMatch[3]) / 255;
-
-                const page = pdfDoc.getPages()[0];
-
-                // 色帯を描画（COLOR_MAIN_1: 右上、COLOR_MAIN_2: 左上、COLOR_MAIN_3: 下）
-                page.drawRectangle({ x: 790.0, y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
-                page.drawRectangle({ x: 16.5,  y: 765.0, width: 383.9, height: 55.9, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
-                page.drawRectangle({ x: 16.5,  y: 15.6,  width: 1157.4, height: 13.3, color: PDFLib.rgb(r, g, b), borderWidth: 0 });
-
-                // MONTHフィールドの色・テキスト・読み取り専用を設定
-                const daString = `/HeBo 70 Tf ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg`;
-                const monthField = form.getTextField('MONTH');
-                monthField.acroField.dict.set(PDFLib.PDFName.of('DA'), PDFLib.PDFString.of(daString));
-                monthField.setText(String(month + 1));
-                monthField.enableReadOnly();
-
-                setTextField('BASE_Year', String(year));
-                setTextField('AM_Name', mansionName);
-                setTextField('VER_No', '8.75');
-
-                const color = monthColors[month];
-
-                for (let day = 1; day <= 31; day++) {
-                    const dayOfWeek = (firstDay + day - 1) % 7;
-                    const dayStr = String(day).padStart(2, '0');
-                    const dayStr3 = String(day).padStart(3, '0');
-
-                    if (day <= daysInMonth) {
-                        const holidayInfo = getHolidayInfo(year, month, day);
-                        const isHoliday = holidayInfo && holidayInfo.isHoliday;
-                        const isSundayOrHoliday = dayOfWeek === 0 || isHoliday;
-
-                        // 祝日・日曜のみ日付画像を描画
-                        if (isSundayOrHoliday) {
-                            const dayNumStr = String(day).padStart(2, '0');
-                            await embedDayImage(pdfDoc, day, `days/D${dayNumStr}h.png`);
-                        }
-
-                        setTextField(`WEEK_${dayStr}`, weekdayNamesEn[dayOfWeek]);
-                        setTextField(`YOUBI_${dayStr}`, isHoliday ? '休' : dayNames[dayOfWeek]);
-                        const comment = calendarData[day]?.comment || (holidayInfo ? holidayInfo.name : '');
-                        setTextField(`MEMO_${dayStr3}`, comment);
-
-                        if (day >= 29) setTextField(`WHITE_${day}`, '');
-
-                        // 画像①
-                        const image1 = calendarData[day]?.image1?.icon;
-                        if (image1) {
-                            await embedImageToField(pdfDoc, `SIMAGE_${dayStr}1`, image1);
-                        }
-                        // 画像②
-                        const image2 = calendarData[day]?.image2?.icon;
-                        if (image2) {
-                            await embedImageToField(pdfDoc, `SIMAGE_${dayStr}3`, image2);
-                        }
-
-                    } else {
-                        if (day >= 29) setTextField(`WHITE_${day}`, '■');
-                        setTextField(`WEEK_${dayStr}`, '');
-                        setTextField(`YOUBI_${dayStr}`, '');  // ← Ja
-                        setTextField(`MEMO_${dayStr3}`, '');
-                    }
-                }
-
-                // 29〜31日が存在しない月は白でマスク
-                const maskCoords = {
-                    29: [787.0, 159.1, 1177.7, 225.1],
-                    30: [787.0,  93.9, 1177.7, 160.0],
-                    31: [787.0,  28.9, 1177.7,  94.6],
-                };
-                for (let d = 29; d <= 31; d++) {
-                    if (d > daysInMonth) {
-                        const [x1, y1, x2, y2] = maskCoords[d];
-                        page.drawRectangle({
-                            x: x1,
-                            y: y1,
-                            width: x2 - x1,
-                            height: y2 - y1,
-                            color: PDFLib.rgb(1, 1, 1),
-                            borderWidth: 0,
-                        });
-                    }
-                }
-
-                // NeedAppearancesをTrueに設定（フィールドの再描画を指示）
-                const acroFormRef = pdfDoc.catalog.get(PDFLib.PDFName.of('AcroForm'));
-                if (acroFormRef) {
-                    const acroFormObj = pdfDoc.context.lookup(acroFormRef);
-                    if (acroFormObj) acroFormObj.set(PDFLib.PDFName.of('NeedAppearances'), PDFLib.PDFBool.True);
-                }
-
-                // 全フィールドのアピアランス更新を無効化
-                const pdfBytesOut = await pdfDoc.save({ updateFieldAppearances: false });
-                const blob = new Blob([pdfBytesOut], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `カレンダー_${year}_${String(month + 1).padStart(2, '0')}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                await showConfirmDialog('✅ PDF出力完了', `${year}年${monthNames[month]}のPDFをダウンロードしました！`, false);
-
-            } catch (e) {
-                console.error('PDF出力エラー:', e);
-                await showConfirmDialog('❌ エラー', `PDF出力に失敗しました。\n${e.message}`, false);
+                const year=parseInt(document.getElementById('year').value);
+                const month=parseInt(document.getElementById('month').value);
+                const bytes=await generateCalendarPDFBytes();
+                const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+                const a=document.createElement('a');
+                a.href=url; a.download=`カレンダー_${year}_${String(month+1).padStart(2,'0')}.pdf`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                await showConfirmDialog('✅ PDF出力完了',`${year}年${monthNames[month]}のPDFをダウンロードしました！`,false);
+            } catch(e) {
+                console.error(e);
+                await showConfirmDialog('❌ エラー',`PDF出力に失敗しました。\n${e.message}`,false);
             } finally {
-                const btn = document.querySelector('.pdf-output-btn');
-                const btn2 = document.querySelector('.print-btn');
-                if (btn) { btn.disabled = false; btn.textContent = '📄 PDF出力'; }
-                if (btn2) { btn2.disabled = false; btn2.textContent = '📄 PDFダウンロード'; }
+                if(btn){btn.disabled=false;btn.textContent='📄 PDF出力（A3）';}
+                if(btn2){btn2.disabled=false;btn2.textContent='📄 A3ダウンロード';}
             }
         }
 
-        </script>
-    </body>
+        async function outputToPDFA4() {
+            const btn=document.getElementById('btnA4'), btnB=document.getElementById('btnA4b');
+            const inp=document.getElementById('mansion-name');
+            if (!inp?.value.trim()) { await showConfirmDialog('⚠️ 入力エラー','マンション名を入力してください。',false); return; }
+            if(btn){btn.disabled=true;btn.textContent='⏳ 作成中...';}
+            if(btnB){btnB.disabled=true;btnB.textContent='⏳ 作成中...';}
+            try {
+                const year=parseInt(document.getElementById('year').value);
+                const month=parseInt(document.getElementById('month').value);
+                const a3Bytes=await generateCalendarPDFBytes();
+                const {PDFDocument}=PDFLib;
+                const a3Doc=await PDFDocument.load(a3Bytes,{ignoreEncryption:true});
+                const splitDoc=await PDFDocument.create();
+                const [emb]=await splitDoc.embedPages([a3Doc.getPages()[0]]);
+                const a3W=1190.55,a3H=841.89,a4W=595.28,a4H=841.89,ov=14.17,xAdj=-6.977;
+                splitDoc.addPage([a4W,a4H]).drawPage(emb,{x:xAdj,y:0,width:a3W,height:a3H});
+                splitDoc.addPage([a4W,a4H]).drawPage(emb,{x:-(a3W-a4W-ov)+xAdj,y:0,width:a3W,height:a3H});
+                const bytes=await splitDoc.save();
+                const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+                const a=document.createElement('a');
+                a.href=url; a.download=`カレンダー_${year}_${String(month+1).padStart(2,'0')}_A4.pdf`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                await showConfirmDialog('✅ 完了','A4×2枚PDFをダウンロードしました！\n1枚目と2枚目を並べるとA3になります。',false);
+            } catch(e) {
+                console.error(e);
+                await showConfirmDialog('❌ エラー',e.message,false);
+            } finally {
+                if(btn){btn.disabled=false;btn.textContent='✂️ Ａ４×２枚';}
+                if(btnB){btnB.disabled=false;btnB.textContent='✂️ Ａ４×２枚';}
+            }
+        }
+/* ========== /SECTION: PDF出力（A3・A4） ========== */
+    </script>
+</body>
 </html>
